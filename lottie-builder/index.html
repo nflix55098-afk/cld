@@ -1580,7 +1580,16 @@ input[type=number]::-webkit-outer-spin-button{
 
 /* ===== v10: слой эффектов ===== */
 .fx-thumb{font-size:20px;line-height:1;color:var(--primary)}
+#deviceFrame.dark{background:#16233f}
 .recipe-chip.blocked{opacity:.45}
+
+/* ===== v10: редактор рисунка на стекле ===== */
+.fm-wrap{display:flex;gap:20px;flex-wrap:wrap}
+.fm-left{flex:none}
+.fm-right{flex:1;min-width:260px;display:flex;flex-direction:column;gap:10px}
+#fmCanvas{display:block;border-radius:14px;border:1px solid var(--line);touch-action:none;cursor:crosshair}
+.fm-right .segc{align-self:flex-start;flex-wrap:wrap}
+.fm-right .mfield textarea{min-height:64px}
 </style>
 </head>
 <body>
@@ -1660,6 +1669,7 @@ input[type=number]::-webkit-outer-spin-button{
         <button id="playBtn" class="play-btn"><svg class="lic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4.5v15a.5.5 0 0 0 .77.42l11.5-7.5a.5.5 0 0 0 0-.84L6.77 4.08A.5.5 0 0 0 6 4.5Z" fill="currentColor" stroke="none"/></svg></button>
         <input id="scrub" type="range" min="0" max="100" value="0" step="0.1">
         <span id="timeLabel">0.00с / 1.40с</span>
+        <button id="darkBgBtn" class="tgl" title="Тёмный фон превью: на нём видны светлые эффекты — снег, иней. В экспорт не входит"><svg class="lic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></button>
         <button id="loopSegBtn" class="tgl" title="Зациклить сегмент: пока на таймлайне выбран сегмент, Play крутит по кругу только его — удобно подбирать параметры"><svg class="lic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
         <button id="onionBtn" class="tgl" title="Onion skin: призраки слоя на ключевых кадрах"><svg class="lic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/></svg></button>
         <div class="bg-ctrls">
@@ -1862,6 +1872,26 @@ input[type=number]::-webkit-outer-spin-button{
       </select></div>
       <div class="mfield"><label>Цвет</label><input id="txtColor" type="color" value="#191919"></div>
       <div class="exp-btns" style="justify-content:flex-end"><button id="txtApply" class="btn primary">Создать слой</button></div>
+    </div>
+  </div>
+  <div id="frostModal" class="modal" style="max-width:780px;width:95vw">
+    <div class="modal-head"><h2>Рисунок на стекле</h2><button class="modal-close" aria-label="Закрыть">✕</button></div>
+    <div class="modal-body">
+      <div class="fm-wrap">
+        <div class="fm-left"><canvas id="fmCanvas"></canvas></div>
+        <div class="fm-right">
+          <div class="segc" id="fmKind" role="radiogroup" aria-label="Тип рисунка"><button data-v="text">Текст</button><button data-v="draw">От руки</button><button data-v="image">Картинка</button><button data-v="none">Без рисунка</button></div>
+          <div class="mfield" data-fm="text"><label>Текст</label><textarea id="fmText" placeholder="2027"></textarea></div>
+          <div class="mfield" data-fm="text,image"><label>Размер</label><input id="fmSize" type="range" min="0.05" max="0.9" step="0.01" value="0.26"></div>
+          <p class="hint" data-fm="text,image">Перетащите рисунок на превью, чтобы подвинуть. Он протрётся слева направо.</p>
+          <div class="mfield" data-fm="draw"><label>Толщина линии</label><input id="fmBrush" type="range" min="0.02" max="0.2" step="0.005" value="0.07"></div>
+          <div class="exp-btns" data-fm="draw"><button id="fmUndo" class="btn">Отменить штрих</button><button id="fmClear" class="btn">Очистить</button></div>
+          <p class="hint" data-fm="draw">Рисуйте прямо на превью. Рисунок протрётся в том же порядке, в каком вы его нарисовали.</p>
+          <div data-fm="image"><button id="fmUpload" class="btn">Загрузить картинку…</button><input type="file" id="fmFile" accept="image/*,.svg" hidden><p class="hint" id="fmImgName" style="margin-top:8px"></p><p class="hint">Протирается непрозрачная часть картинки — лучше всего PNG с прозрачным фоном.</p></div>
+          <p class="hint" data-fm="none">Экран замёрзнет целиком, без рисунка.</p>
+          <div class="exp-btns" style="justify-content:flex-end;margin-top:16px"><button id="fmApply" class="btn primary">Готово</button></div>
+        </div>
+      </div>
     </div>
   </div>
   <div id="appearEditorModal" class="modal" style="max-width:1040px;width:95vw">
@@ -2746,6 +2776,22 @@ const PRESETS = {
     ],
     cond: { color: [["source", "!image"]], glintColor: [["sparkle", "yes"]], glintSize: [["sparkle", "yes"]] },
   },
+  frost: {
+    name: "Заморозка экрана", cat: "fx", tag: "В/Р", fx: true, sceneFx: true, dur: 3,
+    params: [
+      { k: "tint", label: "Оттенок инея", type: "color", def: "#D6ECFF" },
+      { k: "strength", label: "Плотность инея", type: "range", min: 0.3, max: 1, step: 0.05, def: 0.85 },
+      { k: "spread", label: "Замерзание (доля времени)", type: "range", min: 0.1, max: 0.9, step: 0.05, def: 0.4 },
+      { k: "wipeAt", label: "Начало протирания рисунка", type: "range", min: 0.1, max: 0.95, step: 0.05, def: 0.55 },
+      { k: "wipeLen", label: "Длительность протирания", type: "range", min: 0.05, max: 0.5, step: 0.05, def: 0.25 },
+      { k: "thaw", label: "В конце", type: "select", options: [["no", "Остаётся замёрзшим"], ["yes", "Оттаивает"]], def: "no" },
+      { k: "center", label: "Иней в центре экрана", type: "range", min: 0, max: 1, step: 0.05, def: 0.6 },
+      { k: "crystals", label: "Кристаллы", type: "range", min: 0, max: 1, step: 0.05, def: 0.6 },
+      { k: "bands", label: "Плавность распространения", type: "range", min: 2, max: 8, step: 1, def: 5 },
+      { k: "quality", label: "Качество текстуры", type: "select", options: [["low", "Лёгкая (360 px)"], ["mid", "Средняя (540 px)"], ["high", "Высокая (760 px)"]], def: "mid" },
+      { k: "seed", label: "Сид", type: "range", min: 1, max: 999, step: 1, def: 5 },
+    ],
+  },
   sparkles: {
     name: "Искры-звёздочки", cat: "fx", tag: "В/Р", fx: true, dur: 1.3,
     params: [
@@ -2994,6 +3040,7 @@ const PRESET_INFO = {
   flame: ["Пламя", "Нерегулярное мерцание вверх, бесшовный цикл", "flame fire огонь flicker"],
   breathe: ["Idle-дыхание", "Едва заметное дыхание для состояния покоя, бесшовный цикл", "idle breathe покой"],
   snow: ["Снег", "Снежинки плавно падают с покачиванием и сверкают у нижней границы", "snow снегопад снежинки зима новый год"],
+  frost: ["Заморозка экрана", "Экран затягивает инеем от краёв к центру, рисунок или текст протирается на стекле", "frost freeze лёд иней мороз стекло новый год 2027"],
   ringBurst: ["Кольцо + точки", "Круг раскрывается в кольцо, точки разлетаются — лайк как в X", "ring burst twitter like"],
   rays: ["Лучи-штрихи", "Короткий всплеск частиц вокруг — хлопок как в Medium", "rays clap medium"],
   confetti: ["Конфетти", "Залп цветных бумажек с гравитацией и трепетом", "confetti праздник"],
@@ -3010,6 +3057,7 @@ const PRESET_ADV = {
   swarmHide: ["count", "pattern", "rangeX", "rangeY", "spacing", "scaleMin", "scaleMax", "rotRange", "spin", "gravity", "seed"],
   splitGrid: ["gravity", "rotate", "random", "fade"], splitPath: ["gravity", "rotate", "fade"], explode: ["rotate", "hold", "random"],
   confetti: ["gravity", "flutter", "spinK", "originX", "originY", "seed"],
+  frost: ["center", "crystals", "bands", "quality", "seed"],
   snow: ["sizeVar", "sparkle", "glintColor", "glintSize", "ground", "wind", "sway", "spin", "prewarm", "seed"], ringBurst: ["dotSize"], rays: ["size", "seed"],
   sparkles: ["life", "seed"], shockwave: ["gap", "opacity", "width"], satellites: ["depth", "dir"],
   orbit: ["depth", "dir"], liveHeart: ["waves", "seed"], flame: ["speed", "seed"], doubleTap: ["tilt", "hold"],
@@ -3052,6 +3100,10 @@ const RECIPES = [
     segs: [{ preset: "wow", off: 0, dur: 0.95 }, { preset: "sparkles", off: 0.3, dur: 1, params: { count: 5 } }] },
   { id: "arrive", emoji: "💬", name: "Прилёт реакции", desc: "Летит по дуге со шлейфом и «нажимается» на месте",
     segs: [{ preset: "flyTo", off: 0, dur: 0.7 }, { preset: "trail", off: 0, dur: 0.75 }, { preset: "tapSquash", off: 0.7, dur: 0.4 }] },
+  { id: "snowfall", emoji: "❄️", name: "Снегопад", desc: "Снежинки падают и сверкают внизу; бесшовный цикл на 4 секунды",
+    segs: [{ preset: "snow", off: 0, dur: 4 }] },
+  { id: "frost2027", emoji: "🧊", name: "Мороз 2027", desc: "Экран замерзает, «2027» протирается на стекле, идёт снег",
+    segs: [{ preset: "snow", off: 0, dur: 4 }, { preset: "frost", off: 0, dur: 4 }] },
   { id: "dblTap", emoji: "🤍", name: "Двойной тап", desc: "Появился, завис, исчез — с точками вокруг",
     segs: [{ preset: "doubleTap", off: 0, dur: 1 }, { preset: "rays", off: 0.12, dur: 0.55, params: { icon: "none", shape: "dots", count: 8 } }] },
 ];
@@ -3090,6 +3142,7 @@ function applyRecipe(layer, r) {
   const segs = r.segs.filter((s) => PRESETS[s.preset]);
   const total = Math.max.apply(null, segs.map((s) => (s.off || 0) + s.dur));
   const start = placeSegment(total);
+  if (segs.some((s) => PRESETS[s.preset].sceneFx) && !darkBg && !bg) setDarkBg(true);
   segs.forEach((s) => {
     const t0 = round(start + (s.off || 0), 2);
     layer.segments.push({ id: uid("s"), preset: s.preset, t: [t0, round(t0 + s.dur, 2)], params: Object.assign(presetDefaults(s.preset), s.params || {}), ease: "auto", chain: false });
@@ -3791,6 +3844,24 @@ function buildFxLayers(layer, asset, base, env) {
           shape("over", "#" + (i + 1), [fxRect(round(w, 1), round(h, 1), 1), fxFill(col)], fly, ks, 2.5); // частицы летят быстро — траекторию можно прореживать грубее
         }
       }
+    } else if (seg.preset === "frost") {
+      const pat = seg.params.pattern === undefined ? frostDefaultPattern() : seg.params.pattern;
+      const fr = frostBuild(p, pat, project.scene.w, project.scene.h), K = fr.K;
+      const sp = clamp(p.spread, 0.05, 0.95), thaw = p.thaw === "yes", wLen = clamp(p.wipeLen, 0.02, 0.9), wAt = Math.min(p.wipeAt, 1 - wLen);
+      const ss = (x) => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
+      // пояс k проявляется со сдвигом: края раньше, центр позже; соседние пояса перекрываются по времени
+      const bandIn = (k, t) => ss((t - (k / (K + 0.6)) * sp) / ((1.6 / (K + 0.6)) * sp));
+      let bi = 0, pi = 0;
+      fr.layers.slice().reverse().forEach((L) => { // сверху вниз: заплатки, под ними пояса кристаллов и вуали
+        const T = bake((t) => {
+          let o = bandIn(L.k, t);
+          if (L.kind === "plug") o *= 1 - ss((t - (wAt + L.ord * wLen)) / Math.max(0.03, wLen * 0.12)); // заплатки гаснут по очереди — рисунок протирается
+          if (thaw) o *= 1 - ss((t - 0.8) / 0.2);
+          return { x: L.cx, y: L.cy, sx: L.sc, sy: L.sc, op: o };
+        });
+        const aid = ensureAsset(env.out, env.assetMap, L, L.dataURL, L.w, L.h);
+        res.over.push(fxKs(imageLayer(env.ind(), nm(L.kind === "plug" ? "рисунок " + (++pi) : "иней " + (++bi)), aid, [L.w / 2, L.h / 2], [[0, 0]], [[100, 100]], [0], [100], T.ip, T.op, true), T));
+      });
     } else if (seg.preset === "snow") {
       const W = project.scene.w, H = project.scene.h, D = dur / fps;
       const n = clamp(Math.round(p.density), 1, 200), I = clamp(p.intensity, 0, 1);
@@ -4681,6 +4752,13 @@ async function rebuildPreview() {
 let playing = false;
 // v8: «зациклить сегмент» — пока выбран сегмент, Play крутит только его: удобно подбирать параметры
 let loopSegOn = LS.get("lb-loop-seg", true), segPlay = false;
+// v10: тёмный фон превью — чтобы видеть светлые эффекты (снег, иней); на экспорт не влияет
+let darkBg = LS.get("lb-dark-bg", false);
+function setDarkBg(on) {
+  darkBg = !!on; LS.set("lb-dark-bg", darkBg);
+  const f = $("#deviceFrame"), b = $("#darkBgBtn");
+  if (f) f.classList.toggle("dark", darkBg); if (b) b.classList.toggle("on", darkBg);
+}
 function playRange() {
   const sg = selectedSeg();
   if (!loopSegOn || !sg) return null;
@@ -5318,6 +5396,7 @@ function renderSegParams(host, layer, seg) {
       <input type="file" id="cfFile" accept="image/*,.svg" multiple hidden>
       <p class="hint" style="margin:6px 0 0">Частицы берут картинки по очереди. Лучше всего подходят PNG с прозрачным фоном; большие изображения уменьшаются до ${PARTICLE_MAX} px.</p>
     </div>` : "";
+  if (seg.preset === "frost") fields += `<div class="cf-imgs"><div style="font-size:13px;margin-bottom:8px">Рисунок на стекле: <b>${escapeHtml(frostPatternLabel(seg.params.pattern === undefined ? frostDefaultPattern() : seg.params.pattern))}</b></div><button type="button" class="btn-soft wide" id="frostEdBtn">${icon("pencil")} Изменить рисунок…</button><p class="hint" style="margin:6px 0 0">Экран замерзает целиком, а рисунок «протирается» на стекле. Можно ввести текст, нарисовать от руки или загрузить картинку. Слой эффектов держите верхним в списке, чтобы иней был поверх остального.</p></div>`;
   (def.params || []).forEach((pp) => {
     const v = seg.params[pp.k] == null ? pp.def : seg.params[pp.k]; // у старых сегментов новых параметров нет — берём дефолт
     const hidden = !condOk(pp.k);
@@ -5396,6 +5475,8 @@ function renderSegParams(host, layer, seg) {
     const inp = $(`[data-p="${k}"]`, host); if (inp) inp.value = b.dataset.c.toLowerCase();
     syncReset(k); markDirty(); scheduleRebuild();
   }));
+  const frostEdBtn = $("#frostEdBtn", host);
+  if (frostEdBtn) frostEdBtn.addEventListener("click", () => frostEdOpen(layer, seg));
   // v9: изображения-частицы — загрузка, выбор из проекта, удаление
   const cfFile = $("#cfFile", host);
   if (cfFile) {
@@ -5489,6 +5570,7 @@ function addSegment(layer, presetId) {
   const dur = def.dur || (def.complex ? 0.9 : 0.6);
   const start = placeSegment(dur);
   pushRecent(presetId);
+  if (def.sceneFx && !darkBg && !bg) { setDarkBg(true); toast("Включил тёмный фон превью, чтобы светлый эффект было видно. Он не попадает в экспорт; выключается кнопкой с луной над холстом.", "ok", 6500); }
   // при экспорте на слое учитывается только один сложный пресет (исключение — пара «рой + его скрытие»)
   if (def.complex) {
     const exist = layer.segments.filter((s) => PRESETS[s.preset] && PRESETS[s.preset].complex).map((s) => s.preset);
@@ -6486,6 +6568,270 @@ function segContextMenu(e, layer, seg) {
   ]);
 }
 
+/* ============================================================================
+   v10: заморозка экрана. Маски Lottie не используются (мобильные плееры поддерживают их
+   по-разному): иней — это несколько PNG-слоёв, у которых меняется только прозрачность.
+     • «пояса» — иней проявляется от краёв к центру (каждый следующий пояс ближе к центру);
+     • «заплатки» — кусочки инея поверх рисунка; гаснут по очереди, и рисунок «протирается».
+   Альфа слоёв подобрана так, что все вместе они дают ровно исходную текстуру (без швов).
+   ========================================================================== */
+const FROST_Q = { low: 360, mid: 540, high: 760 };
+const FROST_CACHE = new Map();
+function frostDefaultPattern() { return { kind: "text", text: "2027", size: 0.26, x: 0.5, y: 0.5 }; }
+function frostPatternLabel(pat) {
+  if (!pat || pat.kind === "none") return "без рисунка — замерзает весь экран";
+  if (pat.kind === "text") return "текст «" + String(pat.text || "").replace(/\n/g, " ").slice(0, 18) + "»";
+  if (pat.kind === "draw") return "рисунок от руки, штрихов: " + (pat.strokes || []).length;
+  if (pat.kind === "image") return "картинка";
+  return "—";
+}
+// Рисует узор белым по прозрачному. Одна функция и для редактора, и для генератора — что видите, то и получите.
+function frostDrawPattern(ctx, pat, w, h, grow) {
+  if (!pat || pat.kind === "none") return;
+  ctx.save();
+  ctx.fillStyle = "#fff"; ctx.strokeStyle = "#fff"; ctx.lineJoin = "round"; ctx.lineCap = "round";
+  const cx = (pat.x == null ? 0.5 : pat.x) * w, cy = (pat.y == null ? 0.5 : pat.y) * h;
+  if (pat.kind === "text") {
+    const px = Math.max(6, (pat.size || 0.26) * w), lines = String(pat.text || "").split("\n");
+    ctx.font = "800 " + px + 'px system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif';
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineWidth = px * 0.07 + (grow || 0) * 2;
+    lines.forEach((ln, i) => { const y = cy + (i - (lines.length - 1) / 2) * px * 1.08; ctx.strokeText(ln, cx, y); ctx.fillText(ln, cx, y); });
+  } else if (pat.kind === "draw") {
+    (pat.strokes || []).forEach((st) => {
+      const pts = st.pts || []; if (!pts.length) return;
+      ctx.lineWidth = Math.max(1, (st.w || 0.05) * w) + (grow || 0) * 2;
+      ctx.beginPath(); ctx.moveTo(pts[0][0] * w, pts[0][1] * h);
+      if (pts.length === 1) ctx.lineTo(pts[0][0] * w + 0.01, pts[0][1] * h);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0] * w, pts[i][1] * h);
+      ctx.stroke();
+    });
+  } else if (pat.kind === "image") {
+    const a = ASSETS[pat.assetId];
+    if (a && a.img) { const iw = (pat.size || 0.5) * w, ih = iw * a.h / Math.max(1, a.w); ctx.drawImage(a.img, cx - iw / 2, cy - ih / 2, iw, ih); }
+  }
+  ctx.restore();
+}
+function frostBlur(src, w, h, r) { // размытие «коробкой» в два прохода — мягкий край без canvas-фильтров (их нет в части браузеров)
+  r = Math.max(1, Math.round(r)); const tmp = new Float32Array(w * h), out = new Float32Array(w * h), n = 2 * r + 1;
+  for (let y = 0; y < h; y++) { let acc = 0; const o = y * w;
+    for (let x = -r; x <= r; x++) acc += src[o + clamp(x, 0, w - 1)];
+    for (let x = 0; x < w; x++) { tmp[o + x] = acc / n; acc += src[o + clamp(x + r + 1, 0, w - 1)] - src[o + clamp(x - r, 0, w - 1)]; } }
+  for (let x = 0; x < w; x++) { let acc = 0;
+    for (let y = -r; y <= r; y++) acc += tmp[clamp(y, 0, h - 1) * w + x];
+    for (let y = 0; y < h; y++) { out[y * w + x] = acc / n; acc += tmp[clamp(y + r + 1, 0, h - 1) * w + x] - tmp[clamp(y - r, 0, h - 1) * w + x]; } }
+  return out;
+}
+function frostAlphaOf(cv) { const d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data, n = cv.width * cv.height, a = new Float32Array(n); for (let i = 0; i < n; i++) a[i] = d[i * 4 + 3] / 255; return a; }
+// Главный генератор: возвращает набор PNG-слоёв (обрезаны по содержимому) с порядком появления и протирания
+function frostBuild(p, pat, W, H) {
+  const key = JSON.stringify([W, H, p.tint, p.strength, p.center, p.crystals, p.bands, p.quality, p.seed, pat, pat && pat.assetId && ASSETS[pat.assetId] ? ASSETS[pat.assetId].w : 0]);
+  if (FROST_CACHE.has(key)) return FROST_CACHE.get(key);
+  const q = FROST_Q[p.quality] || FROST_Q.mid, k0 = q / Math.max(W, H);
+  const tw = Math.max(16, Math.round(W * k0 / 2) * 2), th = Math.max(16, Math.round(H * k0 / 2) * 2), n = tw * th; // чётные: вуаль хранится в половинном разрешении
+  const rnd = seeded(Math.round(p.seed) * 911 + 3), mk = () => { const c = document.createElement("canvas"); c.width = tw; c.height = th; return c; };
+  // --- плавный шум (значения в узлах сетки + сглаженная интерполяция)
+  const noise = (cell) => {
+    const gw = Math.ceil(tw / cell) + 2, gh = Math.ceil(th / cell) + 2, g = new Float32Array(gw * gh);
+    for (let i = 0; i < g.length; i++) g[i] = rnd();
+    return (x, y) => { const fx = x / cell, fy = y / cell, ix = Math.floor(fx), iy = Math.floor(fy); let ux = fx - ix, uy = fy - iy; ux = ux * ux * (3 - 2 * ux); uy = uy * uy * (3 - 2 * uy);
+      const a = g[iy * gw + ix], b = g[iy * gw + ix + 1], c = g[(iy + 1) * gw + ix], d = g[(iy + 1) * gw + ix + 1]; return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy; };
+  };
+  const n1 = noise(Math.max(8, tw / 5)), n2 = noise(Math.max(4, tw / 14));
+  // --- кристаллы: ветвящиеся «папоротники» под углами 60°, гуще у краёв
+  const cc = mk(), cx2 = cc.getContext("2d"); cx2.lineCap = "round";
+  const unit = tw / 540;
+  const branch = (x, y, ang, len, depth) => {
+    const ex = x + Math.cos(ang) * len, ey = y + Math.sin(ang) * len;
+    cx2.lineWidth = Math.max(0.6, unit * (0.7 + depth * 0.55)); cx2.strokeStyle = "rgba(255,255,255," + (0.42 + depth * 0.16) + ")";
+    cx2.beginPath(); cx2.moveTo(x, y); cx2.lineTo(ex, ey); cx2.stroke();
+    if (depth <= 0 || len < 4 * unit) return;
+    const steps = 3 + Math.floor(rnd() * 3);
+    for (let i = 1; i <= steps; i++) { const f = i / (steps + 1), bx = x + (ex - x) * f, by = y + (ey - y) * f, bl = len * (0.5 - 0.3 * f) * (0.7 + rnd() * 0.6);
+      branch(bx, by, ang + Math.PI / 3, bl, depth - 1); branch(bx, by, ang - Math.PI / 3, bl, depth - 1); }
+  };
+  const nCr = Math.round((40 + 260 * p.crystals) * (tw * th) / (540 * 1170));
+  for (let i = 0; i < nCr; i++) {
+    let x = rnd() * tw, y = rnd() * th;
+    if (rnd() < 0.6) { const e = Math.floor(rnd() * 4), d = Math.pow(rnd(), 2) * Math.min(tw, th) * 0.3; if (e === 0) x = d; else if (e === 1) x = tw - d; else if (e === 2) y = d; else y = th - d; }
+    const len = unit * (26 + rnd() * 70), a0 = rnd() * Math.PI, arms = rnd() < 0.45 ? 6 : 1 + Math.floor(rnd() * 3);
+    for (let a = 0; a < arms; a++) branch(x, y, a0 + a * Math.PI / 3 + (arms < 6 ? rnd() * 0.5 : 0), len * (arms === 6 ? 0.6 : 1), 2);
+  }
+  cx2.fillStyle = "rgba(255,255,255,.55)";
+  for (let i = 0; i < nCr * 6; i++) cx2.fillRect(rnd() * tw, rnd() * th, unit * (0.8 + rnd()), unit * (0.8 + rnd()));
+  const cA = frostAlphaOf(cc);
+  // --- рисунок: маска P (мягкий край) и порядок протирания ord (0..1)
+  let P = new Float32Array(n), ord = new Float32Array(n), hasPat = false;
+  const J = 14, br = Math.max(1, tw / 220);
+  if (pat && pat.kind !== "none") {
+    const pc = mk(); frostDrawPattern(pc.getContext("2d"), pat, tw, th, 0);
+    P = frostBlur(frostAlphaOf(pc), tw, th, br);
+    let minX = tw, maxX = 0;
+    for (let i = 0; i < n; i++) if (P[i] > 0.01) { hasPat = true; const x = i % tw; if (x < minX) minX = x; if (x > maxX) maxX = x; }
+    if (hasPat && pat.kind === "draw") {
+      // порядок = порядок рисования: участки штрихов красим номером, затем считываем
+      const oc = mk(), ox = oc.getContext("2d"); ox.lineCap = "round"; ox.lineJoin = "round";
+      let total = 0; const segs = [];
+      (pat.strokes || []).forEach((st) => { const pts = st.pts || []; if (pts.length === 1) segs.push([st, pts[0], pts[0], 1]);
+        for (let i = 1; i < pts.length; i++) { const l = Math.hypot((pts[i][0] - pts[i - 1][0]) * tw, (pts[i][1] - pts[i - 1][1]) * th) + 0.5; segs.push([st, pts[i - 1], pts[i], l]); total += l; } });
+      let run = 0; ox.globalCompositeOperation = "destination-over"; // ранние участки остаются сверху
+      const LV = 56; // уровней порядка: достаточно мелко, чтобы протирание шло плавно вдоль штриха
+      segs.forEach((sg) => { const idx = Math.min(LV - 1, Math.floor(run / Math.max(1, total) * LV)), v = Math.round((idx + 1) * 255 / (LV + 1)); run += sg[3];
+        ox.strokeStyle = "rgb(" + v + "," + v + "," + v + ")"; ox.lineWidth = Math.max(1, (sg[0].w || 0.05) * tw) + br * 4 + 4;
+        ox.beginPath(); ox.moveTo(sg[1][0] * tw, sg[1][1] * th); ox.lineTo(sg[2][0] * tw + 0.01, sg[2][1] * th); ox.stroke(); });
+      const od = ox.getImageData(0, 0, tw, th).data;
+      for (let i = 0; i < n; i++) ord[i] = od[i * 4 + 3] > 40 ? clamp(Math.round(od[i * 4] * (LV + 1) / 255) - 1, 0, LV - 1) / LV : (LV - 1) / LV;
+    } else if (hasPat) {
+      const span = Math.max(1, maxX - minX + 1);
+      for (let i = 0; i < n; i++) ord[i] = clamp(((i % tw) - minX) / span, 0, 0.999); // слева направо
+    }
+  }
+  // --- две составляющие: гладкая вуаль aV (весит много, поэтому хранится в половинном разрешении)
+  //     и кристаллы aC (тонкие линии — в полном разрешении, но почти пустые и потому лёгкие);
+  //     arr — когда до точки доходит мороз (0 у края, 1 в центре)
+  const aV = new Float32Array(n), aC = new Float32Array(n), arr = new Float32Array(n), half = Math.min(tw, th) / 2;
+  for (let y = 0; y < th; y++) for (let x = 0; x < tw; x++) {
+    const i = y * tw + x, c = clamp(Math.min(x, tw - 1 - x, y, th - 1 - y) / half, 0, 1), cs = c * c * (3 - 2 * c);
+    aV[i] = clamp(p.strength * lerp(1, p.center, cs) * (0.82 + 0.36 * n1(x, y)) * (0.9 + 0.2 * n2(x, y)) * 0.8, 0, 0.95);
+    aC[i] = clamp(cA[i] * (0.35 + 0.65 * p.crystals) * p.strength, 0, 0.95);
+    arr[i] = clamp(c * 0.8 + (n1(x, y) - 0.5) * 0.42 + 0.1, 0, 1);
+  }
+  if (hasPat) {
+    // окрестность рисунка замерзает последней, целиком в одном поясе: иначе рисунок проступал бы на фронте замерзания
+    const bin = new Float32Array(n); for (let i = 0; i < n; i++) bin[i] = P[i] > 0.004 ? 1 : 0;
+    const core = frostBlur(bin, tw, th, Math.max(2, tw / 24));
+    for (let i = 0; i < n; i++) core[i] = clamp(core[i] * 12, 0, 1);
+    const near = frostBlur(core, tw, th, Math.max(4, tw / 7)); // широкий плавный спад: резкая граница «кармана» была бы видна как контур
+    for (let i = 0; i < n; i++) { let w = Math.max(core[i], clamp(near[i] * 2.3, 0, 1)); w = w * w * (3 - 2 * w); arr[i] = arr[i] + (1 - arr[i]) * w; }
+  }
+  // половинное разрешение: среднее по блоку 2×2 (порядок протирания — по центру блока)
+  const lw = tw / 2, lh = th / 2, ln = lw * lh;
+  const down = (src) => { const o = new Float32Array(ln); for (let y = 0; y < lh; y++) for (let x = 0; x < lw; x++) { const i = (y * 2) * tw + x * 2; o[y * lw + x] = (src[i] + src[i + 1] + src[i + tw] + src[i + tw + 1]) / 4; } return o; };
+  const aVl = down(aV), Pl = down(P), arrL = down(arr), ordL = new Float32Array(ln);
+  for (let y = 0; y < lh; y++) for (let x = 0; x < lw; x++) ordL[y * lw + x] = ord[(y * 2 + 1) * tw + x * 2 + 1];
+  const tint = hex2unit(p.tint), K = clamp(Math.round(p.bands), 2, 10), fe = 0.5 / K + 0.06;
+  const veilRGB = [0, 1, 2].map((q) => Math.round(lerp(tint[q], 1, 0.12) * 255)).concat([4]), iceRGB = [0, 1, 2].map((q) => Math.round(lerp(tint[q], 1, 0.85) * 255)).concat([17]);
+  const layers = [];
+  // кодирование слоя: один цвет, своя альфа; обрезка по содержимому. kk — пикселей текстуры на единицу сцены
+  const emit = (alpha, gw, gh, kk, rgb, meta) => {
+    let x0 = gw, y0 = gh, x1 = -1, y1 = -1;
+    for (let i = 0; i < gw * gh; i++) if (alpha[i] > 0.012) { const x = i % gw, y = (i - x) / gw; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0) return;
+    const w = x1 - x0 + 1, h = y1 - y0 + 1, cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+    const ctx = cv.getContext("2d"), im = ctx.createImageData(w, h), d = im.data;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const al = alpha[(y + y0) * gw + x + x0], o = (y * w + x) * 4;
+      if (al <= 0.012) continue;
+      d[o] = rgb[0]; d[o + 1] = rgb[1]; d[o + 2] = rgb[2]; d[o + 3] = Math.min(255, Math.round(al * 255 / rgb[3]) * rgb[3]); // rgb[3] — шаг альфы: у тонких линий он крупнее, PNG легче
+    }
+    ctx.putImageData(im, 0, 0);
+    layers.push(Object.assign({ dataURL: cv.toDataURL("image/png"), w, h, cx: (x0 + w / 2) / kk, cy: (y0 + h / 2) / kk, sc: 1 / kk }, meta));
+  };
+  const sstep = (v) => { v = clamp(v, 0, 1); return v * v * (3 - 2 * v); };
+  // пояса: накопленная цель C_k = A·(1−P)·M_k, альфа слоя = (C_k − C_{k−1}) / (1 − C_{k−1}) — в сумме получается ровно A·(1−P)
+  const bands = (A, Pm, Tm, cnt, total, gw, gh, kk, rgb, what) => {
+    const prev = new Float32Array(total);
+    for (let k = 1; k <= cnt; k++) {
+      const tau = k / cnt * (1 + fe), al = new Float32Array(total);
+      for (let i = 0; i < total; i++) { const m = k === cnt ? 1 : sstep((tau - Tm[i]) / fe), C = A[i] * (1 - Pm[i]) * m; al[i] = C > prev[i] ? (C - prev[i]) / (1 - prev[i]) : 0; if (C > prev[i]) prev[i] = C; }
+      emit(al, gw, gh, kk, rgb, { kind: "band", what, k: Math.round((k - 1) * (K - 1) / Math.max(1, cnt - 1)) });
+    }
+  };
+  bands(aVl, Pl, arrL, K, ln, lw, lh, k0 / 2, veilRGB, "veil");
+  bands(aC, P, arr, Math.min(2, K), n, tw, th, k0, iceRGB, "ice"); // кристаллам хватает двух поясов: у краёв и в центре
+  // заплатки поверх рисунка (вуаль и кристаллы отдельно). Кусочки перекрываются мягко, а альфа считается
+  // с тем же накоплением, что у поясов: пока все на месте, рисунка не видно совсем — без швов между кусочками
+  const plugs = (A, Pm, Om, total, gw, gh, kk, rgb, what) => {
+    const prev = new Float32Array(total);
+    for (let i = 0; i < total; i++) prev[i] = A[i] * (1 - Pm[i]); // это уже дали пояса
+    for (let j = 1; j <= J; j++) {
+      const al = new Float32Array(total); let any = false;
+      for (let i = 0; i < total; i++) {
+        if (Pm[i] <= 0.004) continue;
+        const g = j === J ? 1 : sstep(j - Om[i] * J + 0.5), C = A[i] * (1 - Pm[i]) + A[i] * Pm[i] * g;
+        if (C > prev[i] + 1e-4) { al[i] = (C - prev[i]) / (1 - prev[i]); prev[i] = C; if (al[i] > 0.012) any = true; }
+      }
+      if (any) emit(al, gw, gh, kk, rgb, { kind: "plug", what, ord: (j - 1) / J, k: K - 1 });
+    }
+  };
+  if (hasPat) { plugs(aVl, Pl, ordL, ln, lw, lh, k0 / 2, veilRGB, "veil"); plugs(aC, P, ord, n, tw, th, k0, iceRGB, "ice"); }
+  const out = { tw, th, k0, K, layers, hasPat };
+  FROST_CACHE.set(key, out);
+  if (FROST_CACHE.size > 6) FROST_CACHE.delete(FROST_CACHE.keys().next().value);
+  return out;
+}
+
+/* ----- Редактор рисунка на стекле: текст / от руки / картинка ----- */
+let FM = null; // { layer, seg, pat, drag }
+function frostEdOpen(layer, seg) {
+  FM = { layer, seg, pat: JSON.parse(JSON.stringify(seg.params.pattern || frostDefaultPattern())), drawing: null };
+  if (!FM.pat.strokes) FM.pat.strokes = [];
+  openModal("frostModal");
+  frostEdSync(); frostEdDraw();
+}
+function frostEdSync() {
+  if (!FM) return; const pat = FM.pat;
+  segSet("#fmKind", pat.kind);
+  $$("#frostModal [data-fm]").forEach((el) => { el.style.display = el.dataset.fm.split(",").indexOf(pat.kind) >= 0 ? "" : "none"; });
+  $("#fmText").value = pat.text == null ? "2027" : pat.text;
+  $("#fmSize").value = pat.size == null ? 0.26 : pat.size;
+  $("#fmBrush").value = FM.brush || 0.07;
+  $("#fmImgName").textContent = pat.kind === "image" && ASSETS[pat.assetId] ? "Картинка выбрана — перетащите её на превью, чтобы подвинуть" : "Картинка не выбрана";
+}
+function frostEdDraw() {
+  if (!FM) return;
+  const cv = $("#fmCanvas"), W = project.scene.w, H = project.scene.h, k = Math.min(340 / W, 440 / H);
+  const w = Math.round(W * k), h = Math.round(H * k);
+  if (cv.width !== w * 2 || cv.height !== h * 2) { cv.width = w * 2; cv.height = h * 2; cv.style.width = w + "px"; cv.style.height = h + "px"; }
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(2, 0, 0, 2, 0, 0); ctx.globalCompositeOperation = "source-over";
+  ctx.fillStyle = "#1b2a44"; ctx.fillRect(0, 0, w, h);
+  // «замёрзшее стекло» отдельным слоем, из него вырезается рисунок
+  const fc = document.createElement("canvas"); fc.width = w * 2; fc.height = h * 2;
+  const f = fc.getContext("2d"); f.setTransform(2, 0, 0, 2, 0, 0);
+  f.fillStyle = "rgba(221,240,255,.82)"; f.fillRect(0, 0, w, h);
+  f.globalCompositeOperation = "destination-out"; frostDrawPattern(f, FM.pat, w, h, 0);
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(fc, 0, 0);
+}
+function frostEdWire() {
+  const cv = $("#fmCanvas"); if (!cv) return;
+  segWire("#fmKind", (v) => { if (!FM) return; FM.pat.kind = v; if (v === "image" && !ASSETS[FM.pat.assetId]) FM.pat.size = 0.5; if (v === "text" && !(FM.pat.size > 0)) FM.pat.size = 0.26; frostEdSync(); frostEdDraw(); });
+  $("#fmText").addEventListener("input", (e) => { if (FM) { FM.pat.text = e.target.value; frostEdDraw(); } });
+  $("#fmSize").addEventListener("input", (e) => { if (FM) { FM.pat.size = parseFloat(e.target.value); frostEdDraw(); } });
+  $("#fmBrush").addEventListener("input", (e) => { if (FM) FM.brush = parseFloat(e.target.value); });
+  $("#fmUndo").addEventListener("click", () => { if (FM) { FM.pat.strokes.pop(); frostEdDraw(); } });
+  $("#fmClear").addEventListener("click", () => { if (FM) { FM.pat.strokes = []; frostEdDraw(); } });
+  $("#fmUpload").addEventListener("click", () => $("#fmFile").click());
+  $("#fmFile").addEventListener("change", async (e) => {
+    const f = (e.target.files || [])[0]; e.target.value = ""; if (!f || !FM) return;
+    const r = await importParticleImage(f); if (r.error) { toast(r.error, "warn"); return; }
+    FM.pat.assetId = r.id; FM.pat.kind = "image"; if (!(FM.pat.size > 0)) FM.pat.size = 0.5; frostEdSync(); frostEdDraw();
+  });
+  const pos = (e) => { const r = cv.getBoundingClientRect(); return [clamp((e.clientX - r.left) / r.width, 0, 1), clamp((e.clientY - r.top) / r.height, 0, 1)]; };
+  cv.addEventListener("pointerdown", (e) => {
+    if (!FM) return; e.preventDefault(); cv.setPointerCapture(e.pointerId);
+    const q = pos(e), pat = FM.pat;
+    if (pat.kind === "draw") { FM.drawing = { w: FM.brush || 0.07, pts: [[round(q[0], 4), round(q[1], 4)]] }; pat.strokes.push(FM.drawing); }
+    else if (pat.kind === "text" || pat.kind === "image") FM.drag = { sx: q[0], sy: q[1], ox: pat.x == null ? 0.5 : pat.x, oy: pat.y == null ? 0.5 : pat.y };
+    frostEdDraw();
+  });
+  cv.addEventListener("pointermove", (e) => {
+    if (!FM) return; const q = pos(e);
+    if (FM.drawing) { const pts = FM.drawing.pts, l = pts[pts.length - 1]; if (Math.hypot(q[0] - l[0], q[1] - l[1]) > 0.008) { pts.push([round(q[0], 4), round(q[1], 4)]); frostEdDraw(); } }
+    else if (FM.drag) { FM.pat.x = round(clamp(FM.drag.ox + q[0] - FM.drag.sx, 0, 1), 3); FM.pat.y = round(clamp(FM.drag.oy + q[1] - FM.drag.sy, 0, 1), 3); frostEdDraw(); }
+  });
+  const end = () => { if (FM) { FM.drawing = null; FM.drag = null; } };
+  cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
+  $("#fmApply").addEventListener("click", () => {
+    if (!FM) return;
+    const pat = FM.pat;
+    if (pat.kind === "draw" && !pat.strokes.length) { toast("Нарисуйте что-нибудь на превью или выберите «Без рисунка»", "warn"); return; }
+    if (pat.kind === "image" && !ASSETS[pat.assetId]) { toast("Сначала загрузите картинку", "warn"); return; }
+    if (pat.kind === "text" && !String(pat.text || "").trim()) { toast("Введите текст или выберите «Без рисунка»", "warn"); return; }
+    FM.seg.params.pattern = JSON.parse(JSON.stringify(pat));
+    FM = null; closeModal(); markDirty(); renderParams(); scheduleRebuild();
+  });
+}
+
 /* ----- v10: слой эффектов — носитель без изображения: в экспорт попадают только частицы ----- */
 function fxAsset() { return { type: "fx", dataURL: null, w: 120, h: 120, img: null }; }
 function isFxLayer(layer) { const a = layer && ASSETS[layer.assetId]; return !!(a && a.type === "fx"); }
@@ -6518,7 +6864,7 @@ async function importParticleImage(file) {
   return { id };
 }
 // ассет используется как частица в каком-либо сегменте — его нельзя убирать из проекта при замене картинки слоя
-function assetUsedByFx(id) { return project.layers.some((l) => l.segments.some((sg) => Array.isArray(sg.params.images) && sg.params.images.indexOf(id) >= 0)); }
+function assetUsedByFx(id) { return project.layers.some((l) => l.segments.some((sg) => (Array.isArray(sg.params.images) && sg.params.images.indexOf(id) >= 0) || (sg.params.pattern && sg.params.pattern.assetId === id))); }
 
 /* ----- Быстрый слой-эмодзи: символ растеризуется в PNG системным шрифтом ----- */
 const EMOJI_QUICK = ["❤️", "👍", "👎", "🔥", "😂", "😮", "😢", "😡", "🎉", "👏", "⭐", "💯", "😍", "🙏", "🤔", "👀", "💔", "✨", "🚀", "🥳", "😎", "👌", "💩", "🤡"];
@@ -6814,6 +7160,9 @@ function wireEvents() {
   $("#redoBtn").addEventListener("click", redo);
   $("#addEmojiBtn").addEventListener("click", (e) => openEmojiPicker(e.currentTarget));
   $("#addFxBtn").addEventListener("click", addFxLayer);
+  frostEdWire();
+  $("#darkBgBtn").addEventListener("click", () => setDarkBg(!darkBg));
+  setDarkBg(darkBg);
   $("#loopSegBtn").classList.toggle("on", loopSegOn);
   $("#loopSegBtn").addEventListener("click", (e) => {
     loopSegOn = !loopSegOn; LS.set("lb-loop-seg", loopSegOn); e.currentTarget.classList.toggle("on", loopSegOn);
