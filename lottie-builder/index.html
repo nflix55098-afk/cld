@@ -1505,6 +1505,29 @@ input[type=number]::-webkit-outer-spin-button{
   flex:1 1 auto;
   min-height:0;
 }
+
+/* ===== v8: вкладки панели, поиск/избранное, рецепты, превью по наведению, цвет категорий ===== */
+.panel-head.has-tabs h2{display:none}
+.ptabs{display:flex;flex:1}
+.ptabs button{flex:1;text-align:center}
+.ptabs button:disabled{opacity:.35;cursor:default}
+.pgroup[hidden]{display:none}
+.preset-search{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);outline:none;font-size:14px;margin:6px 0 2px}
+.preset-search:focus{border-color:var(--primary)}
+.preset-chip{display:flex;align-items:center;justify-content:space-between;gap:4px}
+.preset-chip .pc-name{min-width:0}
+.preset-chip .pc-star{flex:none;font-size:13px;line-height:1;opacity:0;padding:2px}
+.preset-chip:hover .pc-star,.preset-chip:focus-visible .pc-star,.preset-chip .pc-star.on{opacity:1}
+.preset-chip:not(:hover) .pc-star.on{color:var(--primary)}
+.recipe-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px}
+.recipe-chip{display:flex;align-items:center;gap:8px;padding:8px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-size:13px;font-weight:500;text-align:left;line-height:1.2;transition:border-color .15s ease}
+.recipe-chip:hover{border-color:var(--primary)}
+.recipe-chip .em{font-size:20px;line-height:1;flex:none}
+#pvHost{position:absolute;inset:0;display:none}
+#pvHost svg{display:block}
+.pv-label{display:none;position:absolute;top:10px;left:50%;transform:translateX(-50%);background:#000;color:#fff;font-size:12px;padding:4px 12px;border-radius:50px;white-space:nowrap;z-index:6;pointer-events:none}
+.tl-seg{box-shadow:inset 3px 0 0 var(--c)}
+.cdot{width:9px;height:9px;border-radius:2px;display:inline-block;flex:none}
 </style>
 </head>
 <body>
@@ -1587,9 +1610,11 @@ input[type=number]::-webkit-outer-spin-button{
           <div id="deviceFrame">
             <div id="previewBg"></div>
             <div id="lottieHost"></div>
+            <div id="pvHost"></div>
           </div>
           <div id="dragOverlay"></div>
         </div>
+        <div id="pvLabel" class="pv-label"></div>
         <div class="canvas-hint">Перетаскивайте выбранный слой мышью для позиционирования</div>
       </div>
     </section>
@@ -1598,7 +1623,7 @@ input[type=number]::-webkit-outer-spin-button{
 
     <!-- RIGHT -->
     <aside id="rightPanel" class="panel">
-      <div class="panel-head"><h2>Параметры</h2><span class="sub">сегмент / слой</span></div>
+      <div class="panel-head"><h2>Параметры</h2><div id="paramTabs" class="segc ptabs" role="tablist" aria-label="Раздел параметров"></div></div>
       <div id="paramHost"></div>
     </aside>
   </div>
@@ -1999,12 +2024,12 @@ const DEVICES = {
 
 /* ----------------------------- Категории --------------------------------- */
 const CATS = {
-  appear: { label: "Появление", color: "#6B6B6B" },
-  move: { label: "Движение", color: "#6B6B6B" },
-  rotate: { label: "Вращение", color: "#6B6B6B" },
-  react: { label: "Эмоции", color: "#6B6B6B" },
-  fx: { label: "Эффекты", color: "#6B6B6B", hint: "Добавляют частицы и копии рядом со слоем. Сочетаются между собой, с простыми пресетами и с роем." },
-  complex: { label: "Сложные", color: "#6B6B6B" },
+  appear: { label: "Появление", color: "#2F9E6F" },
+  move: { label: "Движение", color: "#4D49FC" },
+  rotate: { label: "Вращение", color: "#D97A00" },
+  react: { label: "Эмоции", color: "#D6336C" },
+  fx: { label: "Эффекты", color: "#8B5CF6", hint: "Добавляют частицы и копии рядом со слоем. Сочетаются между собой, с простыми пресетами и с роем." },
+  complex: { label: "Сложные", color: "#595959" },
 };
 
 /* ============================================================================
@@ -2818,6 +2843,187 @@ const EMOJI_SWARM = [
 ];
 function applyEmojiSwarm(layer, e) {
   addTemplateSegment(layer, { preset: "swarm", params: e.p, ease: "auto", dur: e.dur });
+}
+
+/* ============================================================================
+   v8: UX — единые названия и описания пресетов, рецепты реакций, избранное/недавние,
+   превью по наведению, автопродление сцены
+   ========================================================================== */
+// [название, описание (тултип + поиск), ключевые слова для поиска (в т.ч. прежние английские имена)]
+const PRESET_INFO = {
+  fade: ["Плавное появление", "Прозрачность 0 → 100% или обратно", "fade затухание исчезновение"],
+  pop: ["Появление с перелётом", "Вырастает из точки и слегка проскакивает размер", "pop overshoot хлопок"],
+  slideIn: ["Выезд сбоку", "Въезжает с выбранной стороны с торможением", "slide in слайд"],
+  dropIn: ["Падение сверху", "Падает сверху и отскакивает от «пола»", "drop in"],
+  rubberBand: ["Резинка", "Появляется, растягиваясь в ширину, как резинка", "rubber band entrance"],
+  blurIn: ["Проявление + всплытие", "Мягко проявляется, всплывая и наезжая", "blur in фокус"],
+  bounce: ["Отскоки", "Несколько затухающих подпрыгиваний на месте", "bounce прыжки"],
+  pulse: ["Пульс", "Ритмично увеличивается и возвращается", "pulse"],
+  float: ["Парение", "Плавно покачивается вверх-вниз", "float"],
+  shake: ["Тряска", "Быстро дрожит по оси X, Y или обеим", "shake дрожь"],
+  wobble: ["Покачивание", "Затухающее качание поворотом", "wobble"],
+  swing: ["Маятник", "Качается вокруг якоря, как на нитке", "swing"],
+  heartbeat: ["Сердцебиение", "Двойной удар: сильный и слабый", "heartbeat сердце"],
+  jelly: ["Желе", "Сжимается и растягивается с сохранением объёма", "jelly squash stretch"],
+  glow: ["Пульс внимания", "Пульсирует размером и слегка мерцает", "glow attention"],
+  spin: ["Вращение", "Обороты вокруг якоря с разгоном и торможением", "spin rotate"],
+  flip: ["Переворот", "Имитация 3D-переворота по оси X или Y", "flip"],
+  tada: ["Та-дам", "Увеличивается и мелко трясётся поворотом", "tada"],
+  gelatine: ["Желе с наклоном", "Желейная деформация вместе с наклоном", "gelatine желатин attention"],
+  pop3d: ["3D-подскок", "Разворачивается из ребра с подскоком", "pop3d кувырок"],
+  splitGrid: ["Расщепление (сетка)", "Слой разлетается на осколки по сетке", "split grid осколки"],
+  splitPath: ["Расщепление (по контуру)", "Разлёт на фрагменты, приближённо по форме", "split path"],
+  swarm: ["Размножение / рой", "Копии слоя разлетаются по узору: кольцо, сетка, спираль, вверх", "swarm рой копии"],
+  swarmHide: ["Рой — скрытие", "Гасит копии роя: разлёт, схлопывание или уход в сторону", "swarm hide"],
+  explode: ["Взрыв и сборка", "Разлетается на осколки и собирается обратно", "explode reassemble"],
+  glitch: ["Глитч", "Случайные рывки и мерцание, как помехи", "glitch"],
+  morph: ["Морфинг", "Плавное перетекание формы (приближённо)", "morph"],
+  tapSquash: ["Нажатие", "Сжался, проскочил размер и вернулся — отклик на тап", "tap squash telegram instagram like"],
+  squashJump: ["Прыжок со сжатием", "Присел, подпрыгнул с вытяжением, сплющился при приземлении", "squash jump duolingo"],
+  slam: ["Штамп", "Влетает крупным и «впечатывается» с толчком", "slam imessage"],
+  loud: ["Крик", "Вырастает, дрожит на пике и оседает", "loud imessage"],
+  nod: ["Кивок / Мотание", "Жест «да» (кивок вниз) или «нет» (мотание в стороны)", "nod head shake да нет"],
+  wave: ["Взмах", "Машет вокруг нижней точки, как рукой", "wave привет"],
+  hinge: ["Сорвался с петли", "Качается на верхнем углу и падает вниз", "hinge выход"],
+  roll: ["Перекат", "Вкатывается или укатывается, вращаясь как колесо", "roll in out"],
+  orbit: ["Орбита", "Движется по эллипсу или восьмёрке и возвращается", "orbit круг восьмёрка"],
+  liveHeart: ["Live-сердечко", "Всплывает вверх по волнистой траектории и гаснет", "live heart instagram tiktok всплытие"],
+  doubleTap: ["Двойной тап", "Появился, завис и исчез — как лайк по двойному тапу", "double tap instagram tiktok"],
+  flyTo: ["Полёт в цель по дуге", "Прилетает из точки по дуге, уменьшаясь, и мягко садится", "fly to telegram duolingo"],
+  slingshot: ["Рогатка", "Оттягивается назад и выстреливает (или влетает и осаживается)", "slingshot anticipation"],
+  vortex: ["Воронка", "Закручивается по спирали с вращением и масштабом", "vortex spiral спираль"],
+  jackBox: ["Чёртик из коробки", "Выскакивает снизу, качаясь из стороны в сторону", "jack in the box"],
+  windPunch: ["Замах-удар", "Отклоняется назад и бьёт вперёд с увеличением", "wind up punch like лайк"],
+  haha: ["Смех", "Откидывается назад и мелко подпрыгивает", "haha laugh"],
+  boil: ["Закипание → выплеск", "Дрожь нарастает, затем резкий выплеск", "boil angry злость"],
+  sigh: ["Вздох", "Приподнимается на вдохе и оседает на выдохе", "sigh sad грусть"],
+  wow: ["Удивление", "Отшатнулся, вытянулся и замер с дрожью", "wow"],
+  flame: ["Пламя", "Нерегулярное мерцание вверх, бесшовный цикл", "flame fire огонь flicker"],
+  breathe: ["Idle-дыхание", "Едва заметное дыхание для состояния покоя, бесшовный цикл", "idle breathe покой"],
+  ringBurst: ["Кольцо + точки", "Круг раскрывается в кольцо, точки разлетаются — лайк как в X", "ring burst twitter like"],
+  rays: ["Лучи-штрихи", "Короткий всплеск частиц вокруг — хлопок как в Medium", "rays clap medium"],
+  confetti: ["Конфетти", "Залп цветных бумажек с гравитацией и трепетом", "confetti праздник"],
+  sparkles: ["Искры-звёздочки", "Четырёхлучевые звёзды вспыхивают вокруг вразнобой", "sparkles stars звёзды"],
+  shockwave: ["Ударная волна", "Кольца или копии слоя расходятся и гаснут", "shockwave ripple волна"],
+  satellites: ["Спутники", "Мини-копии слоя кружат вокруг него", "satellites orbit around"],
+  trail: ["Шлейф", "Полупрозрачные копии повторяют движение с задержкой", "trail motion шлейф"],
+};
+Object.keys(PRESET_INFO).forEach((id) => { const d = PRESETS[id], i = PRESET_INFO[id]; if (d) { d.name = i[0]; d.desc = i[1]; d.kw = i[2]; } });
+
+// Готовые реакции: связки «вход → акцент → эффект» одним кликом. off/dur — секунды от плейхеда.
+const RECIPES = [
+  { id: "likeRing", emoji: "❤️", name: "Лайк с кольцом", desc: "Иконка сжимается, раскрывается кольцо, разлетаются точки",
+    segs: [{ preset: "ringBurst", off: 0, dur: 0.9 }] },
+  { id: "likeWave", emoji: "👍", name: "Лайк с волной", desc: "Замах-удар и расходящиеся кольца",
+    segs: [{ preset: "windPunch", off: 0, dur: 0.6 }, { preset: "shockwave", off: 0.25, dur: 0.9, params: { waves: 2 } }] },
+  { id: "clap", emoji: "👏", name: "Хлопок", desc: "Нажатие и короткий всплеск частиц",
+    segs: [{ preset: "rays", off: 0, dur: 0.55 }] },
+  { id: "party", emoji: "🎉", name: "Праздник", desc: "Штамп и залп конфетти",
+    segs: [{ preset: "slam", off: 0, dur: 0.55 }, { preset: "confetti", off: 0.15, dur: 2 }] },
+  { id: "fire", emoji: "🔥", name: "Огонь", desc: "Мерцание пламени и тёплые искры",
+    segs: [{ preset: "flame", off: 0, dur: 2.4 }, { preset: "sparkles", off: 0, dur: 2.4, params: { count: 6, life: 0.24, color1: "#FF7A00", color2: "#FFC400" } }] },
+  { id: "super", emoji: "⭐", name: "Суперреакция", desc: "Выскакивает, вспыхивают звёзды и волна",
+    segs: [{ preset: "jackBox", off: 0, dur: 0.65 }, { preset: "shockwave", off: 0.3, dur: 0.9, params: { waves: 2, color: "#FFC400" } }, { preset: "sparkles", off: 0.3, dur: 1.3, params: { color2: "#FF9F0A" } }] },
+  { id: "inLove", emoji: "😍", name: "Влюблён", desc: "Сердцебиение и кружащие мини-копии",
+    segs: [{ preset: "heartbeat", off: 0, dur: 2 }, { preset: "satellites", off: 0, dur: 2 }] },
+  { id: "laugh", emoji: "😂", name: "Смех", desc: "Смех и штрихи вокруг",
+    segs: [{ preset: "haha", off: 0, dur: 1 }, { preset: "rays", off: 0.1, dur: 0.6, params: { icon: "none", shape: "lines", count: 8, color1: "#FFC400", color2: "#FF7A00" } }] },
+  { id: "angry", emoji: "😡", name: "Злость", desc: "Закипание и красная волна на выплеске",
+    segs: [{ preset: "boil", off: 0, dur: 1.1 }, { preset: "shockwave", off: 0.85, dur: 0.8, params: { waves: 2, color: "#FF3B30" } }] },
+  { id: "wowed", emoji: "😮", name: "Вау", desc: "Удивление и несколько искр",
+    segs: [{ preset: "wow", off: 0, dur: 0.95 }, { preset: "sparkles", off: 0.3, dur: 1, params: { count: 5 } }] },
+  { id: "arrive", emoji: "💬", name: "Прилёт реакции", desc: "Летит по дуге со шлейфом и «нажимается» на месте",
+    segs: [{ preset: "flyTo", off: 0, dur: 0.7 }, { preset: "trail", off: 0, dur: 0.75 }, { preset: "tapSquash", off: 0.7, dur: 0.4 }] },
+  { id: "dblTap", emoji: "🤍", name: "Двойной тап", desc: "Появился, завис, исчез — с точками вокруг",
+    segs: [{ preset: "doubleTap", off: 0, dur: 1 }, { preset: "rays", off: 0.12, dur: 0.55, params: { icon: "none", shape: "dots", count: 8 } }] },
+];
+
+const LS = {
+  get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+};
+let favPresets = LS.get("lb-fav-presets", []).filter((id) => PRESETS[id]);
+let recentPresets = LS.get("lb-recent-presets", []).filter((id) => PRESETS[id]);
+function toggleFav(id) {
+  favPresets = favPresets.includes(id) ? favPresets.filter((x) => x !== id) : favPresets.concat([id]);
+  LS.set("lb-fav-presets", favPresets);
+}
+function pushRecent(id) {
+  recentPresets = [id].concat(recentPresets.filter((x) => x !== id)).slice(0, 6);
+  LS.set("lb-recent-presets", recentPresets);
+}
+
+// Куда поставить новый сегмент длиной len: в позицию плейхеда; если плейхед стоит в самом конце — с начала.
+// Если всё равно не помещается, сцена продлевается (раньше сегмент молча обрезался).
+function placeSegment(len) {
+  const dur = project.scene.duration;
+  let start = clamp(round(playhead, 2), 0, dur);
+  if (start + len > dur && start >= dur - 0.05) start = 0;
+  const end = round(start + len, 2);
+  if (end > dur) {
+    project.scene.duration = round(Math.ceil(end * 10) / 10, 2);
+    toast("Сцена продлена до " + project.scene.duration + " с, чтобы анимация поместилась целиком", "ok", 4500);
+  }
+  return start;
+}
+function applyRecipe(layer, r) {
+  if (layer.locked) { toast("Слой заблокирован", "warn"); return; }
+  const segs = r.segs.filter((s) => PRESETS[s.preset]);
+  const total = Math.max.apply(null, segs.map((s) => (s.off || 0) + s.dur));
+  const start = placeSegment(total);
+  segs.forEach((s) => {
+    const t0 = round(start + (s.off || 0), 2);
+    layer.segments.push({ id: uid("s"), preset: s.preset, t: [t0, round(t0 + s.dur, 2)], params: Object.assign(presetDefaults(s.preset), s.params || {}), ease: "auto", chain: false });
+  });
+  sel = { layerId: layer.id, segId: null, keyId: null };
+  markDirty(); renderAll();
+  toast(r.emoji + " «" + r.name + "» — добавлено сегментов: " + segs.length + ". Каждый можно настроить на таймлайне.", "ok", 5000);
+}
+
+/* ----- Превью пресета по наведению: временная сборка без изменения проекта ----- */
+let pvAnim = null, pvTimer = null, pvToken = 0;
+function previewStop() {
+  clearTimeout(pvTimer); pvToken++;
+  if (pvAnim) { try { pvAnim.destroy(); } catch (e) {} pvAnim = null; }
+  const h = $("#pvHost"); if (h) { h.innerHTML = ""; h.style.display = "none"; }
+  const lab = $("#pvLabel"); if (lab) lab.style.display = "none";
+  const main = $("#lottieHost"); if (main) main.style.visibility = "";
+}
+function previewHover(layer, specs, label) {
+  clearTimeout(pvTimer);
+  pvTimer = setTimeout(() => previewRun(layer, specs, label), 200);
+}
+async function previewRun(layer, specs, label) {
+  if (typeof lottie === "undefined" || !layer || !ASSETS[layer.assetId]) return;
+  const token = ++pvToken;
+  const dur = project.scene.duration, fps = project.scene.fps;
+  specs = specs.filter((s) => PRESETS[s.preset]);
+  if (!specs.length) return;
+  const lenOf = (s) => s.dur || PRESETS[s.preset].dur || (PRESETS[s.preset].complex ? 0.9 : 0.6);
+  const total = Math.max.apply(null, specs.map((s) => (s.off || 0) + lenOf(s)));
+  const start = clamp(Math.min(playhead, dur - total), 0, Math.max(0, dur - 0.1));
+  const temps = specs.map((s) => {
+    const t0 = clamp(start + (s.off || 0), 0, Math.max(0, dur - 0.05));
+    return { id: uid("pv"), preset: s.preset, t: [t0, clamp(t0 + lenOf(s), t0 + 0.05, dur)], params: Object.assign(presetDefaults(s.preset), s.params || {}), ease: "auto", chain: false };
+  });
+  const ids = new Set(temps.map((t) => t.id));
+  // Синхронная часть сборки читает сегменты слоя сразу, поэтому временные сегменты убираем тут же — проект не меняется
+  let job, data;
+  temps.forEach((t) => layer.segments.push(t));
+  try { job = buildLottie({ optimize: false }); } finally { layer.segments = layer.segments.filter((s) => !ids.has(s.id)); }
+  try { data = await job; } catch (e) { return; } finally { ids.forEach((id) => delete TILES[id]); }
+  if (token !== pvToken || !data.layers.length) return;
+  const host = $("#pvHost");
+  host.innerHTML = ""; host.style.display = "block";
+  $("#lottieHost").style.visibility = "hidden";
+  if (pvAnim) { try { pvAnim.destroy(); } catch (e) {} }
+  pvAnim = lottie.loadAnimation({ container: host, renderer: "svg", loop: true, autoplay: false, animationData: data });
+  const f0 = Math.max(0, Math.floor(start * fps) - 4);
+  const f1 = Math.min(sceneFrames(), Math.ceil(Math.max.apply(null, temps.map((t) => t.t[1])) * fps) + Math.round(fps * 0.35));
+  const a = pvAnim;
+  a.addEventListener("DOMLoaded", () => { if (token === pvToken && pvAnim === a) a.playSegments([f0, Math.max(f0 + 2, f1)], true); });
+  const lab = $("#pvLabel");
+  if (lab) { lab.textContent = "Превью: " + label + " — клик, чтобы добавить"; lab.style.display = "block"; }
 }
 
 /* ----------------------------- v3: якорная точка -------------------------- */
@@ -4496,28 +4702,53 @@ function renderLayers() {
 /* ============================================================================
    Рендер: панель параметров
    ========================================================================== */
+let paramTab = "anim"; // v8: вкладка панели — "layer" | "anim" | "seg"
+let _tabSegId = null, _tabKeyId = null;
 function renderParams() {
-  const host = $("#paramHost");
+  previewStop();
+  const host = $("#paramHost"), tabs = $("#paramTabs"), head = tabs.parentNode;
   const seg = selectedSeg();
   const layer = selectedLayer();
-  if (seg) { renderSegParams(host, layer, seg); return; }
-  if (layer) { renderLayerParams(host, layer); return; }
+  if (!layer) {
+    head.classList.remove("has-tabs"); tabs.innerHTML = ""; _tabSegId = _tabKeyId = null;
   host.innerHTML = `<div class="empty"><div class="empty-ico">${icon("sliders","lic empty-svg")}</div><p>Выберите слой, чтобы добавить анимацию,<br>или сегмент на таймлайне, чтобы настроить его.</p></div>`;
+    return;
+  }
+  // выделили сегмент — показываем его; выделили ключ — показываем слой; иначе остаёмся на выбранной вкладке
+  if ((sel.segId || null) !== _tabSegId) { _tabSegId = sel.segId || null; if (seg) paramTab = "seg"; }
+  if ((sel.keyId || null) !== _tabKeyId) { _tabKeyId = sel.keyId || null; if (sel.keyId && !seg) paramTab = "layer"; }
+  if (paramTab === "seg" && !seg) paramTab = "anim";
+  head.classList.add("has-tabs");
+  tabs.innerHTML = [["layer", "Слой"], ["anim", "Анимации"], ["seg", "Сегмент"]].map((t) =>
+    `<button data-tab="${t[0]}" class="${paramTab === t[0] ? "on" : ""}" ${t[0] === "seg" && !seg ? 'disabled title="Выберите сегмент на таймлайне"' : ""}>${t[1]}</button>`).join("");
+  $$("button", tabs).forEach((b) => b.addEventListener("click", () => { if (b.disabled || paramTab === b.dataset.tab) return; paramTab = b.dataset.tab; $("#rightPanel").scrollTop = 0; renderParams(); }));
+  if (paramTab === "seg") renderSegParams(host, layer, seg); else renderLayerParams(host, layer);
 }
+// v8: фильтр списка пресетов по строке поиска (без перерисовки — чтобы не терять фокус в поле)
+function applyPresetFilter(host) {
+  const q = presetQuery.trim().toLowerCase();
+  let shown = 0;
+  $$(".preset-sec", host).forEach((sec) => {
+    let any = false;
+    $$("[data-q]", sec).forEach((el) => { const ok = !q || el.dataset.q.indexOf(q) >= 0; el.style.display = ok ? "" : "none"; if (ok) any = true; });
+    sec.style.display = any ? "" : "none"; if (any) shown++;
+  });
+  const none = $("#presetNone", host); if (none) none.style.display = shown ? "none" : "block";
+}
+let presetQuery = "";
 function renderLayerParams(host, layer) {
   const cats = {}; Object.keys(CATS).forEach((c) => (cats[c] = []));
   Object.keys(PRESETS).forEach((id) => cats[PRESETS[id].cat].push(id));
   const hasSwarm = layerHasSwarm(layer);
-  let picker = "";
-  Object.keys(cats).forEach((c) => {
-    picker += `<div class="preset-cat"><span class="dot" style="background:${CATS[c].color}"></span>${CATS[c].label}</div>${CATS[c].hint ? `<p class="hint" style="margin:-2px 0 7px">${CATS[c].hint}</p>` : ""}<div class="preset-grid">`;
-    cats[c].forEach((id) => {
-      const pr = PRESETS[id];
-      const blocked = hasSwarm && pr.noSwarm;
-      picker += `<button class="preset-chip${blocked ? " blocked" : ""}" data-preset="${id}" title="${pr.tag}${pr.experimental ? " · эксперим." : ""}${blocked ? " · не сочетается с роем" : (hasSwarm && pr.swarm ? " · применяется к каждой копии роя" : "")}">${escapeHtml(pr.name)}${pr.experimental ? " <span class='exp'>β</span>" : ""}</button>`;
-    });
-    picker += `</div>`;
-  });
+  const chipHtml = (id) => {
+    const pr = PRESETS[id], blocked = hasSwarm && pr.noSwarm, fav = favPresets.includes(id);
+    const tip = (pr.desc || pr.name) + (pr.experimental ? " · эксперим." : "") + (blocked ? " · не сочетается с роем" : (hasSwarm && pr.swarm ? " · применяется к каждой копии роя" : ""));
+    return `<button class="preset-chip${blocked ? " blocked" : ""}" data-preset="${id}" data-q="${escapeHtml((pr.name + " " + (pr.kw || "") + " " + (pr.desc || "")).toLowerCase())}" title="${escapeHtml(tip)}"><span class="pc-name">${escapeHtml(pr.name)}${pr.experimental ? " <span class='exp'>β</span>" : ""}</span><span class="pc-star${fav ? " on" : ""}" data-fav="${id}" title="${fav ? "Убрать из избранного" : "В избранное"}">${fav ? "★" : "☆"}</span></button>`;
+  };
+  const secHtml = (title, color, hint, ids) => ids.length ? `<div class="preset-sec"><div class="preset-cat"><span class="cdot" style="background:${color}"></span>${title}</div>${hint ? `<p class="hint" style="margin:-2px 0 7px">${hint}</p>` : ""}<div class="preset-grid">${ids.map(chipHtml).join("")}</div></div>` : "";
+  let picker = secHtml("Избранное", "var(--primary)", "", favPresets) + secHtml("Недавние", "var(--text-muted)", "", recentPresets.filter((id) => !favPresets.includes(id)));
+  Object.keys(cats).forEach((c) => { picker += secHtml(CATS[c].label, CATS[c].color, CATS[c].hint, cats[c]); });
+  const recipesHtml = `<div class="preset-sec"><div class="preset-cat"><span class="dot" style="background:var(--primary)"></span>Готовые реакции</div><p class="hint" style="margin:-2px 0 7px">Связка «вход → акцент → эффект» одним кликом.</p><div class="recipe-grid">${RECIPES.map((r) => `<button class="recipe-chip" data-recipe="${r.id}" data-q="${escapeHtml((r.name + " " + r.desc).toLowerCase())}" title="${escapeHtml(r.desc)}"><span class="em">${r.emoji}</span><span>${escapeHtml(r.name)}</span></button>`).join("")}</div></div>`;
   const keys = sortedKeys(layer);
   const asset = ASSETS[layer.assetId];
   const easeSel = (cur) => Object.keys(EASING_LABELS).map((k) => `<option value="${k}" ${cur === k ? "selected" : ""}>${EASING_LABELS[k]}</option>`).join("") + `<option value="custom" ${cur === "custom" ? "selected" : ""}>Своя…</option>` + `<option value="spring" ${cur === "spring" ? "selected" : ""}>Пружина…</option>`;
@@ -4563,7 +4794,7 @@ function renderLayerParams(host, layer) {
   const anchorGrid = [0, 0.5, 1].map((ay) => [0, 0.5, 1].map((ax) =>
     `<button data-anc="${ax},${ay}" class="${Math.abs(aRel[0] - ax) < 0.01 && Math.abs(aRel[1] - ay) < 0.01 ? "on" : ""}" title="Якорь ${ax};${ay}">·</button>`).join("")).join("");
   host.innerHTML = `
-    <div class="pgroup">
+    <div class="pgroup" ${paramTab === "layer" ? "" : "hidden"}>
       <h3>Слой: ${escapeHtml(layer.name)}</h3>
       ${!asset ? `<div class="notice">${icon("alert")} Изображение этого слоя не найдено. Добавьте картинку — все настройки анимации (сегменты, ключи) сохранятся.</div>` : ""}
       ${editBtn}
@@ -4580,7 +4811,7 @@ function renderLayerParams(host, layer) {
       <p class="hint" style="margin:0">Якорь — точка, вокруг которой слой вращается и масштабируется (маятники, стрелки, двери).</p>
       ${keys.length ? `<p class="hint" style="margin:2px 0 0">При наличии ключей базовую позицию задают они; эти поля — стартовая поза без ключей.</p>` : ""}
     </div>
-    <div class="pgroup">
+    <div class="pgroup" ${paramTab === "layer" ? "" : "hidden"}>
       <div class="kf-title-row"><div><h3>Точки движения</h3><span class="kf-term">ключевые кадры</span></div><span class="badge">${keyCount}</span></div>
       <details class="kf-guide" ${keyCount < 2 ? "open" : ""}>
         <summary>Как это работает</summary>
@@ -4601,13 +4832,16 @@ function renderLayerParams(host, layer) {
       </div>
       <div id="kfList">${kfList}</div>
     </div>
-    <div class="pgroup">
+    <div class="pgroup" ${paramTab === "anim" ? "" : "hidden"}>
       <h3>Добавить анимацию</h3>
-      <p class="hint">Сегмент появится на дорожке слоя в позиции плейхеда.</p>
+      <p class="hint">Наведите на пресет — он проиграется на холсте. Клик добавит сегмент в позицию плейхеда.</p>
+      <input id="presetSearch" class="preset-search" type="search" placeholder="Поиск: прыжок, like, конфетти…" value="${escapeHtml(presetQuery)}" aria-label="Поиск пресета">
+      <p id="presetNone" class="hint" style="display:none;margin:10px 0">Ничего не нашлось. Попробуйте другое слово или сотрите запрос.</p>
+      ${recipesHtml}
       ${picker}
-      <div class="preset-cat"><span class="dot" style="background:var(--primary)"></span>Реакции — рой эмодзи</div>
+      <div class="preset-sec"><div class="preset-cat"><span class="dot" style="background:var(--primary)"></span>Реакции — рой эмодзи</div>
       <p class="hint" style="margin:-2px 0 7px">Готовые наборы для роя. Лучше всего на квадратном PNG/эмодзи. Один клик — добавит swarm-сегмент, дальше подкрутите параметры.</p>
-      <div class="emoji-grid">${EMOJI_SWARM.map((e) => `<button class="emoji-chip" data-emoji="${e.id}" title="${escapeHtml(e.name)}"><span class="em">${e.emoji}</span></button>`).join("")}</div>
+      <div class="emoji-grid">${EMOJI_SWARM.map((e) => `<button class="emoji-chip" data-emoji="${e.id}" data-q="${escapeHtml(("рой " + e.name).toLowerCase())}" title="${escapeHtml(e.name)}"><span class="em">${e.emoji}</span></button>`).join("")}</div></div>
       ${TEMPLATES.length ? `<div class="preset-cat"><span class="dot" style="background:var(--primary)"></span>Мои шаблоны</div>` + TEMPLATES.map((tp) => `
         <div class="tpl-chip" data-tpl="${tp.id}" title="${escapeHtml(PRESETS[tp.preset] ? PRESETS[tp.preset].name : tp.preset)} · ${tp.dur}с">
           <span class="nm">${icon("star")} ${escapeHtml(tp.name)}</span>
@@ -4642,6 +4876,20 @@ function renderLayerParams(host, layer) {
     markDirty(); renderParams(); renderCanvas(); scheduleRebuild();
   }));
   $$("[data-preset]", host).forEach((b) => b.addEventListener("click", () => addSegment(layer, b.dataset.preset)));
+  // v8: поиск, избранное, превью по наведению, рецепты
+  const ps = $("#presetSearch", host);
+  if (ps) { ps.addEventListener("input", (e) => { presetQuery = e.target.value; applyPresetFilter(host); }); applyPresetFilter(host); }
+  $$("[data-fav]", host).forEach((st) => st.addEventListener("click", (e) => { e.stopPropagation(); e.preventDefault(); toggleFav(st.dataset.fav); renderParams(); }));
+  $$("[data-preset]", host).forEach((b) => {
+    b.addEventListener("mouseenter", () => previewHover(layer, [{ preset: b.dataset.preset }], PRESETS[b.dataset.preset].name));
+    b.addEventListener("mouseleave", previewStop);
+  });
+  $$("[data-recipe]", host).forEach((b) => {
+    const r = RECIPES.find((x) => x.id === b.dataset.recipe); if (!r) return;
+    b.addEventListener("click", () => applyRecipe(layer, r));
+    b.addEventListener("mouseenter", () => previewHover(layer, r.segs, r.name));
+    b.addEventListener("mouseleave", previewStop);
+  });
   // мои шаблоны
   $$("[data-emoji]", host).forEach((chip) => chip.addEventListener("click", () => {
     const e = EMOJI_SWARM.find((x) => x.id === chip.dataset.emoji);
@@ -4825,7 +5073,7 @@ function renderSegParams(host, layer, seg) {
     : `<p class="hint" style="margin:0">Первый сегмент дорожки — стыковать не к чему.</p>`;
   host.innerHTML = `
     <div class="pgroup">
-      <div class="seg-head"><span class="dot" style="background:${CATS[def.cat].color}"></span><h3>${escapeHtml(def.name)}</h3></div>
+      <div class="seg-head"><span class="cdot" style="background:${CATS[def.cat].color}"></span><h3>${escapeHtml(def.name)}</h3></div>
       ${inactiveWarn}
       ${swarmWarn}
       ${exp}
@@ -4916,8 +5164,10 @@ function renderSegParams(host, layer, seg) {
   $("#delSeg", host).addEventListener("click", () => { layer.segments = layer.segments.filter((s) => s.id !== seg.id); delete TILES[seg.id]; sel.segId = null; markDirty(); renderAll(); });
 }
 function addSegment(layer, presetId) {
-  const start = clamp(round(playhead, 2), 0, project.scene.duration - 0.2);
   const def = PRESETS[presetId];
+  const dur = def.dur || (def.complex ? 0.9 : 0.6);
+  const start = placeSegment(dur);
+  pushRecent(presetId);
   // при экспорте на слое учитывается только один сложный пресет (исключение — пара «рой + его скрытие»)
   if (def.complex) {
     const exist = layer.segments.filter((s) => PRESETS[s.preset] && PRESETS[s.preset].complex).map((s) => s.preset);
@@ -4927,7 +5177,6 @@ function addSegment(layer, presetId) {
   }
   if (def.noSwarm && layerHasSwarm(layer)) toast("«" + def.name + "» — вход/выход одиночного слоя: к рою не применится. Его можно вынести на отдельный слой.", "warn", 6500);
   if ((presetId === "swarm" || presetId === "swarmHide") && layer.segments.some((s) => PRESETS[s.preset] && PRESETS[s.preset].noSwarm)) toast("На слое есть пресеты входа/выхода, которые с роем не сочетаются — они помечены ⚠ на таймлайне.", "warn", 6500);
-  const dur = Math.min(def.dur || (def.complex ? 0.9 : 0.6), project.scene.duration - start);
   const seg = { id: uid("s"), preset: presetId, t: [start, round(start + dur, 2)], params: presetDefaults(presetId), ease: "auto", chain: false };
   layer.segments.push(seg);
   sel.segId = seg.id;
@@ -5026,16 +5275,16 @@ function renderTimeline() {
         if (e.shiftKey) { // мультивыделение
           if (multiSel.segs.has(mk)) multiSel.segs.delete(mk); else multiSel.segs.add(mk);
           if (sel.segId) multiSel.segs.add(sel.layerId + ":" + sel.segId);
-          sel = { layerId: layer.id, segId: seg.id, keyId: null };
+          sel = { layerId: layer.id, segId: seg.id, keyId: null }; paramTab = "seg";
           renderTimeline(); renderParams();
           dragSeg(e, layer, seg, pxPerSec, false);
           return;
         }
         if (!multiSel.segs.has(mk)) clearMulti();
-        sel = { layerId: layer.id, segId: seg.id, keyId: null }; renderAll();
+        sel = { layerId: layer.id, segId: seg.id, keyId: null }; paramTab = "seg"; renderAll();
         dragSeg(e, layer, seg, pxPerSec, false);
       });
-      $(".tl-handle", blk).addEventListener("pointerdown", (e) => { e.stopPropagation(); if (!multiSel.segs.has(layer.id + ":" + seg.id)) clearMulti(); sel = { layerId: layer.id, segId: seg.id, keyId: null }; renderAll(); dragSeg(e, layer, seg, pxPerSec, true); });
+      $(".tl-handle", blk).addEventListener("pointerdown", (e) => { e.stopPropagation(); if (!multiSel.segs.has(layer.id + ":" + seg.id)) clearMulti(); sel = { layerId: layer.id, segId: seg.id, keyId: null }; paramTab = "seg"; renderAll(); dragSeg(e, layer, seg, pxPerSec, true); });
       row.appendChild(blk);
     });
     // ромбики ручных ключевых кадров
@@ -5215,7 +5464,7 @@ function addTemplateSegment(layer, tpl) {
     if (other) { toast("На слое уже есть сложный пресет «" + PRESETS[other.preset].name + "» — он имеет приоритет, второй будет проигнорирован", "warn"); }
   }
   layer.segments.push(seg);
-  sel = { layerId: layer.id, segId: seg.id, keyId: null };
+  sel = { layerId: layer.id, segId: seg.id, keyId: null }; paramTab = "seg";
   markDirty(); renderAll();
 }
 function idbPut(store, val) { return new Promise((res, rej) => { const r = tx(store, "readwrite").put(val); r.onsuccess = res; r.onerror = rej; }); }
