@@ -1577,6 +1577,10 @@ input[type=number]::-webkit-outer-spin-button{
 .cf-actions{display:flex;gap:6px;align-items:center}
 .cf-actions .btn-soft{flex:none}
 .cf-actions select{flex:1;min-width:0;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+
+/* ===== v10: слой эффектов ===== */
+.fx-thumb{font-size:20px;line-height:1;color:var(--primary)}
+.recipe-chip.blocked{opacity:.45}
 </style>
 </head>
 <body>
@@ -1638,7 +1642,10 @@ input[type=number]::-webkit-outer-spin-button{
         <button id="addTextBtn" class="btn" style="flex:1;justify-content:center"><svg class="lic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg> Текст</button>
         <button id="addShapeBtn" class="btn" style="flex:1;justify-content:center"><svg class="lic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><circle cx="16" cy="16" r="5"/></svg> Фигура</button>
       </div>
-      <div style="margin:0 16px 8px"><button id="addEmojiBtn" class="btn" style="width:100%;justify-content:center" title="Быстрый слой из эмодзи — без поиска картинки">😀 Слой-эмодзи</button></div>
+      <div style="display:flex;gap:6px;margin:0 16px 8px">
+        <button id="addEmojiBtn" class="btn" style="flex:1;justify-content:center" title="Быстрый слой из эмодзи — без поиска картинки">😀 Эмодзи</button>
+        <button id="addFxBtn" class="btn" style="flex:1;justify-content:center" title="Слой эффектов: снег, заморозка, конфетти и другие эффекты без картинки-иконки">✦ Эффекты</button>
+      </div>
       <input id="fileInp" type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.svg,.json,image/*,application/json" multiple hidden>
       <input id="projFileInp" type="file" accept="application/json,.json" hidden>
       <input id="relinkInp" type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.svg,image/*" hidden>
@@ -2715,6 +2722,29 @@ const PRESETS = {
     ],
     // поле видно, только если выполнены все условия [параметр, значение]
     cond: { palette: [["source", "paper"]], monoColor: [["source", "paper"], ["palette", "mono"]], sizeVar: [["source", "image"]] },
+    imgParticles: true,
+  },
+  snow: {
+    name: "Снег", cat: "fx", tag: "В/Р", fx: true, sceneFx: true, imgParticles: true, dur: 4,
+    params: [
+      { k: "source", label: "Снежинки", type: "select", options: [["flake", "Встроенная снежинка"], ["dot", "Хлопья (кружки)"], ["image", "Свои изображения"]], def: "flake" },
+      { k: "density", label: "Плотность (штук на экране)", type: "range", min: 4, max: 120, step: 1, def: 28 },
+      { k: "size", label: "Размер, px", type: "range", min: 4, max: 160, step: 1, def: 26 },
+      { k: "speed", label: "Скорость падения, px/с", type: "range", min: 20, max: 600, step: 5, def: 120 },
+      { k: "intensity", label: "Интенсивность (метель)", type: "range", min: 0, max: 1, step: 0.05, def: 0.3 },
+      { k: "color", label: "Цвет снежинок", type: "color", def: "#A9D4FF" },
+      { k: "sizeVar", label: "Разброс размера (глубина)", type: "range", min: 0, max: 0.9, step: 0.05, def: 0.5 },
+      { k: "sparkle", label: "Сверкание внизу", type: "select", options: [["yes", "Да"], ["no", "Нет, просто тают"]], def: "yes" },
+      { k: "glintColor", label: "Цвет блика", type: "color", def: "#7FC8FF" },
+      { k: "glintSize", label: "Размер блика", type: "range", min: 0.4, max: 3, step: 0.1, def: 1 },
+      { k: "ground", label: "Линия земли (доля высоты)", type: "range", min: 0.3, max: 1, step: 0.01, def: 0.97 },
+      { k: "wind", label: "Ветер, px/с", type: "range", min: -300, max: 300, step: 5, def: 0 },
+      { k: "sway", label: "Покачивание", type: "range", min: 0, max: 3, step: 0.1, def: 1 },
+      { k: "spin", label: "Вращение", type: "range", min: 0, max: 3, step: 0.1, def: 1 },
+      { k: "prewarm", label: "Начало", type: "select", options: [["yes", "Снег уже идёт (бесшовный цикл)"], ["no", "С пустого экрана"]], def: "yes" },
+      { k: "seed", label: "Сид", type: "range", min: 1, max: 999, step: 1, def: 12 },
+    ],
+    cond: { color: [["source", "!image"]], glintColor: [["sparkle", "yes"]], glintSize: [["sparkle", "yes"]] },
   },
   sparkles: {
     name: "Искры-звёздочки", cat: "fx", tag: "В/Р", fx: true, dur: 1.3,
@@ -2741,7 +2771,7 @@ const PRESETS = {
     ],
   },
   satellites: {
-    name: "Спутники", cat: "fx", tag: "В/Р", fx: true, dur: 2,
+    name: "Спутники", cat: "fx", tag: "В/Р", fx: true, needsLayer: true, dur: 2,
     params: [
       { k: "count", label: "Количество", type: "range", min: 2, max: 12, step: 1, def: 5 },
       { k: "rx", label: "Радиус X (× слой)", type: "range", min: 0.6, max: 5, step: 0.05, def: 2.3 },
@@ -2753,7 +2783,7 @@ const PRESETS = {
     ],
   },
   trail: {
-    name: "Шлейф", cat: "fx", tag: "В/Р", fx: true, dur: 1.2,
+    name: "Шлейф", cat: "fx", tag: "В/Р", fx: true, needsLayer: true, dur: 1.2,
     params: [
       { k: "copies", label: "Копий", type: "range", min: 1, max: 10, step: 1, def: 5 },
       { k: "lag", label: "Задержка, мс", type: "range", min: 10, max: 200, step: 5, def: 30 },
@@ -2963,6 +2993,7 @@ const PRESET_INFO = {
   wow: ["Удивление", "Отшатнулся, вытянулся и замер с дрожью", "wow"],
   flame: ["Пламя", "Нерегулярное мерцание вверх, бесшовный цикл", "flame fire огонь flicker"],
   breathe: ["Idle-дыхание", "Едва заметное дыхание для состояния покоя, бесшовный цикл", "idle breathe покой"],
+  snow: ["Снег", "Снежинки плавно падают с покачиванием и сверкают у нижней границы", "snow снегопад снежинки зима новый год"],
   ringBurst: ["Кольцо + точки", "Круг раскрывается в кольцо, точки разлетаются — лайк как в X", "ring burst twitter like"],
   rays: ["Лучи-штрихи", "Короткий всплеск частиц вокруг — хлопок как в Medium", "rays clap medium"],
   confetti: ["Конфетти", "Залп цветных бумажек с гравитацией и трепетом", "confetti праздник"],
@@ -2978,7 +3009,8 @@ const PRESET_ADV = {
   swarm: ["spacing", "scaleMin", "scaleMax", "rotRange", "spin", "gravity", "returnBack", "seed", "fxOrder"],
   swarmHide: ["count", "pattern", "rangeX", "rangeY", "spacing", "scaleMin", "scaleMax", "rotRange", "spin", "gravity", "seed"],
   splitGrid: ["gravity", "rotate", "random", "fade"], splitPath: ["gravity", "rotate", "fade"], explode: ["rotate", "hold", "random"],
-  confetti: ["gravity", "flutter", "spinK", "originX", "originY", "seed"], ringBurst: ["dotSize"], rays: ["size", "seed"],
+  confetti: ["gravity", "flutter", "spinK", "originX", "originY", "seed"],
+  snow: ["sizeVar", "sparkle", "glintColor", "glintSize", "ground", "wind", "sway", "spin", "prewarm", "seed"], ringBurst: ["dotSize"], rays: ["size", "seed"],
   sparkles: ["life", "seed"], shockwave: ["gap", "opacity", "width"], satellites: ["depth", "dir"],
   orbit: ["depth", "dir"], liveHeart: ["waves", "seed"], flame: ["speed", "seed"], doubleTap: ["tilt", "hold"],
 };
@@ -3054,6 +3086,7 @@ function placeSegment(len) {
 }
 function applyRecipe(layer, r) {
   if (layer.locked) { toast("Слой заблокирован", "warn"); return; }
+  if (isFxLayer(layer) && r.segs.some((x) => PRESETS[x.preset] && presetNeedsImage(PRESETS[x.preset]))) { toast("Рецепту «" + r.name + "» нужен слой с изображением.", "warn", 5000); return; }
   const segs = r.segs.filter((s) => PRESETS[s.preset]);
   const total = Math.max.apply(null, segs.map((s) => (s.off || 0) + s.dur));
   const start = placeSegment(total);
@@ -3610,8 +3643,8 @@ function fxRect(w, h, r) { return { ty: "rc", p: { a: 0, k: [0, 0] }, s: { a: 0,
 // Под-слоёв у эффекта десятки, поэтому ключи прореживаем грубее, чем у основного слоя (на глаз не видно).
 // T.ks — готовые свойства (например, «трепет» конфетти задан парой ключей с синус-easing, а не покадрово).
 function fxKs(l, T) {
-  l.ks.o = scalarProp(T.O, 1.5, true);
-  l.ks.r = scalarProp(T.R, 0.8, true);
+  l.ks.o = scalarProp(T.O, T.epsO || 1.5, true);
+  l.ks.r = scalarProp(T.R, T.epsR || 0.8, true);
   l.ks.p = animProp(T.P, true, T.epsP || 0.9, true);
   l.ks.s = animProp(T.S.map((v) => [v[0], v[1], 100]), true, 1.2, true);
   if (T.ks) Object.assign(l.ks, T.ks);
@@ -3660,7 +3693,7 @@ function buildFxLayers(layer, asset, base, env) {
       return T;
     };
     const nm = (s) => layer.name + " · " + def.name + " " + s;
-    const shape = (where, label, items, fn, ks, epsP) => { const T = bake(fn); if (ks) T.ks = ks; if (epsP) T.epsP = epsP; res[where].push(fxShapeLayer(env.ind(), nm(label), items, T)); };
+    const shape = (where, label, items, fn, ks, epsP) => { const T = bake(fn); if (ks) T.ks = ks; if (epsP) T.epsP = epsP; if (seg.preset === "snow") { T.epsO = 3; T.epsR = 2; } res[where].push(fxShapeLayer(env.ind(), nm(label), items, T)); };
     // Копия самого слоя (картинка / вектор / импортированная Lottie) с готовым треком
     const copy = (where, label, T) => {
       let l;
@@ -3758,6 +3791,74 @@ function buildFxLayers(layer, asset, base, env) {
           shape("over", "#" + (i + 1), [fxRect(round(w, 1), round(h, 1), 1), fxFill(col)], fly, ks, 2.5); // частицы летят быстро — траекторию можно прореживать грубее
         }
       }
+    } else if (seg.preset === "snow") {
+      const W = project.scene.w, H = project.scene.h, D = dur / fps;
+      const n = clamp(Math.round(p.density), 1, 200), I = clamp(p.intensity, 0, 1);
+      const rnd = seeded(Math.round(p.seed) * 53 + 17);
+      const imgs = p.source === "image" ? (seg.params.images || []).map((id) => ASSETS[id]).filter((x) => x && x.dataURL) : [];
+      const sparkle = p.sparkle !== "no", gy = H * p.ground, Lnd = sparkle ? 0.5 : 0.3; // Lnd — сколько длится «приземление», с
+      const loopMode = p.prewarm !== "no";
+      const hash = (a, b) => { const x = Math.sin(a * 127.1 + b * 311.7 + p.seed * 74.7) * 43758.5453; return x - Math.floor(x); };
+      const grp = (items, x, y, rot) => ({ ty: "gr", it: items.concat([{ ty: "tr", p: { a: 0, k: [round(x, 2), round(y, 2)] }, a: { a: 0, k: [0, 0] }, s: { a: 0, k: [100, 100] }, r: { a: 0, k: rot || 0 }, o: { a: 0, k: 100 }, nm: "Трансформ" }]), nm: "Группа", np: items.length + 1, bm: 0, hd: false });
+      const glints = [];
+      for (let i = 0; i < n; i++) {
+        const depth = rnd(); // 0 — дальняя (мельче, медленнее, прозрачнее), 1 — ближняя
+        const sz = Math.max(2, p.size * (1 - p.sizeVar * (1 - depth)));
+        let v = Math.max(8, p.speed * (0.55 + 0.45 * depth) * (1 + (rnd() - 0.5) * 2 * (0.08 + 0.3 * I)));
+        const y0 = -sz * 0.7, dist = gy - y0;
+        let T = dist / v, C = T + Lnd, k = 1;
+        // бесшовный цикл: в сегмент укладывается целое число пролётов каждой снежинки
+        if (loopMode) { k = Math.max(1, Math.round(D / C)); C = D / k; T = Math.max(0.3, C - Lnd); v = dist / T; }
+        const shift = loopMode ? rnd() * C : -(rnd() * Math.min(C, D * 0.9));
+        const A = sz * (0.4 + 2.2 * I) * (0.5 + rnd()) * p.sway, swayT = 1.6 + rnd() * 2.2, psi = rnd() * TAU;
+        const wind = (p.wind + I * I * 60 * (rnd() - 0.3)) * (0.5 + 0.5 * depth);
+        const rot0 = rnd() * 360, rotV = (rnd() - 0.5) * 80 * p.spin * (0.4 + I), alpha = 0.5 + 0.5 * depth;
+        const xLand = (jj) => -W * 0.08 + hash(i + 1, jj + 1) * W * 1.16 - wind * T * 0.5;
+        // состояние снежинки в момент sec: падает (с покачиванием, без ускорения) либо «приземлилась»
+        const state = (sec) => {
+          const tt = sec + shift; if (tt < 0) return null;
+          const j = Math.floor(tt / C), u = tt - j * C, uf = Math.min(u, T), x0 = xLand(loopMode ? j % k : j);
+          return { u, uf, x: x0 + A * Math.sin(TAU * uf / swayT + psi) + wind * uf, y: y0 + v * uf, lu: u >= T ? (u - T) / Lnd : -1 };
+        };
+        const flake = (t, sec) => {
+          const st = state(sec); if (!st) return { x: W / 2, y: y0, op: 0 };
+          const rot = rot0 + rotV * st.uf;
+          if (st.lu < 0) return { x: st.x, y: st.y, rot, op: alpha * clamp(st.u / 0.25, 0, 1) };
+          const sc = sparkle ? (st.lu < 0.3 ? 1 + 0.35 * Math.sin(st.lu / 0.3 * Math.PI) : 1) * (1 - EZ.in(clamp((st.lu - 0.3) / 0.7, 0, 1))) : 1 - 0.4 * st.lu;
+          return { x: st.x, y: st.y, rot, sx: sc, sy: sc, op: alpha * (1 - EZ.in(st.lu)) };
+        };
+        const im = imgs.length ? imgs[i % imgs.length] : null;
+        if (im) {
+          const k100 = sz / Math.max(im.w, im.h, 1);
+          const T0 = bake((t, sec) => { const q = flake(t, sec), sc = (q.sx == null ? 1 : q.sx) * k100; return { x: q.x, y: q.y, rot: q.rot, sx: sc, sy: sc, op: q.op }; });
+          T0.epsP = 1.4; T0.epsO = 3; T0.epsR = 2;
+          const aid = ensureAsset(env.out, env.assetMap, im, im.dataURL, im.w, im.h);
+          res.over.push(fxKs(imageLayer(env.ind(), nm("#" + (i + 1)), aid, [im.w / 2, im.h / 2], [[0, 0]], [[100, 100]], [0], [100], T0.ip, T0.op, true), T0));
+        } else if (p.source === "dot") {
+          shape("over", "#" + (i + 1), [fxEllipse(round(sz, 1)), fxFill(p.color)], flake, null, 1.4);
+        } else {
+          // встроенная снежинка: шесть лучей одним контуром (лёгкий слой — один путь вместо набора фигур)
+          const hw = sz * 0.055, ro = sz * 0.5, ri = hw / Math.sin(Math.PI / 6), gm = Math.asin(hw / ro), fp = [];
+          for (let q = 0; q < 6; q++) {
+            const a6 = q * Math.PI / 3 - Math.PI / 2;
+            [[ri, a6 - Math.PI / 6], [ro, a6 - gm], [ro, a6 + gm]].forEach((v) => fp.push([round(v[0] * Math.cos(v[1]), 2), round(v[0] * Math.sin(v[1]), 2)]));
+          }
+          const items = [fxPathItem(fp), fxFill(p.color)];
+          shape("over", "#" + (i + 1), items, flake, null, 1.4);
+        }
+        if (sparkle) {
+          const rad = sz * 0.75 * p.glintSize, pts = [];
+          for (let q = 0; q < 8; q++) { const a8 = q * Math.PI / 4 - Math.PI / 2, rr = q % 2 ? rad * 0.28 : rad; pts.push([round(rr * Math.cos(a8), 2), round(rr * Math.sin(a8), 2)]); }
+          glints.push(() => shape("over", "блик " + (i + 1), [fxPathItem(pts), fxFill(p.glintColor)], (t, sec) => {
+            const st = state(sec); if (!st) return { x: W / 2, y: gy, op: 0 };
+            const j = Math.floor((sec + shift) / C), xl = xLand(loopMode ? j % k : j) + A * Math.sin(TAU * T / swayT + psi) + wind * T; // точка приземления постоянна весь пролёт
+            if (st.lu < 0) return { x: xl, y: gy - sz * 0.15, sx: 0.01, sy: 0.01, op: 0 };
+            const sc = Math.sin(Math.PI * clamp(st.lu / 0.75, 0, 1));
+            return { x: xl, y: gy - sz * 0.15, rot: 90 * st.lu, sx: sc, sy: sc, op: st.lu < 0.75 ? 1 : 0 };
+          }));
+        }
+      }
+      glints.forEach((g) => g()); // блики кладём после снежинок
     } else if (seg.preset === "sparkles") {
       const rnd = seeded(Math.round(p.seed) * 7 + 11), n = clamp(Math.round(p.count), 1, 48), life = clamp(p.life, 0.05, 0.95);
       for (let i = 0; i < n; i++) {
@@ -3914,6 +4015,7 @@ async function buildLottie(opts) {
       const fx = buildFxLayers(layer, asset, base, fxEnv);
       fx.over.forEach((l) => layersOut.push(l)); fxUnder = fx.under;
     }
+    if (asset.type === "fx") continue; // слой эффектов: самого слоя в экспорте нет
     // === Размножение/рой и его скрытие: копии создаются один раз (появлением),
     //     отдельный сегмент-скрытие гасит ИХ ЖЕ (не плодит заново) ===
     const swarmSeg = layer.segments.find((s) => s.preset === "swarm");
@@ -4811,10 +4913,10 @@ function renderLayers() {
     el.addEventListener("mouseenter", () => setHover(l.id, true));
     el.addEventListener("mouseleave", () => setHover(l.id, false));
     el.innerHTML = `
-      <div class="layer-thumb" title="${a ? "Заменить изображение" : "Добавить изображение"}" style="cursor:pointer">${a ? (a.dataURL ? `<img src="${a.dataURL}" alt="">` : icon("film")) : icon("image")}</div>
+      <div class="layer-thumb" title="${a ? "Заменить изображение" : "Добавить изображение"}" style="cursor:pointer">${a ? (a.dataURL ? `<img src="${a.dataURL}" alt="">` : a.type === "fx" ? `<span class="fx-thumb">✦</span>` : icon("film")) : icon("image")}</div>
       <div class="layer-main">
         <input class="layer-name" value="${escapeHtml(l.name)}" ${l.locked ? "disabled" : ""}/>
-        <div class="layer-meta">${a ? (a.type === "lottie" ? "LOTTIE" : a.type === "shape" ? "ФИГУРА" : l.text ? "ТЕКСТ" : a.type.toUpperCase()) : "—"} · ${l.segments.length} аним.${(l.keys || []).length ? " · " + l.keys.length + " ⬥" : ""}</div>
+        <div class="layer-meta">${a ? (a.type === "lottie" ? "LOTTIE" : a.type === "fx" ? "ЭФФЕКТЫ" : a.type === "shape" ? "ФИГУРА" : l.text ? "ТЕКСТ" : a.type.toUpperCase()) : "—"} · ${l.segments.length} аним.${(l.keys || []).length ? " · " + l.keys.length + " ⬥" : ""}</div>
       </div>
       <div class="layer-ctrls">
         <button class="ic" data-act="vis" title="Видимость">${icon(l.visible ? "eye" : "eyeOff")}</button>
@@ -4830,6 +4932,7 @@ function renderLayers() {
       if (l.text) { openTextModal(l); return; }
       if (a && a.type === "shape") { openShapeModal(l); return; }
       if (a && a.type === "lottie") { toast("Lottie-слой: содержимое задаётся импортированным файлом", "warn"); return; }
+      if (a && a.type === "fx") { toast("Слой эффектов: картинки у него нет. Эффекты добавляются во вкладке «Анимации».", "ok"); return; }
       relinkTargetId = l.id; $("#relinkInp").click();
     });
     $(".layer-name", el).addEventListener("change", (e) => { l.name = e.target.value; markDirty(); renderLayers(); });
@@ -4895,16 +4998,16 @@ let presetQuery = "";
 function renderLayerParams(host, layer) {
   const cats = {}; Object.keys(CATS).forEach((c) => (cats[c] = []));
   Object.keys(PRESETS).forEach((id) => cats[PRESETS[id].cat].push(id));
-  const hasSwarm = layerHasSwarm(layer);
+  const hasSwarm = layerHasSwarm(layer), isFxL = isFxLayer(layer);
   const chipHtml = (id) => {
-    const pr = PRESETS[id], blocked = hasSwarm && pr.noSwarm, fav = favPresets.includes(id);
-    const tip = (pr.desc || pr.name) + (pr.experimental ? " · эксперим." : "") + (blocked ? " · не сочетается с роем" : (hasSwarm && pr.swarm ? " · применяется к каждой копии роя" : ""));
+    const pr = PRESETS[id], noImg = isFxL && presetNeedsImage(pr), blocked = (hasSwarm && pr.noSwarm) || noImg, fav = favPresets.includes(id);
+    const tip = (pr.desc || pr.name) + (pr.experimental ? " · эксперим." : "") + (noImg ? " · нужен слой с изображением" : blocked ? " · не сочетается с роем" : (hasSwarm && pr.swarm ? " · применяется к каждой копии роя" : ""));
     return `<button class="preset-chip${blocked ? " blocked" : ""}" data-preset="${id}" data-q="${escapeHtml((pr.name + " " + (pr.kw || "") + " " + (pr.desc || "")).toLowerCase())}" title="${escapeHtml(tip)}"><span class="pc-name">${escapeHtml(pr.name)}${pr.experimental ? " <span class='exp'>β</span>" : ""}</span><span class="pc-star${fav ? " on" : ""}" data-fav="${id}" title="${fav ? "Убрать из избранного" : "В избранное"}">${fav ? "★" : "☆"}</span></button>`;
   };
   const secHtml = (title, color, hint, ids) => ids.length ? `<div class="preset-sec"><div class="preset-cat"><span class="cdot" style="background:${color}"></span>${title}</div>${hint ? `<p class="hint" style="margin:-2px 0 7px">${hint}</p>` : ""}<div class="preset-grid">${ids.map(chipHtml).join("")}</div></div>` : "";
   let picker = secHtml("Избранное", "var(--primary)", "", favPresets) + secHtml("Недавние", "var(--text-muted)", "", recentPresets.filter((id) => !favPresets.includes(id)));
   Object.keys(cats).forEach((c) => { picker += secHtml(CATS[c].label, CATS[c].color, CATS[c].hint, cats[c]); });
-  const recipesHtml = `<div class="preset-sec"><div class="preset-cat"><span class="dot" style="background:var(--primary)"></span>Готовые реакции</div><p class="hint" style="margin:-2px 0 7px">Связка «вход → акцент → эффект» одним кликом.</p><div class="recipe-grid">${RECIPES.map((r) => `<button class="recipe-chip" data-recipe="${r.id}" data-q="${escapeHtml((r.name + " " + r.desc).toLowerCase())}" title="${escapeHtml(r.desc)}"><span class="em">${r.emoji}</span><span>${escapeHtml(r.name)}</span></button>`).join("")}</div></div>`;
+  const recipesHtml = `<div class="preset-sec"><div class="preset-cat"><span class="dot" style="background:var(--primary)"></span>Готовые реакции</div><p class="hint" style="margin:-2px 0 7px">Связка «вход → акцент → эффект» одним кликом.</p><div class="recipe-grid">${RECIPES.map((r) => `<button class="recipe-chip${isFxL && r.segs.some((x) => PRESETS[x.preset] && presetNeedsImage(PRESETS[x.preset])) ? " blocked" : ""}" data-recipe="${r.id}" data-q="${escapeHtml((r.name + " " + r.desc).toLowerCase())}" title="${escapeHtml(r.desc)}"><span class="em">${r.emoji}</span><span>${escapeHtml(r.name)}</span></button>`).join("")}</div></div>`;
   const keys = sortedKeys(layer);
   const asset = ASSETS[layer.assetId];
   const easeSel = (cur) => Object.keys(EASING_LABELS).map((k) => `<option value="${k}" ${cur === k ? "selected" : ""}>${EASING_LABELS[k]}</option>`).join("") + `<option value="custom" ${cur === "custom" ? "selected" : ""}>Своя…</option>` + `<option value="spring" ${cur === "spring" ? "selected" : ""}>Пружина…</option>`;
@@ -4946,6 +5049,7 @@ function renderLayerParams(host, layer) {
   let editBtn = "";
   if (isText) editBtn = `<button class="btn-soft wide" id="editTextBtn" style="margin-bottom:10px">${icon("pencil")} Изменить текст…</button>`;
   else if (isShape) editBtn = `<button class="btn-soft wide" id="editShapeBtn" style="margin-bottom:10px">${icon("pencil")} Изменить фигуру…</button>`;
+  else if (asset && asset.type === "fx") editBtn = `<p class="hint" style="margin:0 0 10px">Это слой эффектов: у него нет картинки, в экспорт попадают только частицы. Позиция задаёт точку, из которой работают конфетти, искры и волна; масштаб — размер условной области (от него считаются размеры «× слой»).</p>`;
   else if (!isLot) editBtn = `<button class="btn-soft wide" id="relinkBtn" style="margin-bottom:10px">${icon("image")} ${asset ? "Заменить изображение…" : "Добавить изображение к слою…"}</button>`;
   const anchorGrid = [0, 0.5, 1].map((ay) => [0, 0.5, 1].map((ax) =>
     `<button data-anc="${ax},${ay}" class="${Math.abs(aRel[0] - ax) < 0.01 && Math.abs(aRel[1] - ay) < 0.01 ? "on" : ""}" title="Якорь ${ax};${ay}">·</button>`).join("")).join("");
@@ -4991,6 +5095,7 @@ function renderLayerParams(host, layer) {
     <div class="pgroup" ${paramTab === "anim" ? "" : "hidden"}>
       <h3>Добавить анимацию</h3>
       <p class="hint">Наведите на пресет — он проиграется на холсте. Клик добавит сегмент в позицию плейхеда.</p>
+      ${isFxL ? `<p class="hint" style="margin:6px 0 0">Слой эффектов: доступны эффекты, которым не нужна картинка. Остальные приглушены.</p>` : ""}
       <input id="presetSearch" class="preset-search" type="search" placeholder="Поиск: прыжок, like, конфетти…" value="${escapeHtml(presetQuery)}" aria-label="Поиск пресета">
       <p id="presetNone" class="hint" style="display:none;margin:10px 0">Ничего не нашлось. Попробуйте другое слово или сотрите запрос.</p>
       ${recipesHtml}
@@ -5201,13 +5306,14 @@ function renderSegParams(host, layer, seg) {
   // условия видимости поля: у пресета свои (def.cond, несколько условий сразу) или общие (condParams)
   const condOf = (k) => { const c = (def.cond && def.cond[k]) || condParams[k]; return !c ? null : (Array.isArray(c[0]) ? c : [c]); };
   const pval = (k) => (seg.params[k] == null ? (pdef[k] ? pdef[k].def : undefined) : seg.params[k]);
-  const condOk = (k) => { const c = condOf(k); return !c || c.every((q) => String(pval(q[0])) === String(q[1])); };
+  // значение с «!» в начале — условие «не равно»
+  const condOk = (k) => { const c = condOf(k); return !c || c.every((q) => { const neg = String(q[1])[0] === "!", eq = String(pval(q[0])) === String(q[1]).slice(neg ? 1 : 0); return neg ? !eq : eq; }); };
   // v9: свои изображения для частиц конфетти
-  const isImgConfetti = seg.preset === "confetti" && pval("source") === "image";
+  const isImgConfetti = !!def.imgParticles && pval("source") === "image";
   const cfIds = isImgConfetti ? (seg.params.images || []).filter((id) => ASSETS[id] && ASSETS[id].dataURL) : [];
   const cfPickable = isImgConfetti ? project.assets.filter((a) => ASSETS[a.id] && ASSETS[a.id].dataURL && cfIds.indexOf(a.id) < 0) : [];
   const cfBlock = isImgConfetti ? `<div class="cf-imgs">
-      <div class="cf-list">${cfIds.length ? cfIds.map((id) => `<span class="cf-thumb" title="${escapeHtml((project.assets.find((a) => a.id === id) || {}).name || "изображение")}"><img src="${ASSETS[id].dataURL}" alt=""><button type="button" data-cfdel="${id}" title="Убрать" aria-label="Убрать изображение">×</button></span>`).join("") : `<span class="cf-empty">Пока пусто — летят обычные бумажки. Добавьте одну или несколько картинок.</span>`}</div>
+      <div class="cf-list">${cfIds.length ? cfIds.map((id) => `<span class="cf-thumb" title="${escapeHtml((project.assets.find((a) => a.id === id) || {}).name || "изображение")}"><img src="${ASSETS[id].dataURL}" alt=""><button type="button" data-cfdel="${id}" title="Убрать" aria-label="Убрать изображение">×</button></span>`).join("") : `<span class="cf-empty">Пока пусто — используются встроенные частицы. Добавьте одну или несколько картинок.</span>`}</div>
       <div class="cf-actions"><button type="button" class="btn-soft" id="cfUpload">＋ Загрузить…</button>${cfPickable.length ? `<select id="cfPick" aria-label="Взять изображение из проекта"><option value="">Из проекта…</option>${cfPickable.map((a) => `<option value="${a.id}">${escapeHtml(a.name || a.type)}</option>`).join("")}</select>` : ""}</div>
       <input type="file" id="cfFile" accept="image/*,.svg" multiple hidden>
       <p class="hint" style="margin:6px 0 0">Частицы берут картинки по очереди. Лучше всего подходят PNG с прозрачным фоном; большие изображения уменьшаются до ${PARTICLE_MAX} px.</p>
@@ -5240,7 +5346,8 @@ function renderSegParams(host, layer, seg) {
   const swarmWarn = swarmBlockedSegIds(layer).has(seg.id)
     ? `<div class="notice">${icon("alert")} <b>Этот пресет не применяется к рою.</b> Это вход или выход одиночного слоя, а у роя своё появление и скрытие. <button class="btn-soft wide" id="extractSeg" style="margin-top:8px">${icon("layers")} Вынести на отдельный слой</button></div>`
     : "";
-  const fxHint = def.fx ? `<p class="hint" style="margin:0 0 10px">Эффект добавляет под-слои рядом со слоем и сочетается с другими пресетами. Размеры считаются от размера слоя в момент старта сегмента.</p>` : "";
+  const fxHint = def.sceneFx ? `<p class="hint" style="margin:0 0 10px">Эффект занимает всю сцену и не зависит от положения слоя. Длительность сегмента — сколько он длится; для фона растяните сегмент на всю сцену.</p>`
+    : def.fx ? `<p class="hint" style="margin:0 0 10px">Эффект добавляет под-слои рядом со слоем и сочетается с другими пресетами. Размеры считаются от размера слоя в момент старта сегмента.</p>` : "";
   const swarmHint = def.swarm && layerHasSwarm(layer) ? `<p class="hint" style="margin:0 0 10px">На слое рой: пресет применяется к каждой копии, амплитуда подстраивается под её размер. Чтобы копии шли волной, задайте «Сдвиг пресетов по копиям» в параметрах роя.</p>` : "";
   const easeOpts = `<option value="auto" ${(!seg.ease || seg.ease === "auto") ? "selected" : ""}>Авто (как в пресете)</option>` +
     Object.keys(EASING_LABELS).map((k) => `<option value="${k}" ${seg.ease === k ? "selected" : ""}>${EASING_LABELS[k]}</option>`).join("") +
@@ -5322,9 +5429,9 @@ function renderSegParams(host, layer, seg) {
       // показываем/прячем зависимые поля (поля направленного ухода зависят от exit)
       (def.params || []).forEach((pp) => { if (!condOf(pp.k)) return; const row = $(`[data-prow="${pp.k}"]`, host); if (row) row.style.display = condOk(pp.k) ? "" : "none"; });
       // v9: смена источника частиц — подбираем разумный размер (картинке 12 px мало) и перерисовываем блок изображений
-      if (seg.preset === "confetti" && inp.dataset.p === "source") {
-        if (v === "image" && pval("size") === pdef.size.def) seg.params.size = 40;
-        else if (v === "paper" && pval("size") === 40) seg.params.size = pdef.size.def;
+      if (def.imgParticles && inp.dataset.p === "source") {
+        if (seg.preset === "confetti" && v === "image" && pval("size") === pdef.size.def) seg.params.size = 40;
+        else if (seg.preset === "confetti" && v === "paper" && pval("size") === 40) seg.params.size = pdef.size.def;
         markDirty(); renderParams(); scheduleRebuild(); return;
       }
       markDirty(); scheduleRebuild();
@@ -5378,6 +5485,7 @@ function renderSegParams(host, layer, seg) {
 }
 function addSegment(layer, presetId) {
   const def = PRESETS[presetId];
+  if (isFxLayer(layer) && presetNeedsImage(def)) { toast("«" + def.name + "» нужен слой с изображением. На слое эффектов работают эффекты из раздела «Эффекты».", "warn", 5500); return; }
   const dur = def.dur || (def.complex ? 0.9 : 0.6);
   const start = placeSegment(dur);
   pushRecent(presetId);
@@ -5709,6 +5817,7 @@ async function loadProject(id) {
   // восстановить ассеты
   for (const a of project.assets) {
     if (ASSETS[a.id]) continue;
+    if (a.type === "fx") { ASSETS[a.id] = fxAsset(); continue; }
     const ar = await idbGet("assets", a.id);
     if (ar) {
       const img = ar.dataURL ? await loadImage(ar.dataURL).catch(() => null) : null;
@@ -5836,6 +5945,7 @@ async function importProjectJSON(file) {
   for (const a of (obj.assets || [])) {
     let dataURL = a.data || null, w = a.w, h = a.h, shape = a.shape || null, anim = a.anim || null;
     if (!dataURL && !anim && db) { const rec = await idbGet("assets", a.id).catch(() => null); if (rec) { dataURL = rec.dataURL; w = rec.w; h = rec.h; shape = rec.shape || shape; anim = rec.anim || anim; } }
+    if (a.type === "fx") { ASSETS[a.id] = fxAsset(); continue; } // слой эффектов: данных нет, это нормально
     if (anim) { // импортированная Lottie-анимация: картинки нет, это нормально
       ASSETS[a.id] = { type: "lottie", anim, dataURL: null, img: null, w: w || anim.w || 512, h: h || anim.h || 512 };
     } else if (dataURL) {
@@ -6376,6 +6486,20 @@ function segContextMenu(e, layer, seg) {
   ]);
 }
 
+/* ----- v10: слой эффектов — носитель без изображения: в экспорт попадают только частицы ----- */
+function fxAsset() { return { type: "fx", dataURL: null, w: 120, h: 120, img: null }; }
+function isFxLayer(layer) { const a = layer && ASSETS[layer.assetId]; return !!(a && a.type === "fx"); }
+// пресету нужна картинка слоя: простые пресеты двигают слой, а «Спутники» и «Шлейф» копируют его
+function presetNeedsImage(def) { return !def.fx || !!def.needsLayer; }
+function addFxLayer() {
+  const id = uid("a");
+  ASSETS[id] = fxAsset(); project.assets.push({ id, type: "fx", name: "fx" });
+  const l = addLayerForAsset(id, "Эффекты");
+  paramTab = "anim"; renderAll();
+  toast("Слой эффектов добавлен: выберите эффект во вкладке «Анимации». Картинка ему не нужна.", "ok", 4500);
+  return l;
+}
+
 /* ----- Свои изображения для частиц (конфетти) ----- */
 const PARTICLE_MAX = 256; // частицы мелкие — большие картинки уменьшаем, чтобы не раздувать файл
 async function importParticleImage(file) {
@@ -6689,6 +6813,7 @@ function wireEvents() {
   $("#undoBtn").addEventListener("click", undo);
   $("#redoBtn").addEventListener("click", redo);
   $("#addEmojiBtn").addEventListener("click", (e) => openEmojiPicker(e.currentTarget));
+  $("#addFxBtn").addEventListener("click", addFxLayer);
   $("#loopSegBtn").classList.toggle("on", loopSegOn);
   $("#loopSegBtn").addEventListener("click", (e) => {
     loopSegOn = !loopSegOn; LS.set("lb-loop-seg", loopSegOn); e.currentTarget.classList.toggle("on", loopSegOn);
