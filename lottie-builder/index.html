@@ -139,6 +139,8 @@ input,select{font-family:inherit;font-size:var(--fs-md);color:var(--text)}
 .preset-chip{padding:8px 9px;border-radius:var(--radius-sm);background:var(--bg);border:1px solid var(--line);font-size:var(--fs-xs);font-weight:500;text-align:left;transition:.12s;line-height:1.25}
 .preset-chip:hover{border-color:var(--primary);color:var(--primary);background:#fff}
 .preset-chip .exp{font-size:9px;color:var(--primary-hover);font-weight:700}
+.preset-chip.blocked{opacity:.45}
+.color-inp{flex:1;height:30px;min-width:60px;padding:0 2px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--bg);cursor:pointer}
 .wide{width:100%;justify-content:center;margin-top:6px}
 .btn-danger{padding:8px 12px;border-radius:var(--radius-sm);background:var(--danger-soft);color:var(--danger);border:1px solid transparent;font-size:var(--fs-sm);font-weight:600}
 .btn-danger:hover{background:rgba(255,59,48,.16)}
@@ -1964,6 +1966,27 @@ function catmull(p0, p1, p2, p3, t) {
   return 0.5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (-p0 + 3 * p1 - 3 * p2 + p3) * t3);
 }
 
+/* v7: быстрые аналитические easing'и и кусочная интерполяция для пресетов-реакций */
+const TAU = Math.PI * 2;
+const backK = (c) => (t) => 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2);
+const EZ = {
+  lin: (t) => t, in: (t) => t * t, out: (t) => 1 - (1 - t) * (1 - t),
+  io: (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2),
+  inC: (t) => t * t * t, outC: (t) => 1 - Math.pow(1 - t, 3),
+  back: backK(1.70158), backS: backK(0.9),
+};
+// Точки [время 0..1, значение, easing до следующей точки (по умолчанию ease-in-out)]
+function kfr(t, pts) {
+  if (t <= pts[0][0]) return pts[0][1];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1];
+    if (t <= b[0]) { const u = (t - a[0]) / (b[0] - a[0] || 1e-6); return a[1] + (b[1] - a[1]) * (a[2] || EZ.io)(u); }
+  }
+  return pts[pts.length - 1][1];
+}
+
+const FX_PALETTE_OPTS = [["rainbow", "Радуга"], ["warm", "Тёплая"], ["cool", "Холодная"], ["gold", "Золото"], ["mono", "Один цвет"]];
+
 /* ----------------------------- Устройства -------------------------------- */
 const DEVICES = {
   iphone15: { name: "iPhone 15/16", w: 393, h: 852 },
@@ -1979,11 +2002,13 @@ const CATS = {
   appear: { label: "Появление", color: "#6B6B6B" },
   move: { label: "Движение", color: "#6B6B6B" },
   rotate: { label: "Вращение", color: "#6B6B6B" },
+  react: { label: "Эмоции", color: "#6B6B6B" },
+  fx: { label: "Эффекты", color: "#6B6B6B", hint: "Добавляют частицы и копии рядом со слоем. Сочетаются между собой, с простыми пресетами и с роем." },
   complex: { label: "Сложные", color: "#6B6B6B" },
 };
 
 /* ============================================================================
-   Каталог пресетов (20)
+   Каталог пресетов (базовые 27 + v7: 22 реакции и 7 эффектов)
    Каждый «простой» пресет: eval(prog, p) -> дельты {ox,oy,sx,sy,rot,op}
    pre(p) -> состояние до начала сегмента.
    «Сложные» пресеты помечены complex:true и раскрываются в под-слои.
@@ -2238,6 +2263,416 @@ const PRESETS = {
       return { sx: s, sy: s, op };
     },
   },
+  /* ==========================================================================
+     v7: пресеты-реакции (простые, 22 шт.)
+     pv — опорная точка [x, y] в долях ассета (0..1): движок сам компенсирует смещение,
+          поэтому якорь слоя менять не нужно (сжатие «от пола», взмах «от запястья»).
+     swarm: true   — в рое применяется к каждой копии, амплитуды масштабируются под копию.
+     noSwarm: true — вход/выход: с роем не сочетается (у роя своё появление и скрытие).
+     dur — длительность сегмента по умолчанию, с.
+     ======================================================================== */
+  tapSquash: {
+    name: "Нажатие", cat: "move", tag: "В/Р", dur: 0.4, swarm: true,
+    params: [
+      { k: "depth", label: "Глубина сжатия", type: "range", min: 0.05, max: 1, step: 0.05, def: 0.2 },
+      { k: "over", label: "Перелёт", type: "range", min: 0, max: 0.6, step: 0.05, def: 0.2 },
+    ],
+    eval: (t, p) => { const s = kfr(t, [[0, 1, EZ.out], [0.25, Math.max(0.001, 1 - p.depth)], [0.6, 1 + p.over], [0.82, 1 - p.over * 0.2], [1, 1]]); return { sx: s, sy: s }; },
+  },
+  squashJump: {
+    name: "Прыжок со сжатием", cat: "move", tag: "В/Р", dur: 0.75, swarm: true,
+    params: [
+      { k: "height", label: "Высота, px", type: "range", min: 10, max: 400, step: 5, def: 90 },
+      { k: "squash", label: "Сжатие", type: "range", min: 0.05, max: 0.5, step: 0.05, def: 0.2 },
+      { k: "count", label: "Прыжков", type: "range", min: 1, max: 5, step: 1, def: 1 },
+    ],
+    eval: (t, p) => {
+      const u = t >= 1 ? 1 : (t * p.count) % 1, q = p.squash;
+      const sy = kfr(u, [[0, 1, EZ.out], [0.2, 1 - q, EZ.out], [0.32, 1 + q], [0.5, 1 + q * 0.25], [0.72, 1 + q * 0.7, EZ.lin], [0.8, 1 - q * 0.7, EZ.out], [0.92, 1 + q * 0.12], [1, 1]]);
+      const a = clamp((u - 0.22) / 0.53, 0, 1);
+      return { oy: -p.height * 4 * a * (1 - a), sy, sx: 1 / sy, pv: [0.5, 1] };
+    },
+  },
+  slam: {
+    name: "Штамп", cat: "appear", tag: "В", dur: 0.55, noSwarm: true,
+    params: [
+      { k: "from", label: "Старт. масштаб", type: "range", min: 1.5, max: 5, step: 0.1, def: 2.6 },
+      { k: "tilt", label: "Наклон, °", type: "range", min: -30, max: 30, step: 1, def: -8 },
+      { k: "hit", label: "Сила удара", type: "range", min: 0, max: 0.4, step: 0.02, def: 0.14 },
+    ],
+    pre: (p) => ({ sx: p.from, sy: p.from, rot: p.tilt, op: 0 }),
+    eval: (t, p, fr, ctx) => {
+      if (t < 0.3) { const e = EZ.inC(t / 0.3), s = lerp(p.from, 1, e); return { sx: s, sy: s, rot: p.tilt * (1 - e), op: clamp(t / 0.3 * 2.5, 0, 1) }; }
+      const u = (t - 0.3) / 0.7, dec = Math.exp(-5 * u) * (1 - u), w = Math.cos(u * TAU * 2.5) * dec;
+      const h = (ctx && ctx.h) || 100;
+      return { sx: 1 + p.hit * w, sy: 1 - p.hit * w, oy: h * 0.6 * p.hit * Math.sin(u * TAU * 4) * dec };
+    },
+  },
+  loud: {
+    name: "Крик", cat: "react", tag: "В/Р", dur: 0.9, swarm: true,
+    params: [
+      { k: "scale", label: "Масштаб", type: "range", min: 1.1, max: 2.5, step: 0.05, def: 1.5 },
+      { k: "tremor", label: "Дрожь, px", type: "range", min: 0, max: 30, step: 1, def: 6 },
+      { k: "freq", label: "Частота", type: "range", min: 4, max: 30, step: 1, def: 13 },
+    ],
+    eval: (t, p) => {
+      const s = kfr(t, [[0, 1, EZ.back], [0.25, p.scale, EZ.lin], [0.75, p.scale], [1, 1]]);
+      const env = kfr(t, [[0.1, 0], [0.25, 1, EZ.lin], [0.7, 1], [0.85, 0]]);
+      return { sx: s, sy: s, ox: p.tremor * Math.sin(t * TAU * p.freq) * env, oy: p.tremor * 0.6 * Math.cos(t * TAU * p.freq * 1.3) * env };
+    },
+  },
+  nod: {
+    name: "Кивок / Мотание", cat: "react", tag: "В/Р", dur: 0.65, swarm: true,
+    params: [
+      { k: "mode", label: "Жест", type: "select", options: [["no", "Мотание «нет»"], ["yes", "Кивок «да»"]], def: "no" },
+      { k: "amp", label: "Амплитуда, px", type: "range", min: 2, max: 60, step: 1, def: 12 },
+      { k: "count", label: "Повторов", type: "range", min: 1, max: 6, step: 1, def: 3 },
+    ],
+    eval: (t, p) => {
+      if (p.mode === "yes") { const w = (1 - Math.cos(t * TAU * p.count)) / 2 * (1 - t * 0.4); return { oy: p.amp * w, sy: 1 - 0.06 * w, sx: 1 + 0.03 * w, pv: [0.5, 1] }; }
+      const w = Math.sin(t * TAU * p.count) * (1 - t); return { ox: p.amp * w, rot: p.amp * 0.6 * w };
+    },
+  },
+  wave: {
+    name: "Взмах", cat: "rotate", tag: "В/Р", dur: 0.95, swarm: true,
+    params: [
+      { k: "angle", label: "Угол, °", type: "range", min: 5, max: 60, step: 1, def: 18 },
+      { k: "count", label: "Махов", type: "range", min: 1, max: 5, step: 1, def: 2 },
+      { k: "axis", label: "Ось вращения", type: "select", options: [["b", "Низ по центру"], ["bl", "Левый нижний угол"], ["br", "Правый нижний угол"], ["c", "Центр"]], def: "b" },
+    ],
+    eval: (t, p) => {
+      const u = clamp(t / 0.72, 0, 1), rot = p.angle * Math.sin(u * TAU * p.count) * (1 - u * 0.55);
+      return { rot, pv: p.axis === "bl" ? [0, 1] : p.axis === "br" ? [1, 1] : p.axis === "c" ? [0.5, 0.5] : [0.5, 1] };
+    },
+  },
+  hinge: {
+    name: "Сорвался с петли", cat: "appear", tag: "Р", dur: 1.25, noSwarm: true,
+    params: [
+      { k: "angle", label: "Угол качания, °", type: "range", min: 20, max: 120, step: 5, def: 70 },
+      { k: "fall", label: "Падение, px", type: "range", min: 50, max: 1500, step: 10, def: 600 },
+      { k: "corner", label: "Висит на углу", type: "select", options: [["tl", "Левый верхний"], ["tr", "Правый верхний"]], def: "tl" },
+    ],
+    eval: (t, p) => {
+      const sg = p.corner === "tr" ? -1 : 1;
+      const rot = sg * kfr(t, [[0, 0], [0.22, p.angle], [0.42, p.angle * 0.55], [0.6, p.angle * 0.9], [0.72, p.angle * 0.72]]);
+      const u = clamp((t - 0.72) / 0.28, 0, 1);
+      return { rot, oy: p.fall * u * u, op: 1 - EZ.in(u), pv: p.corner === "tr" ? [1, 0] : [0, 0] };
+    },
+  },
+  roll: {
+    name: "Перекат", cat: "appear", tag: "В/Р", dur: 0.7, noSwarm: true,
+    params: [
+      { k: "mode", label: "Направление", type: "select", options: [["in", "Вход"], ["out", "Выход"]], def: "in" },
+      { k: "side", label: "Сторона", type: "select", options: [["left", "Слева"], ["right", "Справа"]], def: "left" },
+      { k: "dist", label: "Дистанция, px", type: "range", min: 50, max: 1000, step: 10, def: 300 },
+    ],
+    pre: (p) => (p.mode === "out" ? {} : { op: 0 }),
+    eval: (t, p, fr, ctx) => {
+      // угол = путь / радиус: объект катится как колесо (радиус — половина ширины слоя)
+      const k = 180 / Math.PI / Math.max(8, ((ctx && ctx.w) || 120) / 2), sg = p.side === "right" ? 1 : -1;
+      if (p.mode === "out") { const f = EZ.inC(t); return { ox: sg * p.dist * f, rot: sg * p.dist * f * k, op: 1 - clamp((t - 0.7) / 0.3, 0, 1) }; }
+      const f = 1 - EZ.backS(t); return { ox: sg * p.dist * f, rot: sg * p.dist * f * k, op: clamp(t * 4, 0, 1) };
+    },
+  },
+  orbit: {
+    name: "Орбита", cat: "move", tag: "В/Р", dur: 1.8, swarm: true,
+    params: [
+      { k: "shape", label: "Траектория", type: "select", options: [["ellipse", "Эллипс"], ["eight", "Восьмёрка"]], def: "ellipse" },
+      { k: "rx", label: "Радиус X, px", type: "range", min: 0, max: 300, step: 2, def: 60 },
+      { k: "ry", label: "Радиус Y, px", type: "range", min: 0, max: 300, step: 2, def: 20 },
+      { k: "turns", label: "Оборотов", type: "range", min: 1, max: 6, step: 1, def: 1 },
+      { k: "depth", label: "Глубина (масштаб)", type: "range", min: 0, max: 0.6, step: 0.05, def: 0.2 },
+      { k: "dir", label: "Направление", type: "select", options: [["1", "По часовой"], ["-1", "Против"]], def: "1" },
+    ],
+    eval: (t, p) => {
+      const a = t * TAU * p.turns * Number(p.dir);
+      if (p.shape === "eight") return { ox: p.rx * Math.sin(a), oy: p.ry * Math.sin(2 * a) };
+      const d = (1 - Math.cos(a)) / 2, s = 1 + p.depth * d; // старт и финиш — в точке покоя (верх эллипса)
+      return { ox: p.rx * Math.sin(a), oy: 2 * p.ry * d, sx: s, sy: s };
+    },
+  },
+  liveHeart: {
+    name: "Live-сердечко (всплытие)", cat: "appear", tag: "В", dur: 2, noSwarm: true,
+    params: [
+      { k: "height", label: "Высота, px", type: "range", min: 50, max: 1500, step: 10, def: 420 },
+      { k: "sway", label: "Размах, px", type: "range", min: 0, max: 200, step: 2, def: 40 },
+      { k: "waves", label: "Волн", type: "range", min: 0.5, max: 5, step: 0.1, def: 1.6 },
+      { k: "seed", label: "Сид (вариант пути)", type: "range", min: 1, max: 999, step: 1, def: 5 },
+    ],
+    pre: () => ({ op: 0, sx: 0.001, sy: 0.001 }),
+    eval: (t, p) => {
+      const r = seeded(Math.round(p.seed) * 7919 + 13), ph = r() * TAU, dir = r() < 0.5 ? -1 : 1;
+      const pop = EZ.back(clamp(t / 0.15, 0, 1)), e = Math.pow(t, 0.85), a = e * TAU * p.waves + ph;
+      const u = clamp((t - 0.68) / 0.32, 0, 1), s = Math.max(0.001, pop * (1 - 0.4 * u));
+      return { oy: -p.height * e, ox: dir * p.sway * (Math.sin(a) - Math.sin(ph)) * (0.4 + 0.6 * e), rot: dir * 10 * Math.cos(a), sx: s, sy: s, op: 1 - u };
+    },
+  },
+  doubleTap: {
+    name: "Двойной тап", cat: "appear", tag: "В/Р", dur: 1, noSwarm: true,
+    params: [
+      { k: "exit", label: "Выход", type: "select", options: [["shrink", "Сжатие"], ["up", "Улёт вверх"], ["puff", "«Пуф» (рост + затухание)"]], def: "shrink" },
+      { k: "tilt", label: "Наклон, °", type: "range", min: -30, max: 30, step: 1, def: 12 },
+      { k: "hold", label: "Пауза (доля)", type: "range", min: 0, max: 0.6, step: 0.02, def: 0.32 },
+      { k: "rise", label: "Улёт, px", type: "range", min: 20, max: 600, step: 10, def: 140 },
+    ],
+    pre: () => ({ op: 0, sx: 0.001, sy: 0.001 }),
+    eval: (t, p) => {
+      const rot = p.tilt, inEnd = 0.3, outStart = Math.min(0.95, inEnd + p.hold);
+      if (t < outStart) { const s = kfr(t / inEnd, [[0, 0.001, EZ.out], [0.6, 1.2], [0.85, 0.95], [1, 1]]); return { sx: s, sy: s, rot, op: clamp(t * 12, 0, 1) }; }
+      const u = (t - outStart) / (1 - outStart);
+      if (p.exit === "up") { const s = 1 - 0.3 * u; return { oy: -p.rise * EZ.in(u), sx: s, sy: s, rot, op: 1 - EZ.in(u) }; }
+      if (p.exit === "puff") { const s = 1 + 0.7 * EZ.out(u); return { sx: s, sy: s, rot, op: 1 - u }; }
+      const s = kfr(u, [[0, 1, EZ.out], [0.25, 1.1, EZ.in], [1, 0.001]]); return { sx: s, sy: s, rot, op: u >= 1 ? 0 : 1 };
+    },
+  },
+  flyTo: {
+    name: "Полёт в цель по дуге", cat: "appear", tag: "В", dur: 0.7, noSwarm: true,
+    params: [
+      { k: "dx", label: "Старт: смещение X, px", type: "range", min: -800, max: 800, step: 10, def: -160 },
+      { k: "dy", label: "Старт: смещение Y, px", type: "range", min: -800, max: 800, step: 10, def: 220 },
+      { k: "arc", label: "Высота дуги, px", type: "range", min: 0, max: 400, step: 5, def: 80 },
+      { k: "from", label: "Старт. масштаб", type: "range", min: 0.3, max: 4, step: 0.1, def: 1.9 },
+    ],
+    pre: (p) => ({ op: 0, ox: p.dx, oy: p.dy, sx: p.from, sy: p.from }),
+    eval: (t, p) => {
+      const e = EZ.io(clamp(t / 0.78, 0, 1)), u = clamp((t - 0.78) / 0.22, 0, 1), w = 0.14 * Math.sin(u * TAU) * (1 - u), s = lerp(p.from, 1, e);
+      return { ox: p.dx * (1 - e), oy: p.dy * (1 - e) - p.arc * Math.sin(e * Math.PI), sx: s * (1 + w), sy: s * (1 - w), op: clamp(t * 6, 0, 1) };
+    },
+  },
+  slingshot: {
+    name: "Рогатка", cat: "appear", tag: "В/Р", dur: 0.7, noSwarm: true,
+    params: [
+      { k: "mode", label: "Тип", type: "select", options: [["out", "Выход (оттяжка → вылет)"], ["in", "Вход (влёт → осадка)"]], def: "out" },
+      { k: "side", label: "Летит", type: "select", options: [["right", "Вправо"], ["left", "Влево"], ["up", "Вверх"], ["down", "Вниз"]], def: "right" },
+      { k: "pull", label: "Оттяжка, px", type: "range", min: 5, max: 150, step: 1, def: 40 },
+      { k: "dist", label: "Дистанция, px", type: "range", min: 50, max: 1200, step: 10, def: 320 },
+    ],
+    pre: (p) => (p.mode === "in" ? { op: 0 } : {}),
+    eval: (t, p) => {
+      let a, sa, sc, op = 1; // смещение вдоль оси, масштаб вдоль и поперёк оси
+      if (p.mode === "in") {
+        const st = 0.28 * clamp(1 - t * 2.4, 0, 1), sq = 0.12 * Math.sin(clamp((t - 0.45) / 0.4, 0, 1) * Math.PI);
+        a = -p.dist * (1 - EZ.back(t)); sa = 1 + st - sq; sc = 1 - st * 0.5 + sq * 0.6; op = clamp(t * 5, 0, 1);
+      } else if (t < 0.4) {
+        const u = EZ.out(t / 0.4); a = -p.pull * u; sa = 1 - 0.18 * u; sc = 1 + 0.12 * u;
+      } else {
+        const u = (t - 0.4) / 0.6, rel = clamp(u * 5, 0, 1), st = 0.3 * Math.sin(clamp(u * 1.6, 0, 1) * Math.PI);
+        a = -p.pull + (p.dist + p.pull) * EZ.in(u); sa = lerp(0.82, 1, rel) + st; sc = lerp(1.12, 1, rel) - st * 0.4; op = 1 - clamp((u - 0.6) / 0.4, 0, 1);
+      }
+      const sg = (p.side === "left" || p.side === "up") ? -1 : 1;
+      return (p.side === "up" || p.side === "down") ? { oy: sg * a, sy: sa, sx: sc, op } : { ox: sg * a, sx: sa, sy: sc, op };
+    },
+  },
+  vortex: {
+    name: "Воронка", cat: "appear", tag: "В/Р", dur: 0.8, noSwarm: true,
+    params: [
+      { k: "mode", label: "Направление", type: "select", options: [["in", "Вход"], ["out", "Выход"]], def: "in" },
+      { k: "turns", label: "Витков", type: "range", min: 0.5, max: 4, step: 0.25, def: 1.5 },
+      { k: "radius", label: "Радиус, px", type: "range", min: 20, max: 600, step: 10, def: 140 },
+    ],
+    pre: (p) => (p.mode === "in" ? { op: 0, sx: 0.001, sy: 0.001 } : {}),
+    eval: (t, p) => {
+      const e = p.mode === "in" ? EZ.outC(t) : 1 - EZ.inC(t), r = p.radius * (1 - e), a = p.turns * TAU * (1 - e), s = Math.max(0.001, e);
+      return { ox: r * Math.cos(a), oy: r * Math.sin(a), rot: -360 * p.turns * (1 - e), sx: s, sy: s, op: clamp(e * 4, 0, 1) };
+    },
+  },
+  jackBox: {
+    name: "Чёртик из коробки", cat: "appear", tag: "В", dur: 0.65, noSwarm: true,
+    params: [{ k: "tilt", label: "Наклон, °", type: "range", min: 0, max: 60, step: 1, def: 30 }],
+    pre: (p) => ({ op: 0, sx: 0.1, sy: 0.1, rot: p.tilt, pv: [0.5, 1] }),
+    eval: (t, p) => {
+      const s = kfr(t, [[0, 0.1, EZ.out], [0.5, 1.06], [0.72, 0.97], [1, 1]]), k = p.tilt / 30;
+      return { sx: s, sy: s, rot: kfr(t, [[0, 30 * k], [0.5, -10 * k], [0.72, 4 * k], [1, 0]]), op: clamp(t * 5, 0, 1), pv: [0.5, 1] };
+    },
+  },
+  windPunch: {
+    name: "Замах-удар", cat: "rotate", tag: "В/Р", dur: 0.6, swarm: true,
+    params: [
+      { k: "back", label: "Угол замаха, °", type: "range", min: 5, max: 60, step: 1, def: 22 },
+      { k: "power", label: "Сила удара", type: "range", min: 0, max: 0.8, step: 0.02, def: 0.26 },
+    ],
+    eval: (t, p) => {
+      const rot = kfr(t, [[0, 0, EZ.out], [0.35, -p.back, EZ.in], [0.55, p.back * 0.6, EZ.out], [0.78, -p.back * 0.12], [1, 0]]);
+      const s = kfr(t, [[0, 1, EZ.out], [0.35, 0.92, EZ.in], [0.55, 1 + p.power, EZ.out], [0.78, 1 - p.power * 0.08], [1, 1]]);
+      return { rot, sx: s, sy: s, pv: [0.5, 0.75] };
+    },
+  },
+  haha: {
+    name: "Смех", cat: "react", tag: "В/Р", dur: 1, swarm: true,
+    params: [
+      { k: "tilt", label: "Откинуться, °", type: "range", min: 0, max: 25, step: 1, def: 8 },
+      { k: "amp", label: "Подпрыгивание, px", type: "range", min: 2, max: 40, step: 1, def: 10 },
+      { k: "count", label: "Смешков", type: "range", min: 2, max: 10, step: 1, def: 6 },
+    ],
+    eval: (t, p) => {
+      const env = Math.sin(t * Math.PI), b = Math.abs(Math.sin(t * Math.PI * p.count));
+      return { rot: -p.tilt * env + 2 * Math.sin(t * TAU * p.count / 2) * env, oy: -p.amp * b * env, sy: 1 - 0.08 * (1 - b) * env, sx: 1 + 0.05 * (1 - b) * env, pv: [0.5, 1] };
+    },
+  },
+  boil: {
+    name: "Закипание → выплеск", cat: "react", tag: "В/Р", dur: 1.1, swarm: true,
+    params: [
+      { k: "tremor", label: "Дрожь, px", type: "range", min: 1, max: 30, step: 1, def: 8 },
+      { k: "swell", label: "Набухание", type: "range", min: 0, max: 0.5, step: 0.05, def: 0.15 },
+      { k: "burst", label: "Момент выплеска", type: "range", min: 0.4, max: 0.95, step: 0.01, def: 0.78 },
+    ],
+    eval: (t, p) => {
+      if (t < p.burst) { const u = t / p.burst, g = u * u, s = 1 + p.swell * g; return { ox: p.tremor * g * Math.sin(t * TAU * 14), oy: p.tremor * 0.5 * g * Math.cos(t * TAU * 17), sx: s, sy: s }; }
+      const u = (t - p.burst) / (1 - p.burst), s = kfr(u, [[0, 1 + p.swell, EZ.out], [0.3, 1 + p.swell + 0.22], [0.75, 0.96], [1, 1]]);
+      return { sx: s, sy: s };
+    },
+  },
+  sigh: {
+    name: "Вздох", cat: "react", tag: "В/Р", dur: 1.6, swarm: true,
+    params: [{ k: "amp", label: "Сила", type: "range", min: 0.3, max: 3, step: 0.1, def: 1 }],
+    eval: (t, p, fr, ctx) => {
+      const h = ((ctx && ctx.h) || 100) * p.amp, a = p.amp;
+      return {
+        oy: h * kfr(t, [[0, 0], [0.35, -0.06], [0.8, 0.05], [1, 0]]), sy: 1 + a * kfr(t, [[0, 0], [0.35, 0.05], [0.8, -0.07], [1, 0]]),
+        sx: 1 + a * kfr(t, [[0, 0], [0.35, -0.03], [0.8, 0.04], [1, 0]]), rot: a * kfr(t, [[0.35, 0], [0.8, 5], [1, 0]]), pv: [0.5, 1],
+      };
+    },
+  },
+  wow: {
+    name: "Удивление", cat: "react", tag: "В/Р", dur: 0.95, swarm: true,
+    params: [{ k: "amp", label: "Сила", type: "range", min: 0.3, max: 2.5, step: 0.1, def: 1 }],
+    eval: (t, p, fr, ctx) => {
+      const h = (ctx && ctx.h) || 100, a = p.amp, env = kfr(t, [[0.36, 0, EZ.lin], [0.44, 1, EZ.lin], [0.7, 1, EZ.lin], [0.78, 0]]);
+      return {
+        sy: 1 + a * kfr(t, [[0, 0, EZ.out], [0.15, -0.1, EZ.back], [0.38, 0.2], [0.75, 0.18], [1, 0]]),
+        sx: 1 + a * kfr(t, [[0, 0, EZ.out], [0.15, 0.06, EZ.back], [0.38, -0.08], [0.75, -0.07], [1, 0]]),
+        oy: h * a * kfr(t, [[0, 0, EZ.out], [0.15, 0.02], [0.38, -0.1], [0.75, -0.09], [1, 0]]), ox: h * 0.02 * a * Math.sin(t * TAU * 16) * env, pv: [0.5, 1],
+      };
+    },
+  },
+  flame: {
+    name: "Пламя (мерцание)", cat: "react", tag: "В/Р", dur: 2.4, swarm: true,
+    params: [
+      { k: "force", label: "Сила", type: "range", min: 0.02, max: 0.4, step: 0.01, def: 0.14 },
+      { k: "sway", label: "Покачивание, °", type: "range", min: 0, max: 10, step: 0.5, def: 3 },
+      { k: "speed", label: "Скорость", type: "range", min: 1, max: 4, step: 1, def: 1 },
+      { k: "seed", label: "Сид", type: "range", min: 1, max: 99, step: 1, def: 4 },
+    ],
+    eval: (t, p) => {
+      // сумма синусов с целыми частотами: выглядит как шум, но цикл бесшовный
+      const s = p.seed * 0.37, k = Math.max(1, Math.round(p.speed));
+      const n1 = 0.5 * Math.sin(TAU * (3 * k * t + s)) + 0.3 * Math.sin(TAU * (7 * k * t + 1.3 * s)) + 0.2 * Math.sin(TAU * (11 * k * t + 2.1 * s));
+      const n2 = 0.6 * Math.sin(TAU * (2 * k * t + 0.5 + s)) + 0.4 * Math.sin(TAU * (5 * k * t + 1.7 * s)), up = 0.5 + 0.5 * n1;
+      return { sy: 1 + p.force * up, sx: 1 - p.force * 0.35 * up, rot: p.sway * n2, pv: [0.5, 1] };
+    },
+  },
+  breathe: {
+    name: "Idle-дыхание", cat: "move", tag: "В/Р", dur: 2.4, swarm: true,
+    params: [
+      { k: "depth", label: "Глубина", type: "range", min: 0.01, max: 0.2, step: 0.01, def: 0.05 },
+      { k: "periods", label: "Вдохов", type: "range", min: 1, max: 6, step: 1, def: 1 },
+      { k: "tilt", label: "Микронаклон, °", type: "range", min: 0, max: 6, step: 0.5, def: 1.5 },
+    ],
+    eval: (t, p) => { const w = (1 - Math.cos(t * TAU * p.periods)) / 2; return { sy: 1 + p.depth * w, sx: 1 - p.depth * 0.5 * w, rot: p.tilt * Math.sin(t * TAU), pv: [0.5, 1] }; },
+  },
+  /* ==========================================================================
+     v7: эффекты (fx: true) — «добавляющие» сложные пресеты. Не заменяют слой, а кладут
+     под-слои рядом с ним, поэтому сочетаются между собой, с простыми пресетами и с роем.
+     Размеры заданы в долях размера слоя, чтобы эффект сразу подходил под любой ассет.
+     eval (если есть) дополнительно анимирует сам слой.
+     ======================================================================== */
+  ringBurst: {
+    name: "Кольцо + точки", cat: "fx", tag: "В/Р", fx: true, dur: 0.9,
+    params: [
+      { k: "icon", label: "Сам слой", type: "select", options: [["pop", "Сжать и вернуть с перелётом"], ["none", "Не трогать"]], def: "pop" },
+      { k: "radius", label: "Радиус кольца (× слой)", type: "range", min: 0.8, max: 3, step: 0.05, def: 1.6 },
+      { k: "pairs", label: "Пар точек", type: "range", min: 3, max: 12, step: 1, def: 7 },
+      { k: "dotSize", label: "Размер точек", type: "range", min: 0.4, max: 3, step: 0.1, def: 1 },
+      { k: "colorA", label: "Кольцо: старт", type: "color", def: "#FF4D6D" },
+      { k: "colorB", label: "Кольцо: финал", type: "color", def: "#B14DFF" },
+      { k: "palette", label: "Палитра точек", type: "select", options: FX_PALETTE_OPTS, def: "rainbow" },
+      { k: "monoColor", label: "Цвет точек", type: "color", def: "#4D49FC" },
+    ],
+    eval: (t, p) => {
+      if (p.icon !== "pop") return {};
+      const s = kfr(t, [[0, 1, EZ.in], [0.12, 0.001, EZ.lin], [0.26, 0.001, EZ.out], [0.5, 1.25], [0.68, 0.95], [0.84, 1.03], [1, 1]]);
+      return { sx: s, sy: s };
+    },
+  },
+  rays: {
+    name: "Лучи-штрихи", cat: "fx", tag: "В/Р", fx: true, dur: 0.55,
+    params: [
+      { k: "icon", label: "Сам слой", type: "select", options: [["tap", "Нажатие"], ["none", "Не трогать"]], def: "tap" },
+      { k: "shape", label: "Частицы", type: "select", options: [["medium", "Треугольники + точки"], ["lines", "Штрихи"], ["dots", "Точки"]], def: "medium" },
+      { k: "count", label: "Лучей", type: "range", min: 3, max: 14, step: 1, def: 5 },
+      { k: "dist", label: "Дистанция (× слой)", type: "range", min: 1.5, max: 5, step: 0.1, def: 2.5 },
+      { k: "size", label: "Размер частиц", type: "range", min: 0.4, max: 3, step: 0.1, def: 1 },
+      { k: "color1", label: "Цвет 1", type: "color", def: "#4D49FC" },
+      { k: "color2", label: "Цвет 2", type: "color", def: "#FF7A00" },
+      { k: "seed", label: "Сид (углы)", type: "range", min: 1, max: 999, step: 1, def: 7 },
+    ],
+    eval: (t, p) => {
+      if (p.icon !== "tap") return {};
+      const s = kfr(t / 0.7, [[0, 1, EZ.out], [0.3, 0.82], [0.65, 1.18], [1, 1]]);
+      return { sx: s, sy: s };
+    },
+  },
+  confetti: {
+    name: "Конфетти", cat: "fx", tag: "В/Р", fx: true, dur: 2,
+    params: [
+      { k: "count", label: "Количество", type: "range", min: 10, max: 120, step: 1, def: 46 },
+      { k: "power", label: "Дальность залпа, px", type: "range", min: 60, max: 1200, step: 10, def: 320 },
+      { k: "angle", label: "Направление, °", type: "range", min: 0, max: 360, step: 5, def: 270 },
+      { k: "spread", label: "Раствор, °", type: "range", min: 10, max: 360, step: 5, def: 120 },
+      { k: "gravity", label: "Гравитация, px/с²", type: "range", min: 0, max: 2500, step: 20, def: 520 },
+      { k: "size", label: "Размер бумажек, px", type: "range", min: 4, max: 40, step: 1, def: 12 },
+      { k: "originX", label: "Точка вылета X, px", type: "range", min: -500, max: 500, step: 5, def: 0 },
+      { k: "originY", label: "Точка вылета Y, px", type: "range", min: -500, max: 500, step: 5, def: 0 },
+      { k: "palette", label: "Палитра", type: "select", options: FX_PALETTE_OPTS, def: "rainbow" },
+      { k: "monoColor", label: "Цвет", type: "color", def: "#4D49FC" },
+      { k: "seed", label: "Сид", type: "range", min: 1, max: 999, step: 1, def: 3 },
+    ],
+  },
+  sparkles: {
+    name: "Искры-звёздочки", cat: "fx", tag: "В/Р", fx: true, dur: 1.3,
+    params: [
+      { k: "count", label: "Количество", type: "range", min: 3, max: 24, step: 1, def: 8 },
+      { k: "zone", label: "Радиус зоны (× слой)", type: "range", min: 0.6, max: 4, step: 0.05, def: 1.9 },
+      { k: "size", label: "Размер искр", type: "range", min: 0.4, max: 3, step: 0.1, def: 1 },
+      { k: "life", label: "Жизнь искры (доля)", type: "range", min: 0.1, max: 0.8, step: 0.02, def: 0.3 },
+      { k: "color1", label: "Цвет 1", type: "color", def: "#FFC400" },
+      { k: "color2", label: "Цвет 2", type: "color", def: "#4D49FC" },
+      { k: "seed", label: "Сид", type: "range", min: 1, max: 999, step: 1, def: 11 },
+    ],
+  },
+  shockwave: {
+    name: "Ударная волна", cat: "fx", tag: "В/Р", fx: true, dur: 1.1,
+    params: [
+      { k: "source", label: "Источник", type: "select", options: [["ring", "Кольцо"], ["ghost", "Копии слоя"]], def: "ring" },
+      { k: "waves", label: "Волн", type: "range", min: 1, max: 5, step: 1, def: 3 },
+      { k: "gap", label: "Интервал (доля)", type: "range", min: 0.04, max: 0.4, step: 0.01, def: 0.14 },
+      { k: "size", label: "Конечный размер (× слой)", type: "range", min: 1.3, max: 6, step: 0.1, def: 3.2 },
+      { k: "opacity", label: "Прозрачность", type: "range", min: 0.1, max: 1, step: 0.05, def: 0.7 },
+      { k: "width", label: "Толщина кольца, px", type: "range", min: 1, max: 30, step: 1, def: 8 },
+      { k: "color", label: "Цвет кольца", type: "color", def: "#4D49FC" },
+    ],
+  },
+  satellites: {
+    name: "Спутники", cat: "fx", tag: "В/Р", fx: true, dur: 2,
+    params: [
+      { k: "count", label: "Количество", type: "range", min: 2, max: 12, step: 1, def: 5 },
+      { k: "rx", label: "Радиус X (× слой)", type: "range", min: 0.6, max: 5, step: 0.05, def: 2.3 },
+      { k: "ry", label: "Радиус Y (× слой)", type: "range", min: 0, max: 5, step: 0.05, def: 0.75 },
+      { k: "turns", label: "Оборотов", type: "range", min: 0.25, max: 5, step: 0.25, def: 1.25 },
+      { k: "scale", label: "Масштаб копий", type: "range", min: 0.1, max: 0.8, step: 0.02, def: 0.3 },
+      { k: "depth", label: "Глубина", type: "range", min: 0, max: 0.6, step: 0.05, def: 0.3 },
+      { k: "dir", label: "Направление", type: "select", options: [["1", "По часовой"], ["-1", "Против"]], def: "1" },
+    ],
+  },
+  trail: {
+    name: "Шлейф", cat: "fx", tag: "В/Р", fx: true, dur: 1.2,
+    params: [
+      { k: "copies", label: "Копий", type: "range", min: 1, max: 10, step: 1, def: 5 },
+      { k: "lag", label: "Задержка, мс", type: "range", min: 10, max: 200, step: 5, def: 30 },
+      { k: "opacity", label: "Прозрачность", type: "range", min: 0.1, max: 0.9, step: 0.05, def: 0.45 },
+      { k: "shrink", label: "Уменьшение копий", type: "range", min: 0, max: 0.2, step: 0.01, def: 0.08 },
+    ],
+  },
   /* 15 */ splitGrid: {
     name: "Расщепление (сетка)", cat: "complex", tag: "Р", complex: true, slices: true,
     params: [
@@ -2276,6 +2711,8 @@ const PRESETS = {
       { k: "stagger", label: "Разброс появления", type: "range", min: 0, max: 1, step: 0.05, def: 0.5 },
       { k: "returnBack", label: "Возврат к центру", type: "select", options: [["no", "Нет"], ["yes", "Да"]], def: "no" },
       { k: "seed", label: "Сид (рандом)", type: "range", min: 1, max: 999, step: 1, def: 7 },
+      { k: "fxStagger", label: "Сдвиг пресетов по копиям, с", type: "range", min: 0, max: 1.5, step: 0.02, def: 0 },
+      { k: "fxOrder", label: "Порядок сдвига", type: "select", options: [["random", "Случайно"], ["index", "По порядку копий"], ["center", "От центра наружу"]], def: "random" },
     ],
   },
   /* 17b */ swarmHide: {
@@ -2793,34 +3230,273 @@ function inactiveSegIds(layer) {
   }
   return dead;
 }
+// v7: геометрия слоя — для пресетов с опорной точкой (pv) и размеров эффектов
+function layerGeom(layer) {
+  const a = ASSETS[layer.assetId] || {}, an = layerAnchorRel(layer);
+  return { w: a.w || 100, h: a.h || 100, ax: an[0], ay: an[1] };
+}
+function layerHasSwarm(layer) { return layer.segments.some((s) => s.preset === "swarm" || s.preset === "swarmHide"); }
+// v7: простые сегменты слоя. forSwarm — исключить пресеты, которые с роем не сочетаются (noSwarm)
+function simpleSegs(layer, forSwarm) {
+  return layer.segments.filter((s) => { const d = PRESETS[s.preset]; return d && d.eval && !d.complex && !(forSwarm && d.noSwarm); });
+}
+// v7: сегменты, которые не применяются, потому что на слое есть рой
+function swarmBlockedSegIds(layer) {
+  const out = new Set();
+  if (!layerHasSwarm(layer)) return out;
+  layer.segments.forEach((s) => { const d = PRESETS[s.preset]; if (d && d.noSwarm) out.add(s.id); });
+  return out;
+}
+// v7: сумма дельт простых сегментов в кадре f (f может быть дробным и сдвинутым — каскад по копиям роя).
+//   S, rotDeg — текущий масштаб и поворот носителя (слоя или копии роя): нужны, чтобы посчитать
+//               компенсацию опорной точки pv (вращение/сжатие вокруг точки, отличной от якоря).
+//   copyMul   — множитель амплитуды смещений для пресетов с swarm:true (размер копии роя).
+function accumDeltas(segs, f, fps, geom, S, rotDeg, copyMul) {
+  const acc = { ox: 0, oy: 0, sx: 1, sy: 1, rot: 0, op: 1 };
+  if (!segs.length) return acc;
+  const ctx = { w: geom.w * S, h: geom.h * S };
+  for (const seg of segs) {
+    const def = PRESETS[seg.preset];
+    const startF = seg.t[0] * fps, endF = seg.t[1] * fps, dur = Math.max(1, endF - startF);
+    let d;
+    if (f < startF) { d = def.pre ? def.pre(seg.params, ctx) : {}; }
+    else {
+      let prog = clamp((f - startF) / dur, 0, 1);
+      if (seg.ease && seg.ease !== "auto") prog = easeFn(seg.ease, seg.bezier, seg.spring)(prog);
+      d = def.eval(prog, seg.params, f - startF, ctx) || {};
+    }
+    const mul = copyMul != null && def.swarm ? copyMul : 1;
+    const dsx = d.sx == null ? 1 : d.sx, dsy = d.sy == null ? 1 : d.sy, drot = d.rot || 0;
+    let ox = (d.ox || 0) * mul, oy = (d.oy || 0) * mul;
+    if (d.pv) {
+      // q = якорь − опорная точка (в px носителя); смещение = R(носитель)·[R(drot)·diag(sx,sy)·q − q]
+      const qx = (geom.ax - d.pv[0]) * geom.w * S, qy = (geom.ay - d.pv[1]) * geom.h * S;
+      if (qx || qy) {
+        const a = drot * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
+        const lx = c * dsx * qx - sn * dsy * qy - qx, ly = sn * dsx * qx + c * dsy * qy - qy;
+        const b = (rotDeg || 0) * Math.PI / 180, cb = Math.cos(b), sb = Math.sin(b);
+        ox += cb * lx - sb * ly; oy += sb * lx + cb * ly;
+      }
+    }
+    acc.ox += ox; acc.oy += oy; acc.rot += drot;
+    acc.sx *= dsx; acc.sy *= dsy;
+    acc.op *= d.op == null ? 1 : d.op;
+  }
+  return acc;
+}
 function bakeBaseTransform(layer) {
   relayoutChains(layer);
   const N = sceneFrames(), fps = project.scene.fps;
   const P = [], S = [], R = [], O = [];
-  const simple = layer.segments.filter((s) => !PRESETS[s.preset] || (!PRESETS[s.preset].complex));
+  const segs = simpleSegs(layer, false), geom = layerGeom(layer);
   for (let f = 0; f <= N; f++) {
     const b = baseAt(layer, f);
-    const acc = { ox: 0, oy: 0, sx: 1, sy: 1, rot: 0, op: 1 };
-    for (const seg of simple) {
-      const def = PRESETS[seg.preset]; if (!def || !def.eval) continue;
-      const startF = seg.t[0] * fps, endF = seg.t[1] * fps, dur = Math.max(1, endF - startF);
-      let d;
-      if (f < startF) { d = def.pre ? def.pre(seg.params) : {}; }
-      else {
-        let prog = clamp((f - startF) / dur, 0, 1);
-        if (seg.ease && seg.ease !== "auto") prog = easeFn(seg.ease, seg.bezier, seg.spring)(prog);
-        d = def.eval(prog, seg.params, f - startF) || {};
-      }
-      acc.ox += d.ox || 0; acc.oy += d.oy || 0; acc.rot += d.rot || 0;
-      acc.sx *= d.sx == null ? 1 : d.sx; acc.sy *= d.sy == null ? 1 : d.sy;
-      acc.op *= d.op == null ? 1 : d.op;
-    }
+    const acc = accumDeltas(segs, f, fps, geom, b.scale, b.rot);
     P.push([round(b.x + acc.ox, 1), round(b.y + acc.oy, 1)]);
     S.push([round(b.scale * acc.sx * 100, 2), round(b.scale * acc.sy * 100, 2)]);
     R.push(round(b.rot + acc.rot, 2));
     O.push(round(clamp(b.op * acc.op, 0, 1) * 100, 1));
   }
   return { P, S, R, O, N };
+}
+
+/* ============================================================================
+   v7: эффекты (fx) — под-слои рядом со слоем: частицы-фигуры и копии слоя
+   ========================================================================== */
+const FX_PALETTES = {
+  rainbow: ["#4D49FC", "#FF4D6D", "#FFC400", "#00C2A8", "#FF7A00", "#B14DFF"],
+  warm: ["#FF4D6D", "#FF7A00", "#FFC400", "#FF9EB1"],
+  cool: ["#4D49FC", "#00C2A8", "#38B6FF", "#B14DFF"],
+  gold: ["#FFC400", "#FFDD66", "#FF9F0A", "#FFF1B8"],
+};
+function fxPalette(p) { return p.palette === "mono" ? [p.monoColor || "#4D49FC"] : (FX_PALETTES[p.palette] || FX_PALETTES.rainbow); }
+function fxFill(hex) { return { ty: "fl", c: { a: 0, k: hex2unit(hex) }, o: { a: 0, k: 100 }, nm: "Заливка" }; }
+function fxPathItem(pts) { return { ty: "sh", ks: { a: 0, k: { i: pts.map(() => [0, 0]), o: pts.map(() => [0, 0]), v: pts, c: true } }, nm: "Контур" }; }
+function fxEllipse(d) { return { ty: "el", p: { a: 0, k: [0, 0] }, s: { a: 0, k: [d, d] }, nm: "Эллипс" }; }
+function fxRect(w, h, r) { return { ty: "rc", p: { a: 0, k: [0, 0] }, s: { a: 0, k: [w, h] }, r: { a: 0, k: r || 0 }, nm: "Прямоугольник" }; }
+// Shape-слой из готовых элементов; ключи всегда прореживаются (RDP), чтобы частицы не раздували файл
+// Под-слоёв у эффекта десятки, поэтому ключи прореживаем грубее, чем у основного слоя (на глаз не видно).
+// T.ks — готовые свойства (например, «трепет» конфетти задан парой ключей с синус-easing, а не покадрово).
+function fxKs(l, T) {
+  l.ks.o = scalarProp(T.O, 1.5, true);
+  l.ks.r = scalarProp(T.R, 0.8, true);
+  l.ks.p = animProp(T.P, true, T.epsP || 0.9, true);
+  l.ks.s = animProp(T.S.map((v) => [v[0], v[1], 100]), true, 1.2, true);
+  if (T.ks) Object.assign(l.ks, T.ks);
+  return l;
+}
+function fxShapeLayer(ind, name, items, T) {
+  const l = fxKs(imageLayer(ind, name, "", [0, 0], [[0, 0]], [[100, 100]], [0], [100], T.ip, T.op, true), T);
+  delete l.refId; l.ty = 4;
+  const it = items.concat([{ ty: "tr", p: { a: 0, k: [0, 0] }, a: { a: 0, k: [0, 0] }, s: { a: 0, k: [100, 100] }, r: { a: 0, k: 0 }, o: { a: 0, k: 100 }, nm: "Трансформ" }]);
+  l.shapes = [{ ty: "gr", it, nm: "Группа", np: it.length, bm: 0, hd: false }];
+  return l;
+}
+function fxLerpHex(a, b, t) { const x = hex2unit(a), y = hex2unit(b); return [round(lerp(x[0], y[0], t), 3), round(lerp(x[1], y[1], t), 3), round(lerp(x[2], y[2], t), 3), 1]; }
+// Значение покадрового массива в дробном кадре (линейная интерполяция) — для шлейфа
+function fxSample(arr, x) {
+  const n = arr.length - 1; x = clamp(x, 0, n);
+  const i = Math.min(n - 1 < 0 ? 0 : n - 1, Math.floor(x)), fr = x - i, a = arr[i], b = arr[Math.min(n, i + 1)];
+  return Array.isArray(a) ? a.map((v, k) => v + (b[k] - v) * fr) : a + (b - a) * fr;
+}
+
+// Собирает под-слои всех эффектов слоя. Возвращает { over: [...], under: [...] } — над слоем и под ним.
+function buildFxLayers(layer, asset, base, env) {
+  const res = { over: [], under: [] };
+  const fxSegs = layer.segments.filter((s) => PRESETS[s.preset] && PRESETS[s.preset].fx);
+  if (!fxSegs.length) return res;
+  const { N, fps } = env;
+  const ctr = []; for (let f = 0; f <= N; f++) ctr.push(baseAt(layer, f)); // позиция/масштаб слоя по ключам (без дельт пресетов)
+  fxSegs.forEach((seg) => {
+    const def = PRESETS[seg.preset], p = Object.assign(presetDefaults(seg.preset), seg.params);
+    const sf = seg.t[0] * fps, ef = seg.t[1] * fps, dur = Math.max(1, ef - sf);
+    const ez = seg.ease && seg.ease !== "auto" ? easeFn(seg.ease, seg.bezier, seg.spring) : null;
+    const f0 = clamp(Math.round(sf), 0, N);
+    const R0 = Math.max(4, Math.max(asset.w || 100, asset.h || 100) * ctr[f0].scale / 2); // «радиус» слоя в момент старта
+    const ip = Math.max(0, Math.floor(sf)), op = Math.min(N, Math.ceil(ef) + 1);
+    // Трек под-слоя: fn(t, sec, f) -> {x, y, rot, sx, sy, op}; вне сегмента под-слой невидим
+    const bake = (fn) => {
+      const T = { P: [], S: [], R: [], O: [], ip, op };
+      for (let f = 0; f <= N; f++) {
+        const on = f >= sf && f <= ef; let t = clamp((f - sf) / dur, 0, 1); if (ez) t = ez(t);
+        const v = fn(t, clamp(f - sf, 0, dur) / fps, f);
+        T.P.push([round(v.x, 1), round(v.y, 1)]);
+        T.S.push([round((v.sx == null ? 1 : v.sx) * 100, 2), round((v.sy == null ? 1 : v.sy) * 100, 2)]);
+        T.R.push(round(v.rot || 0, 2));
+        T.O.push(on ? round(clamp(v.op == null ? 1 : v.op, 0, 1) * 100, 1) : 0);
+      }
+      return T;
+    };
+    const nm = (s) => layer.name + " · " + def.name + " " + s;
+    const shape = (where, label, items, fn, ks, epsP) => { const T = bake(fn); if (ks) T.ks = ks; if (epsP) T.epsP = epsP; res[where].push(fxShapeLayer(env.ind(), nm(label), items, T)); };
+    // Копия самого слоя (картинка / вектор / импортированная Lottie) с готовым треком
+    const copy = (where, label, T) => {
+      let l;
+      if (asset.type === "lottie") {
+        const aRel = layerAnchorRel(layer), compId = registerPrecomp(env.out, env.assetMap, asset);
+        l = imageLayer(env.ind(), nm(label), compId, [asset.w * aRel[0], asset.h * aRel[1]], T.P, T.S, T.R, T.O, T.ip, T.op, true);
+        l.ty = 0; l.w = asset.w; l.h = asset.h;
+        const srcFr = (asset.anim && asset.anim.fr) || 30;
+        if (Math.abs(srcFr - fps) > 0.01) l.sr = round(fps / srcFr, 4);
+      } else if (asset.type === "shape" && asset.shape) {
+        const aRel = layerAnchorRel(layer), sd = asset.shape;
+        l = vectorShapeLayer(env.ind(), nm(label), sd, [(aRel[0] - 0.5) * sd.w, (aRel[1] - 0.5) * sd.h], T.P, T.S, T.R, T.O, T.ip, T.op, true);
+      } else if (asset.dataURL) {
+        const aid = ensureAsset(env.out, env.assetMap, asset, asset.dataURL, asset.w, asset.h);
+        l = imageLayer(env.ind(), nm(label), aid, layerAnchorPx(layer, asset), T.P, T.S, T.R, T.O, T.ip, T.op, true);
+      }
+      if (l) res[where].push(fxKs(l, T));
+    };
+    // Кольцо с анимированными диаметром, толщиной и цветом обводки. fn(t) -> {size (внешний диаметр), w, color, op}
+    const ring = (where, label, fn) => {
+      const sizes = [], widths = [], cols = [];
+      const T = bake((t, sec, f) => {
+        const v = fn(t, sec, f), w = Math.max(0, Math.min(v.w, v.size / 2)), d = Math.max(0.01, v.size - w);
+        sizes.push([round(d, 2), round(d, 2)]); widths.push(round(w, 2)); cols.push(v.color);
+        return { x: ctr[f].x, y: ctr[f].y, op: v.op };
+      });
+      const items = [
+        { ty: "el", p: { a: 0, k: [0, 0] }, s: animProp(sizes, true, 0.3, true), nm: "Эллипс" },
+        { ty: "st", c: animProp(cols, true, 0.01, true), o: { a: 0, k: 100 }, w: scalarProp(widths, 0.15, true), lc: 2, lj: 2, nm: "Обводка" },
+      ];
+      res[where].push(fxShapeLayer(env.ind(), nm(label), items, T));
+    };
+
+    if (seg.preset === "ringBurst") {
+      const Rr = R0 * p.radius, D = Rr * 2, pal = fxPalette(p), pairs = clamp(Math.round(p.pairs), 1, 24);
+      ring("under", "кольцо", (t) => {
+        const size = D * EZ.out(clamp((t - 0.1) / 0.25, 0, 1)), hollow = EZ.io(clamp((t - 0.22) / 0.3, 0, 1));
+        return { size, w: size / 2 * (1 - hollow), color: fxLerpHex(p.colorA, p.colorB, hollow), op: t > 0.1 && hollow < 1 ? 1 : 0 };
+      });
+      const dd = Math.max(3, R0 * 0.3 * p.dotSize);
+      for (let i = 0; i < pairs * 2; i++) {
+        const pair = i >> 1, second = i & 1, a = (pair * 360 / pairs + (second ? 9 : -9) - 90) * Math.PI / 180;
+        shape("under", "точка " + (i + 1), [fxEllipse(second ? dd * 0.7 : dd), fxFill(pal[i % pal.length])], (t, sec, f) => {
+          const u = clamp((t - 0.3) / 0.55, 0, 1), r = lerp(Rr * 0.8, Rr * (second ? 1.44 : 1.24), EZ.out(u)), sc = 1 - EZ.in(u);
+          return { x: ctr[f].x + r * Math.cos(a), y: ctr[f].y + r * Math.sin(a), sx: sc, sy: sc, op: u > 0 && u < 1 ? 1 : 0 };
+        });
+      }
+    } else if (seg.preset === "rays") {
+      const rnd = seeded(Math.round(p.seed) * 97 + 5), baseA = rnd() * 360, n = clamp(Math.round(p.count), 1, 24), k = R0 / 23 * p.size;
+      for (let i = 0; i < n; i++) {
+        const a1 = baseA + i * 360 / n + (rnd() - 0.5) * 16, a2 = baseA + (i + 0.5) * 360 / n + (rnd() - 0.5) * 16;
+        const mk = (ang, far, items, lines) => shape("under", "луч " + (i + 1), items, (t, sec, f) => {
+          const u = EZ.out(clamp(t / 0.75, 0, 1)), r = lerp(R0 * 1.3, R0 * far, u), sc = 1 - EZ.in(clamp((t - 0.25) / 0.6, 0, 1)), q = ang * Math.PI / 180;
+          return { x: ctr[f].x + r * Math.cos(q), y: ctr[f].y + r * Math.sin(q), rot: ang + 90, sx: lines ? 1 : sc, sy: sc, op: t > 0 && t < 1 ? 1 : 0 };
+        });
+        if (p.shape === "lines") mk(a1, p.dist, [fxRect(3 * k, 12 * k, 1.5 * k), fxFill(i % 2 ? p.color2 : p.color1)], true);
+        else if (p.shape === "dots") mk(a1, p.dist, [fxEllipse(7 * k), fxFill(i % 2 ? p.color2 : p.color1)], false);
+        else {
+          mk(a1, p.dist, [fxPathItem([[0, -5 * k], [4 * k, 5 * k], [-4 * k, 5 * k]]), fxFill(p.color1)], false);
+          mk(a2, p.dist * 0.86, [fxEllipse(6 * k), fxFill(p.color2)], false);
+        }
+      }
+    } else if (seg.preset === "confetti") {
+      const rnd = seeded(Math.round(p.seed) * 13 + 2), pal = fxPalette(p), n = clamp(Math.round(p.count), 1, 200);
+      const cx = ctr[f0].x + p.originX, cy = ctr[f0].y + p.originY; // вылет из точки в мировых координатах
+      for (let i = 0; i < n; i++) {
+        const ang = (p.angle + (rnd() - 0.5) * p.spread) * Math.PI / 180, sp = 2.2 * p.power * (0.4 + 0.6 * rnd());
+        const w = p.size * (0.45 + rnd() * 0.35), h = p.size * (0.7 + rnd() * 0.5);
+        const spin = (rnd() - 0.5) * 900, fr = 6 + rnd() * 7, ph = rnd() * TAU, col = pal[Math.floor(rnd() * pal.length) % pal.length];
+        // «трепет» бумажки = cos по масштабу X: ключи только в экстремумах, между ними синус-easing
+        const durS = dur / fps, times = [0];
+        for (let j = Math.ceil(ph / Math.PI); j < 400; j++) { const sec = (j * Math.PI - ph) / fr; if (sec <= 0.01) continue; if (sec >= durS - 0.01) break; times.push(sec); }
+        times.push(durS);
+        const flut = times.map((sec, j) => { const kf = { t: round(sf + sec * fps, 2), s: [round(Math.cos(sec * fr + ph) * 100, 1), 100, 100] }; if (j < times.length - 1) { kf.o = { x: [0.37], y: [0] }; kf.i = { x: [0.63], y: [1] }; } return kf; });
+        const spinK = [{ t: round(sf, 2), s: [0], o: LIN_O, i: LIN_I }, { t: round(sf + dur, 2), s: [round(spin * durS, 1)] }];
+        shape("over", "#" + (i + 1), [fxRect(round(w, 1), round(h, 1), 1), fxFill(col)], (t, sec) => {
+          const td = (1 - Math.exp(-2.2 * sec)) / 2.2;
+          return { x: cx + Math.cos(ang) * sp * td, y: cy + Math.sin(ang) * sp * td + 0.5 * p.gravity * sec * sec, op: t > 0 ? 1 - clamp((t - 0.72) / 0.28, 0, 1) : 0 };
+        }, { s: { a: 1, k: flut }, r: { a: 1, k: spinK } }, 2.5); // мелкие бумажки летят быстро — траекторию можно прореживать грубее
+      }
+    } else if (seg.preset === "sparkles") {
+      const rnd = seeded(Math.round(p.seed) * 7 + 11), n = clamp(Math.round(p.count), 1, 48), life = clamp(p.life, 0.05, 0.95);
+      for (let i = 0; i < n; i++) {
+        const a = (i * 360 / n + (rnd() - 0.5) * 30) * Math.PI / 180, r = R0 * p.zone * (0.8 + rnd() * 0.4), rad = R0 * (0.22 + rnd() * 0.2) * p.size, delay = rnd() * (1 - life);
+        const pts = []; for (let j = 0; j < 8; j++) { const q = j * Math.PI / 4 - Math.PI / 2, rr = j % 2 ? rad * 0.3 : rad; pts.push([round(rr * Math.cos(q), 2), round(rr * Math.sin(q), 2)]); }
+        shape("over", "#" + (i + 1), [fxPathItem(pts), fxFill(i % 3 ? p.color1 : p.color2)], (t, sec, f) => {
+          const u = clamp((t - delay) / life, 0, 1), sc = Math.sin(u * Math.PI);
+          return { x: ctr[f].x + r * Math.cos(a), y: ctr[f].y + r * Math.sin(a), rot: 90 * u, sx: sc, sy: sc, op: u > 0 && u < 1 ? 1 : 0 };
+        });
+      }
+    } else if (seg.preset === "shockwave") {
+      const waves = clamp(Math.round(p.waves), 1, 8), life = Math.max(0.2, 1 - (waves - 1) * p.gap), col = hex2unit(p.color);
+      for (let i = 0; i < waves; i++) {
+        const prog = (t) => clamp((t - i * p.gap) / life, 0, 1);
+        if (p.source === "ghost") {
+          copy("under", "волна " + (i + 1), bake((t, sec, f) => {
+            const u = prog(t), k = lerp(1, Math.max(1.1, p.size * 0.65), EZ.out(u));
+            return { x: base.P[f][0], y: base.P[f][1], rot: base.R[f], sx: base.S[f][0] / 100 * k, sy: base.S[f][1] / 100 * k, op: u > 0 && u < 1 ? p.opacity * 0.65 * (1 - u) * base.O[f] / 100 : 0 };
+          }));
+        } else {
+          ring("under", "волна " + (i + 1), (t) => {
+            const u = prog(t), e = EZ.out(u);
+            return { size: lerp(R0 * 1.9, R0 * 2 * p.size, e), w: lerp(p.width, Math.max(0.5, p.width * 0.15), e), color: col, op: u > 0 && u < 1 ? p.opacity * (1 - u) : 0 };
+          });
+        }
+      }
+    } else if (seg.preset === "satellites") {
+      const n = clamp(Math.round(p.count), 1, 24), dir = Number(p.dir) || 1;
+      for (let i = 0; i < n; i++) {
+        // слой не может «нырнуть» за другой слой, поэтому у каждого спутника две копии: над слоем и под ним
+        ["over", "under"].forEach((where) => copy(where, "спутник " + (i + 1) + (where === "over" ? " ▲" : " ▼"), bake((t, sec, f) => {
+          const a = dir * t * TAU * p.turns + i * TAU / n, front = Math.sin(a) > 0, sc = ctr[f].scale * p.scale * (1 + p.depth * Math.sin(a));
+          const vis = clamp(Math.min(t * 6, (1 - t) * 6), 0, 1);
+          return { x: base.P[f][0] + R0 * p.rx * Math.cos(a), y: base.P[f][1] + R0 * p.ry * Math.sin(a), rot: ctr[f].rot, sx: sc, sy: sc, op: (where === "over") === front ? vis : 0 };
+        })));
+      }
+    } else if (seg.preset === "trail") {
+      const n = clamp(Math.round(p.copies), 1, 20), lagF = p.lag / 1000 * fps;
+      for (let i = 1; i <= n; i++) {
+        const k = 1 - p.shrink * i, o = lerp(p.opacity, p.opacity * 0.25, n > 1 ? (i - 1) / (n - 1) : 0);
+        copy("under", "след " + i, bake((t, sec, f) => {
+          const g = f - lagF * i, P = fxSample(base.P, g), S = fxSample(base.S, g), edge = clamp(Math.min(t * 8, (1 - t) * 8), 0, 1);
+          return { x: P[0], y: P[1], rot: fxSample(base.R, g), sx: S[0] / 100 * k, sy: S[1] / 100 * k, op: o * edge * fxSample(base.O, g) / 100 };
+        }));
+      }
+    }
+  });
+  return res;
 }
 
 /* ============================================================================
@@ -2916,12 +3592,19 @@ async function buildLottie(opts) {
   let ind = 1;
   const layersOut = [];
 
+  let fxUnder = []; // v7: под-слои эффектов, которые должны лечь ПОД только что собранный слой
+  const fxEnv = { out, assetMap, N, fps, ind: () => ind++ };
   for (let li = project.layers.length - 1; li >= 0; li--) {
+    if (fxUnder.length) { fxUnder.forEach((l) => layersOut.push(l)); fxUnder = []; }
     const layer = project.layers[li];
     if (!layer.visible) continue;
     const asset = ASSETS[layer.assetId];
     if (!asset) continue;
     const base = bakeBaseTransform(layer);
+    { // v7: эффекты — часть под-слоёв над слоем (кладём сейчас), часть под ним (после слоя)
+      const fx = buildFxLayers(layer, asset, base, fxEnv);
+      fx.over.forEach((l) => layersOut.push(l)); fxUnder = fx.under;
+    }
     // === Размножение/рой и его скрытие: копии создаются один раз (появлением),
     //     отдельный сегмент-скрытие гасит ИХ ЖЕ (не плодит заново) ===
     const swarmSeg = layer.segments.find((s) => s.preset === "swarm");
@@ -2960,11 +3643,20 @@ async function buildLottie(opts) {
       const exitRnd = seeded(Math.round((hp ? hp.seed : 7) || 7) + 101); // отдельный поток — не сбивает позиции/масштабы
       const exitOv = (hp && hp.exitOverrides) || {}; // переопределения ухода по индексу копии
       const appearOv = (swarmSeg && swarmSeg.params.appearOverrides) || {}; // переопределения появления
+      // v7: простые пресеты слоя считаются для КАЖДОЙ копии: свой масштаб/поворот и сдвиг по времени («волна»)
+      const swSegs = simpleSegs(layer, true), swGeom = layerGeom(layer);
+      const swBase = []; for (let f = 0; f <= N; f++) swBase.push(baseAt(layer, f));
+      const fxP = swarmSeg ? swarmSeg.params : p;
+      const fxSpan = Math.max(0, parseFloat(fxP.fxStagger) || 0) * fps, fxOrder = fxP.fxOrder || "random";
+      const fxRnd = seeded((Math.round(p.seed) || 7) + 303); // отдельный поток — не сбивает раскладку копий
+      let fxMaxD = 1; layout.forEach((pt) => { fxMaxD = Math.max(fxMaxD, Math.hypot(pt[0], pt[1])); });
       for (let ci = 0; ci < count; ci++) {
         const aov = appearOv[ci] || null;
         // финальная позиция копии (где окажется после появления): ручная или процедурная
         const tx = aov && aov.fx != null ? aov.fx : layout[ci][0];
         const ty = aov && aov.fy != null ? aov.fy : layout[ci][1];
+        const fxR = fxRnd();
+        const fxShift = fxSpan * (fxOrder === "index" ? (count > 1 ? ci / (count - 1) : 0) : fxOrder === "center" ? clamp(Math.hypot(tx, ty) / fxMaxD, 0, 1) : fxR);
         // точка появления (откуда вылетает) задаётся как смещение от финальной; по умолчанию из центра (-tx,-ty)
         const fromX = aov && aov.sx != null ? aov.sx : 0;
         const fromY = aov && aov.sy != null ? aov.sy : 0;
@@ -2983,7 +3675,7 @@ async function buildLottie(opts) {
         const ovRot = ov && ov.rot != null ? ov.rot : 0;    // доп. поворот в конце ухода
         const Pp = [], Ss = [], Rr = [], Oo = [];
         for (let f = 0; f <= N; f++) {
-          const bp = base.P[f], bs = base.S[f], br = base.R[f], bo = base.O[f];
+          const b = swBase[f];
           // появление
           let appearLocal = 1;
           if (swarmSeg) { const prog = f < aSf ? 0 : clamp((f - aSf) / aDur, 0, 1); appearLocal = clamp((prog - enterDelay) / Math.max(0.05, 1 - enterDelay), 0, 1); }
@@ -2999,6 +3691,12 @@ async function buildLottie(opts) {
             sOut = doShrink ? lerp(1, 0.2, EASINGS.easeIn(el)) : 1;
             exMove = (exitMode === "directional" || ov) ? EASINGS.easeIn(el) : 0;
           }
+          const eEase = EASINGS.easeIn(el);
+          const sExit = ovScl != null ? lerp(1, ovScl, eEase) : sOut;
+          const sCopy = scl * sIn * sExit;
+          const rCopy = rotc * disp + aSpin * appearLocal + hSpin * el + ovRot * eEase;
+          const acc = accumDeltas(swSegs, f - fxShift, fps, swGeom, b.scale * sCopy, b.rot + rCopy, scl);
+          const bp = [b.x + acc.ox, b.y + acc.oy];
           // === позиция копии ===
           // позиция в конце появления: при returnBack копия в центре (tx*0), иначе на финале (tx*1)
           const endMul = ret ? 0 : 1; // куда копия приходит к концу появления
@@ -3033,13 +3731,11 @@ async function buildLottie(opts) {
             }
           }
           py += aGravity * appearLocal * appearLocal + hGravity * el * el;
-          const eEase = EASINGS.easeIn(el);
-          const sExit = ovScl != null ? lerp(1, ovScl, eEase) : sOut;
-          const s = (bs[0] / 100) * scl * sIn * sExit;
+          const s = b.scale * sCopy;
           Pp.push([round(px, 1), round(py, 1)]);
-          Ss.push([round(s * 100, 2), round(s * 100, 2)]);
-          Rr.push(round(br + rotc * disp + aSpin * appearLocal + hSpin * el + ovRot * eEase, 2));
-          Oo.push(round(clamp(opIn * opOut, 0, 1) * bo, 1));
+          Ss.push([round(s * acc.sx * 100, 2), round(s * acc.sy * 100, 2)]); // v7: обе оси — сжатие/растяжение пресетов доходит до копий
+          Rr.push(round(b.rot + acc.rot + rCopy, 2));
+          Oo.push(round(clamp(opIn * opOut, 0, 1) * clamp(b.op * acc.op, 0, 1) * 100, 1));
         }
         layersOut.push(imageLayer(ind++, layer.name + " #" + (ci + 1), aid, anchor, Pp, Ss, Rr, Oo, 0, N, opt));
       }
@@ -3135,6 +3831,7 @@ async function buildLottie(opts) {
     }
   }
 
+  if (fxUnder.length) fxUnder.forEach((l) => layersOut.push(l));
   out.layers = layersOut;
   // Маркеры сегментов — для воспроизведения диапазонов по тапу/событию в плеере
   const markers = [];
@@ -3808,14 +4505,16 @@ function renderParams() {
   host.innerHTML = `<div class="empty"><div class="empty-ico">${icon("sliders","lic empty-svg")}</div><p>Выберите слой, чтобы добавить анимацию,<br>или сегмент на таймлайне, чтобы настроить его.</p></div>`;
 }
 function renderLayerParams(host, layer) {
-  const cats = { appear: [], move: [], rotate: [], complex: [] };
+  const cats = {}; Object.keys(CATS).forEach((c) => (cats[c] = []));
   Object.keys(PRESETS).forEach((id) => cats[PRESETS[id].cat].push(id));
+  const hasSwarm = layerHasSwarm(layer);
   let picker = "";
   Object.keys(cats).forEach((c) => {
-    picker += `<div class="preset-cat"><span class="dot" style="background:${CATS[c].color}"></span>${CATS[c].label}</div><div class="preset-grid">`;
+    picker += `<div class="preset-cat"><span class="dot" style="background:${CATS[c].color}"></span>${CATS[c].label}</div>${CATS[c].hint ? `<p class="hint" style="margin:-2px 0 7px">${CATS[c].hint}</p>` : ""}<div class="preset-grid">`;
     cats[c].forEach((id) => {
       const pr = PRESETS[id];
-      picker += `<button class="preset-chip" data-preset="${id}" title="${pr.tag}${pr.experimental ? " · эксперим." : ""}">${escapeHtml(pr.name)}${pr.experimental ? " <span class='exp'>β</span>" : ""}</button>`;
+      const blocked = hasSwarm && pr.noSwarm;
+      picker += `<button class="preset-chip${blocked ? " blocked" : ""}" data-preset="${id}" title="${pr.tag}${pr.experimental ? " · эксперим." : ""}${blocked ? " · не сочетается с роем" : (hasSwarm && pr.swarm ? " · применяется к каждой копии роя" : "")}">${escapeHtml(pr.name)}${pr.experimental ? " <span class='exp'>β</span>" : ""}</button>`;
     });
     picker += `</div>`;
   });
@@ -4090,14 +4789,17 @@ function renderSegParams(host, layer, seg) {
   const idx = layer.segments.indexOf(seg);
   let fields = "";
   // поля, видимые только при определённом значении другого параметра (зависимость)
-  const condParams = { exitAngle: ["exit", "directional"], exitDist: ["exit", "directional"], exitSpread: ["exit", "directional"] };
+  const condParams = { exitAngle: ["exit", "directional"], exitDist: ["exit", "directional"], exitSpread: ["exit", "directional"],
+    monoColor: ["palette", "mono"], rise: ["exit", "up"], width: ["source", "ring"], color: ["source", "ring"] };
   (def.params || []).forEach((pp) => {
-    const v = seg.params[pp.k];
+    const v = seg.params[pp.k] == null ? pp.def : seg.params[pp.k]; // у старых сегментов новых параметров нет — берём дефолт
     const cond = condParams[pp.k];
     const hidden = cond && String(seg.params[cond[0]]) !== String(cond[1]);
     const rowAttr = cond ? ` data-prow="${pp.k}"${hidden ? ' style="display:none"' : ""}` : "";
     if (pp.type === "select") {
       fields += `<div class="field"${rowAttr}><label>${pp.label}</label><select data-p="${pp.k}">${pp.options.map((o) => `<option value="${o[0]}" ${String(v) === String(o[0]) ? "selected" : ""}>${o[1]}</option>`).join("")}</select></div>`;
+    } else if (pp.type === "color") {
+      fields += `<div class="field"${rowAttr}><label>${pp.label}</label><input type="color" class="color-inp" data-p="${pp.k}" value="${v}"></div>`;
     } else {
       fields += `<div class="field"${rowAttr}><label>${pp.label}</label><input type="range" min="${pp.min}" max="${pp.max}" step="${pp.step}" data-p="${pp.k}" value="${v}"><input type="number" class="val-inp" min="${pp.min}" max="${pp.max}" step="${pp.step}" data-pn="${pp.k}" value="${v}"></div>`;
     }
@@ -4108,6 +4810,12 @@ function renderSegParams(host, layer, seg) {
   const inactiveWarn = deadSet.has(seg.id)
     ? `<div class="notice">${icon("alert")} <b>Этот пресет не применяется.</b> На слое допускается только один сложный пресет (рой, расщепление). <button class="btn-soft wide" id="extractSeg" style="margin-top:8px">${icon("layers")} Вынести на отдельный слой</button></div>`
     : "";
+  // v7: вход/выход одиночного слоя не применяется к рою; подсказки про эффекты и про работу пресета с роем
+  const swarmWarn = swarmBlockedSegIds(layer).has(seg.id)
+    ? `<div class="notice">${icon("alert")} <b>Этот пресет не применяется к рою.</b> Это вход или выход одиночного слоя, а у роя своё появление и скрытие. <button class="btn-soft wide" id="extractSeg" style="margin-top:8px">${icon("layers")} Вынести на отдельный слой</button></div>`
+    : "";
+  const fxHint = def.fx ? `<p class="hint" style="margin:0 0 10px">Эффект добавляет под-слои рядом со слоем и сочетается с другими пресетами. Размеры считаются от размера слоя в момент старта сегмента.</p>` : "";
+  const swarmHint = def.swarm && layerHasSwarm(layer) ? `<p class="hint" style="margin:0 0 10px">На слое рой: пресет применяется к каждой копии, амплитуда подстраивается под её размер. Чтобы копии шли волной, задайте «Сдвиг пресетов по копиям» в параметрах роя.</p>` : "";
   const easeOpts = `<option value="auto" ${(!seg.ease || seg.ease === "auto") ? "selected" : ""}>Авто (как в пресете)</option>` +
     Object.keys(EASING_LABELS).map((k) => `<option value="${k}" ${seg.ease === k ? "selected" : ""}>${EASING_LABELS[k]}</option>`).join("") +
     `<option value="custom" ${seg.ease === "custom" ? "selected" : ""}>Своя кривая…</option>` +
@@ -4119,7 +4827,9 @@ function renderSegParams(host, layer, seg) {
     <div class="pgroup">
       <div class="seg-head"><span class="dot" style="background:${CATS[def.cat].color}"></span><h3>${escapeHtml(def.name)}</h3></div>
       ${inactiveWarn}
+      ${swarmWarn}
       ${exp}
+      ${fxHint}${swarmHint}
       <div class="field"><label>Начало, с</label><input type="number" min="0" step="0.05" data-time="0" value="${seg.t[0]}" ${seg.chain && idx > 0 ? "disabled" : ""}></div>
       <div class="field"><label>Длительность, с</label><input type="number" min="0.05" step="0.05" data-dur value="${round(seg.t[1] - seg.t[0], 2)}"></div>
       <div class="field"><label>Ослабление</label><select id="segEase">${easeOpts}</select></div>
@@ -4128,6 +4838,7 @@ function renderSegParams(host, layer, seg) {
       <div class="chain-box">${chainCtl}</div>
       ${fields}
       ${(seg.preset === "swarm" || seg.preset === "swarmHide") ? `<p class="hint" style="margin:-2px 0 10px"><b>Мин. расстояние</b> не даёт копиям накладываться: при «Случайно» и «Вверх» они расталкиваются до этого зазора, при «Кольцо/Сетка/Спираль» задаёт шаг между ними. 0 — старое поведение (свободно, без зазора). Если копий слишком много для заданного расстояния, область раздвигается автоматически.</p>` : ""}
+      ${seg.preset === "swarm" ? `<p class="hint" style="margin:-2px 0 10px"><b>Сдвиг пресетов по копиям:</b> простые пресеты этого слоя (Нажатие, Прыжок, Кивок, Пламя…) применяются к каждой копии. При сдвиге 0 копии двигаются синхронно, больше 0 — волной: последняя копия стартует на заданное число секунд позже первой.</p>` : ""}
       ${seg.preset === "swarmHide" && seg.params.exit === "directional" ? `<p class="hint" style="margin:-2px 0 10px"><b>В одну сторону:</b> все копии улетают по заданному <b>углу</b> (0°→вправо, 90°→вниз, 180°→влево, 270°→вверх) на заданную <b>дистанцию</b>. <b>Разброс</b> превращает поток в веер: 0° — строгая колонна, 360° — во все стороны.</p>` : ""}
       ${seg.preset === "swarmHide" ? `<button class="btn-soft wide" id="openExitEd" style="margin-bottom:10px">${icon("sliders")} Настроить траектории по копиям…${(seg.params.exitOverrides && Object.keys(seg.params.exitOverrides).length) ? ` (${Object.keys(seg.params.exitOverrides).length})` : ""}</button>` : ""}
       ${seg.preset === "swarm" ? `<button class="btn-soft wide" id="openAppearEd" style="margin-bottom:10px">${icon("sliders")} Композиция появления (разместить копии)…${(seg.params.appearOverrides && Object.keys(seg.params.appearOverrides).length) ? ` (${Object.keys(seg.params.appearOverrides).length})` : ""}</button>` : ""}
@@ -4145,7 +4856,7 @@ function renderSegParams(host, layer, seg) {
   $$("[data-p]", host).forEach((inp) => {
     const isSelect = inp.tagName === "SELECT";
     const handler = (e) => {
-      let v = isSelect ? e.target.value : parseFloat(e.target.value);
+      let v = (isSelect || inp.type === "color") ? e.target.value : parseFloat(e.target.value);
       seg.params[inp.dataset.p] = v;
       const numEl = $(`[data-pn="${inp.dataset.p}"]`, host); if (numEl) numEl.value = v;
       // смена паттерна/сетки/рандома инвалидирует кэш нарезки тайлов
@@ -4214,7 +4925,9 @@ function addSegment(layer, presetId) {
                    (presetId === "swarmHide" && exist.length === 1 && exist[0] === "swarm");
     if (exist.length && !pairOK) toast("На слое уже есть сложный пресет — при экспорте применится только один (пара «рой + скрытие» — исключение).", "warn", 6500);
   }
-  const dur = def.complex ? Math.min(0.9, project.scene.duration - start) : Math.min(0.6, project.scene.duration - start);
+  if (def.noSwarm && layerHasSwarm(layer)) toast("«" + def.name + "» — вход/выход одиночного слоя: к рою не применится. Его можно вынести на отдельный слой.", "warn", 6500);
+  if ((presetId === "swarm" || presetId === "swarmHide") && layer.segments.some((s) => PRESETS[s.preset] && PRESETS[s.preset].noSwarm)) toast("На слое есть пресеты входа/выхода, которые с роем не сочетаются — они помечены ⚠ на таймлайне.", "warn", 6500);
+  const dur = Math.min(def.dur || (def.complex ? 0.9 : 0.6), project.scene.duration - start);
   const seg = { id: uid("s"), preset: presetId, t: [start, round(start + dur, 2)], params: presetDefaults(presetId), ease: "auto", chain: false };
   layer.segments.push(seg);
   sel.segId = seg.id;
@@ -4292,11 +5005,12 @@ function renderTimeline() {
       const path = document.createElementNS(NS, "path"); path.setAttribute("d", d);
       sp.appendChild(path); row.appendChild(sp);
     }
-    const dead = inactiveSegIds(layer);
+    const dead = inactiveSegIds(layer), swBlocked = swarmBlockedSegIds(layer);
     layer.segments.forEach((seg) => {
       const def = PRESETS[seg.preset];
       const inMulti = multiSel.segs.has(layer.id + ":" + seg.id);
-      const isDead = dead.has(seg.id);
+      const isBlocked = swBlocked.has(seg.id);
+      const isDead = dead.has(seg.id) || isBlocked;
       const lane = rm.laneOf[seg.id] || 0;
       const blk = document.createElement("div");
       blk.className = "tl-seg" + (seg.id === sel.segId || inMulti ? " sel" : "") + (isDead ? " inactive" : "");
@@ -4304,7 +5018,7 @@ function renderTimeline() {
       blk.style.left = seg.t[0] * pxPerSec + "px";
       blk.style.width = Math.max(8, (seg.t[1] - seg.t[0]) * pxPerSec) + "px";
       blk.style.setProperty("--c", CATS[def.cat].color);
-      if (isDead) blk.title = "Не применяется: на слое уже есть сложный пресет. Перенесите на отдельный слой.";
+      if (isDead) blk.title = isBlocked ? "Не применяется к рою: это вход/выход одиночного слоя. Перенесите на отдельный слой." : "Не применяется: на слое уже есть сложный пресет. Перенесите на отдельный слой.";
       blk.innerHTML = `<span class="tl-seg-label">${isDead ? "⚠ " : ""}${escapeHtml(def.name)}</span><div class="tl-handle"></div>`;
       blk.addEventListener("pointerdown", (e) => {
         if (e.target.classList.contains("tl-handle")) return;
