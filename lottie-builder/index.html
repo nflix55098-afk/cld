@@ -1566,6 +1566,17 @@ input[type=number]::-webkit-outer-spin-button{
 .weight-badge.heavy{color:#fff;border-color:var(--danger);background:var(--danger)}
 .seam-badge{font-size:12px;color:#8A5A00;border:1px solid #E0B252;background:#FFF6DF;border-radius:50px;padding:3px 9px;white-space:nowrap;cursor:help}
 #undoBtn:disabled,#redoBtn:disabled{opacity:.3;pointer-events:none}
+
+/* ===== v9: свои изображения для конфетти ===== */
+.cf-imgs{border:1px dashed var(--line-strong,#000);border-radius:8px;padding:10px;margin:0 0 12px}
+.cf-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.cf-empty{font-size:12px;color:var(--text-muted);line-height:1.35}
+.cf-thumb{position:relative;width:44px;height:44px;border:1px solid var(--line);border-radius:8px;background:repeating-conic-gradient(#f1f1f1 0 25%,#fff 0 50%) 0 0/12px 12px;display:grid;place-items:center}
+.cf-thumb img{max-width:36px;max-height:36px;display:block}
+.cf-thumb button{position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#000;color:#fff;font-size:12px;line-height:18px;text-align:center;padding:0}
+.cf-actions{display:flex;gap:6px;align-items:center}
+.cf-actions .btn-soft{flex:none}
+.cf-actions select{flex:1;min-width:0;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
 </style>
 </head>
 <body>
@@ -2686,18 +2697,24 @@ const PRESETS = {
   confetti: {
     name: "Конфетти", cat: "fx", tag: "В/Р", fx: true, dur: 2,
     params: [
-      { k: "count", label: "Количество", type: "range", min: 10, max: 120, step: 1, def: 46 },
+      { k: "source", label: "Частицы", type: "select", options: [["paper", "Цветные бумажки"], ["image", "Свои изображения"]], def: "paper" },
+      { k: "count", label: "Количество", type: "range", min: 1, max: 120, step: 1, def: 46 },
+      { k: "size", label: "Размер частиц, px", type: "range", min: 4, max: 240, step: 1, def: 12 },
+      { k: "sizeVar", label: "Разброс размера", type: "range", min: 0, max: 0.9, step: 0.05, def: 0.4 },
       { k: "power", label: "Дальность залпа, px", type: "range", min: 60, max: 1200, step: 10, def: 320 },
       { k: "angle", label: "Направление, °", type: "range", min: 0, max: 360, step: 5, def: 270 },
       { k: "spread", label: "Раствор, °", type: "range", min: 10, max: 360, step: 5, def: 120 },
-      { k: "gravity", label: "Гравитация, px/с²", type: "range", min: 0, max: 2500, step: 20, def: 520 },
-      { k: "size", label: "Размер бумажек, px", type: "range", min: 4, max: 40, step: 1, def: 12 },
-      { k: "originX", label: "Точка вылета X, px", type: "range", min: -500, max: 500, step: 5, def: 0 },
-      { k: "originY", label: "Точка вылета Y, px", type: "range", min: -500, max: 500, step: 5, def: 0 },
       { k: "palette", label: "Палитра", type: "select", options: FX_PALETTE_OPTS, def: "rainbow" },
       { k: "monoColor", label: "Цвет", type: "color", def: "#4D49FC" },
+      { k: "gravity", label: "Гравитация, px/с²", type: "range", min: 0, max: 2500, step: 20, def: 520 },
+      { k: "flutter", label: "Трепет (переворот)", type: "select", options: [["yes", "Да, как бумага"], ["no", "Нет, только вращение"]], def: "yes" },
+      { k: "spinK", label: "Скорость вращения", type: "range", min: 0, max: 3, step: 0.1, def: 1 },
+      { k: "originX", label: "Точка вылета X, px", type: "range", min: -500, max: 500, step: 5, def: 0 },
+      { k: "originY", label: "Точка вылета Y, px", type: "range", min: -500, max: 500, step: 5, def: 0 },
       { k: "seed", label: "Сид", type: "range", min: 1, max: 999, step: 1, def: 3 },
     ],
+    // поле видно, только если выполнены все условия [параметр, значение]
+    cond: { palette: [["source", "paper"]], monoColor: [["source", "paper"], ["palette", "mono"]], sizeVar: [["source", "image"]] },
   },
   sparkles: {
     name: "Искры-звёздочки", cat: "fx", tag: "В/Р", fx: true, dur: 1.3,
@@ -2961,7 +2978,7 @@ const PRESET_ADV = {
   swarm: ["spacing", "scaleMin", "scaleMax", "rotRange", "spin", "gravity", "returnBack", "seed", "fxOrder"],
   swarmHide: ["count", "pattern", "rangeX", "rangeY", "spacing", "scaleMin", "scaleMax", "rotRange", "spin", "gravity", "seed"],
   splitGrid: ["gravity", "rotate", "random", "fade"], splitPath: ["gravity", "rotate", "fade"], explode: ["rotate", "hold", "random"],
-  confetti: ["gravity", "size", "originX", "originY", "seed"], ringBurst: ["dotSize"], rays: ["size", "seed"],
+  confetti: ["gravity", "flutter", "spinK", "originX", "originY", "seed"], ringBurst: ["dotSize"], rays: ["size", "seed"],
   sparkles: ["life", "seed"], shockwave: ["gap", "opacity", "width"], satellites: ["depth", "dir"],
   orbit: ["depth", "dir"], liveHeart: ["waves", "seed"], flame: ["speed", "seed"], doubleTap: ["tilt", "hold"],
 };
@@ -3303,7 +3320,7 @@ function applyTextModal() {
     const oldId = layer.assetId;
     layer.assetId = id; layer.text = cfg;
     (layer.segments || []).forEach((sg) => { delete TILES[sg.id]; });
-    if (oldId && !project.layers.some((l) => l.assetId === oldId)) project.assets = project.assets.filter((a) => a.id !== oldId);
+    if (oldId && !project.layers.some((l) => l.assetId === oldId) && !assetUsedByFx(oldId)) project.assets = project.assets.filter((a) => a.id !== oldId);
     markDirty(); renderAll();
   } else {
     addLayerForAsset(id, cfg.str.split("\n")[0], { text: cfg });
@@ -3345,7 +3362,7 @@ function applyShapeModal() {
     const oldId = layer.assetId;
     layer.assetId = id;
     (layer.segments || []).forEach((sg) => { delete TILES[sg.id]; });
-    if (oldId && !project.layers.some((l) => l.assetId === oldId)) project.assets = project.assets.filter((a) => a.id !== oldId);
+    if (oldId && !project.layers.some((l) => l.assetId === oldId) && !assetUsedByFx(oldId)) project.assets = project.assets.filter((a) => a.id !== oldId);
     markDirty(); renderAll();
   } else {
     addLayerForAsset(id, sd.kind === "rect" ? "Прямоугольник" : "Эллипс");
@@ -3361,7 +3378,7 @@ async function relinkLayerImage(layer, file) {
   // нарезка тайлов слоя устарела
   (layer.segments || []).forEach((s) => { delete TILES[s.id]; });
   // старый ассет оставляем в памяти (нужен для отмены), убираем лишь из списка проекта, если он больше не используется
-  if (oldId && oldId !== r.id && !project.layers.some((l) => l.assetId === oldId)) {
+  if (oldId && oldId !== r.id && !project.layers.some((l) => l.assetId === oldId) && !assetUsedByFx(oldId)) {
     project.assets = project.assets.filter((a) => a.id !== oldId);
   }
   markDirty();
@@ -3709,20 +3726,37 @@ function buildFxLayers(layer, asset, base, env) {
     } else if (seg.preset === "confetti") {
       const rnd = seeded(Math.round(p.seed) * 13 + 2), pal = fxPalette(p), n = clamp(Math.round(p.count), 1, 200);
       const cx = ctr[f0].x + p.originX, cy = ctr[f0].y + p.originY; // вылет из точки в мировых координатах
+      // свои изображения: частицы по очереди берутся из выбранных картинок; если список пуст — обычные бумажки
+      const imgs = p.source === "image" ? (seg.params.images || []).map((id) => ASSETS[id]).filter((x) => x && x.dataURL) : [];
+      const irnd = seeded(Math.round(p.seed) * 31 + 9); // отдельный поток: раскладка частиц не зависит от источника
+      const flutterOn = p.flutter !== "no", durS = dur / fps;
       for (let i = 0; i < n; i++) {
         const ang = (p.angle + (rnd() - 0.5) * p.spread) * Math.PI / 180, sp = 2.2 * p.power * (0.4 + 0.6 * rnd());
         const w = p.size * (0.45 + rnd() * 0.35), h = p.size * (0.7 + rnd() * 0.5);
-        const spin = (rnd() - 0.5) * 900, fr = 6 + rnd() * 7, ph = rnd() * TAU, col = pal[Math.floor(rnd() * pal.length) % pal.length];
-        // «трепет» бумажки = cos по масштабу X: ключи только в экстремумах, между ними синус-easing
-        const durS = dur / fps, times = [0];
-        for (let j = Math.ceil(ph / Math.PI); j < 400; j++) { const sec = (j * Math.PI - ph) / fr; if (sec <= 0.01) continue; if (sec >= durS - 0.01) break; times.push(sec); }
-        times.push(durS);
-        const flut = times.map((sec, j) => { const kf = { t: round(sf + sec * fps, 2), s: [round(Math.cos(sec * fr + ph) * 100, 1), 100, 100] }; if (j < times.length - 1) { kf.o = { x: [0.37], y: [0] }; kf.i = { x: [0.63], y: [1] }; } return kf; });
-        const spinK = [{ t: round(sf, 2), s: [0], o: LIN_O, i: LIN_I }, { t: round(sf + dur, 2), s: [round(spin * durS, 1)] }];
-        shape("over", "#" + (i + 1), [fxRect(round(w, 1), round(h, 1), 1), fxFill(col)], (t, sec) => {
+        const spin = (rnd() - 0.5) * 900 * p.spinK, fr = 6 + rnd() * 7, ph = rnd() * TAU, col = pal[Math.floor(rnd() * pal.length) % pal.length];
+        const im = imgs.length ? imgs[i % imgs.length] : null;
+        const k100 = im ? (p.size * (1 - p.sizeVar * irnd()) / Math.max(im.w, im.h, 1)) * 100 : 100; // масштаб слоя-частицы, %
+        // «трепет» = cos по масштабу X: ключи только в экстремумах, между ними синус-easing (вместо покадровых ключей)
+        let sProp = { a: 0, k: [round(k100, 2), round(k100, 2), 100] };
+        if (flutterOn) {
+          const times = [0];
+          for (let j = Math.ceil(ph / Math.PI); j < 400; j++) { const sec = (j * Math.PI - ph) / fr; if (sec <= 0.01) continue; if (sec >= durS - 0.01) break; times.push(sec); }
+          times.push(durS);
+          sProp = { a: 1, k: times.map((sec, j) => { const kf = { t: round(sf + sec * fps, 2), s: [round(Math.cos(sec * fr + ph) * k100, 2), round(k100, 2), 100] }; if (j < times.length - 1) { kf.o = { x: [0.37], y: [0] }; kf.i = { x: [0.63], y: [1] }; } return kf; }) };
+        }
+        const rProp = Math.abs(spin) > 0.5 ? { a: 1, k: [{ t: round(sf, 2), s: [0], o: LIN_O, i: LIN_I }, { t: round(sf + dur, 2), s: [round(spin * durS, 1)] }] } : { a: 0, k: 0 };
+        const fly = (t, sec) => {
           const td = (1 - Math.exp(-2.2 * sec)) / 2.2;
           return { x: cx + Math.cos(ang) * sp * td, y: cy + Math.sin(ang) * sp * td + 0.5 * p.gravity * sec * sec, op: t > 0 ? 1 - clamp((t - 0.72) / 0.28, 0, 1) : 0 };
-        }, { s: { a: 1, k: flut }, r: { a: 1, k: spinK } }, 2.5); // мелкие бумажки летят быстро — траекторию можно прореживать грубее
+        };
+        const ks = { s: sProp, r: rProp };
+        if (im) {
+          const T = bake(fly); T.ks = ks; T.epsP = 2.5;
+          const aid = ensureAsset(env.out, env.assetMap, im, im.dataURL, im.w, im.h); // одна картинка — один ассет, сколько бы частиц её ни использовало
+          res.over.push(fxKs(imageLayer(env.ind(), nm("#" + (i + 1)), aid, [im.w / 2, im.h / 2], [[0, 0]], [[100, 100]], [0], [100], T.ip, T.op, true), T));
+        } else {
+          shape("over", "#" + (i + 1), [fxRect(round(w, 1), round(h, 1), 1), fxFill(col)], fly, ks, 2.5); // частицы летят быстро — траекторию можно прореживать грубее
+        }
       }
     } else if (seg.preset === "sparkles") {
       const rnd = seeded(Math.round(p.seed) * 7 + 11), n = clamp(Math.round(p.count), 1, 48), life = clamp(p.life, 0.05, 0.95);
@@ -5163,11 +5197,24 @@ function renderSegParams(host, layer, seg) {
     monoColor: ["palette", "mono"], rise: ["exit", "up"], width: ["source", "ring"], color: ["source", "ring"] };
   let advFields = "";
   const swatches = projectSwatches(), pdef = {};
+  (def.params || []).forEach((pp) => { pdef[pp.k] = pp; });
+  // условия видимости поля: у пресета свои (def.cond, несколько условий сразу) или общие (condParams)
+  const condOf = (k) => { const c = (def.cond && def.cond[k]) || condParams[k]; return !c ? null : (Array.isArray(c[0]) ? c : [c]); };
+  const pval = (k) => (seg.params[k] == null ? (pdef[k] ? pdef[k].def : undefined) : seg.params[k]);
+  const condOk = (k) => { const c = condOf(k); return !c || c.every((q) => String(pval(q[0])) === String(q[1])); };
+  // v9: свои изображения для частиц конфетти
+  const isImgConfetti = seg.preset === "confetti" && pval("source") === "image";
+  const cfIds = isImgConfetti ? (seg.params.images || []).filter((id) => ASSETS[id] && ASSETS[id].dataURL) : [];
+  const cfPickable = isImgConfetti ? project.assets.filter((a) => ASSETS[a.id] && ASSETS[a.id].dataURL && cfIds.indexOf(a.id) < 0) : [];
+  const cfBlock = isImgConfetti ? `<div class="cf-imgs">
+      <div class="cf-list">${cfIds.length ? cfIds.map((id) => `<span class="cf-thumb" title="${escapeHtml((project.assets.find((a) => a.id === id) || {}).name || "изображение")}"><img src="${ASSETS[id].dataURL}" alt=""><button type="button" data-cfdel="${id}" title="Убрать" aria-label="Убрать изображение">×</button></span>`).join("") : `<span class="cf-empty">Пока пусто — летят обычные бумажки. Добавьте одну или несколько картинок.</span>`}</div>
+      <div class="cf-actions"><button type="button" class="btn-soft" id="cfUpload">＋ Загрузить…</button>${cfPickable.length ? `<select id="cfPick" aria-label="Взять изображение из проекта"><option value="">Из проекта…</option>${cfPickable.map((a) => `<option value="${a.id}">${escapeHtml(a.name || a.type)}</option>`).join("")}</select>` : ""}</div>
+      <input type="file" id="cfFile" accept="image/*,.svg" multiple hidden>
+      <p class="hint" style="margin:6px 0 0">Частицы берут картинки по очереди. Лучше всего подходят PNG с прозрачным фоном; большие изображения уменьшаются до ${PARTICLE_MAX} px.</p>
+    </div>` : "";
   (def.params || []).forEach((pp) => {
-    pdef[pp.k] = pp;
     const v = seg.params[pp.k] == null ? pp.def : seg.params[pp.k]; // у старых сегментов новых параметров нет — берём дефолт
-    const cond = condParams[pp.k];
-    const hidden = cond && String(seg.params[cond[0]]) !== String(cond[1]);
+    const hidden = !condOk(pp.k);
     const rowAttr = ` data-prow="${pp.k}"${hidden ? ' style="display:none"' : ""}`;
     const lab = `<label>${pp.label}<button type="button" class="p-reset" data-reset="${pp.k}" title="Сбросить к значению по умолчанию (${escapeHtml(String(pp.def))})" ${String(v) === String(pp.def) ? "hidden" : ""}>↺</button></label>`;
     let row;
@@ -5179,6 +5226,7 @@ function renderSegParams(host, layer, seg) {
       row = `<div class="field${pp.k === "seed" ? " seed-row" : ""}"${rowAttr}>${lab}<input type="range" min="${pp.min}" max="${pp.max}" step="${pp.step}" data-p="${pp.k}" value="${v}"><input type="number" class="val-inp" min="${pp.min}" max="${pp.max}" step="${pp.step}" data-pn="${pp.k}" value="${v}">${pp.k === "seed" ? `<button type="button" class="ic dice" data-dice="${pp.k}" title="Случайный вариант">🎲</button>` : ""}</div>`;
     }
     if (pp.adv) advFields += row; else fields += row;
+    if (pp.k === "source" && cfBlock) fields += cfBlock;
   });
   if (advFields) fields += `<details class="adv-box" id="advBox" ${advOpen[seg.preset] ? "open" : ""}><summary>Тонкая настройка</summary>${advFields}</details>`;
   if (def.handle) fields += `<p class="hint" style="margin:0 0 10px">«${def.handle.label}» можно перетащить мышью прямо на холсте — это синяя точка с пунктиром.</p>`;
@@ -5241,6 +5289,25 @@ function renderSegParams(host, layer, seg) {
     const inp = $(`[data-p="${k}"]`, host); if (inp) inp.value = b.dataset.c.toLowerCase();
     syncReset(k); markDirty(); scheduleRebuild();
   }));
+  // v9: изображения-частицы — загрузка, выбор из проекта, удаление
+  const cfFile = $("#cfFile", host);
+  if (cfFile) {
+    const cfDone = () => { markDirty(); renderParams(); scheduleRebuild(); };
+    $("#cfUpload", host).addEventListener("click", () => cfFile.click());
+    cfFile.addEventListener("change", async () => {
+      const errsCf = [];
+      for (const f of Array.from(cfFile.files || [])) {
+        const r = await importParticleImage(f);
+        if (r.error) errsCf.push(r.error); else (seg.params.images = seg.params.images || []).push(r.id);
+      }
+      cfFile.value = "";
+      if (errsCf.length) toast(errsCf.join("  •  "), "warn", 6000);
+      cfDone();
+    });
+    const cfPick = $("#cfPick", host);
+    if (cfPick) cfPick.addEventListener("change", () => { if (cfPick.value) { (seg.params.images = seg.params.images || []).push(cfPick.value); cfDone(); } });
+    $$("[data-cfdel]", host).forEach((bt) => bt.addEventListener("click", () => { seg.params.images = (seg.params.images || []).filter((id) => id !== bt.dataset.cfdel); cfDone(); }));
+  }
   const advBox = $("#advBox", host);
   if (advBox) advBox.addEventListener("toggle", () => { advOpen[seg.preset] = advBox.open; });
   $$("[data-p]", host).forEach((inp) => {
@@ -5253,12 +5320,13 @@ function renderSegParams(host, layer, seg) {
       // смена паттерна/сетки/рандома инвалидирует кэш нарезки тайлов
       if (inp.dataset.p === "grid" || inp.dataset.p === "random" || inp.dataset.p === "pattern") delete TILES[seg.id];
       // показываем/прячем зависимые поля (поля направленного ухода зависят от exit)
-      Object.keys(condParams).forEach((ck) => {
-        if (condParams[ck][0] === inp.dataset.p) {
-          const row = $(`[data-prow="${ck}"]`, host);
-          if (row) row.style.display = String(v) === String(condParams[ck][1]) ? "" : "none";
-        }
-      });
+      (def.params || []).forEach((pp) => { if (!condOf(pp.k)) return; const row = $(`[data-prow="${pp.k}"]`, host); if (row) row.style.display = condOk(pp.k) ? "" : "none"; });
+      // v9: смена источника частиц — подбираем разумный размер (картинке 12 px мало) и перерисовываем блок изображений
+      if (seg.preset === "confetti" && inp.dataset.p === "source") {
+        if (v === "image" && pval("size") === pdef.size.def) seg.params.size = 40;
+        else if (v === "paper" && pval("size") === 40) seg.params.size = pdef.size.def;
+        markDirty(); renderParams(); scheduleRebuild(); return;
+      }
       markDirty(); scheduleRebuild();
     };
     // <select> шлёт "change", range/number — "input"; вешаем оба, чтобы списки тоже работали
@@ -6307,6 +6375,26 @@ function segContextMenu(e, layer, seg) {
     { label: "Удалить", danger: true, run: () => deleteSeg(layer, seg) },
   ]);
 }
+
+/* ----- Свои изображения для частиц (конфетти) ----- */
+const PARTICLE_MAX = 256; // частицы мелкие — большие картинки уменьшаем, чтобы не раздувать файл
+async function importParticleImage(file) {
+  if (!/^image\//i.test(file.type) && !/\.(png|jpe?g|webp|gif|svg)$/i.test(file.name)) return { error: "«" + file.name + "»: нужен файл изображения" };
+  let img;
+  try { img = await loadImage(await readFileAsDataURL(file)); } catch (e) { return { error: "«" + file.name + "»: не удалось загрузить" }; }
+  const sw = img.naturalWidth || 200, sh = img.naturalHeight || 200, k = Math.min(1, PARTICLE_MAX / Math.max(sw, sh));
+  const w = Math.max(1, Math.round(sw * k)), h = Math.max(1, Math.round(sh * k));
+  const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+  cv.getContext("2d").drawImage(img, 0, 0, w, h);
+  const dataURL = cv.toDataURL("image/png");
+  let im2 = null; try { im2 = await loadImage(dataURL); } catch (e) {}
+  const id = uid("a");
+  ASSETS[id] = { type: "png", dataURL, w, h, img: im2 };
+  project.assets.push({ id, type: "png", name: file.name });
+  return { id };
+}
+// ассет используется как частица в каком-либо сегменте — его нельзя убирать из проекта при замене картинки слоя
+function assetUsedByFx(id) { return project.layers.some((l) => l.segments.some((sg) => Array.isArray(sg.params.images) && sg.params.images.indexOf(id) >= 0)); }
 
 /* ----- Быстрый слой-эмодзи: символ растеризуется в PNG системным шрифтом ----- */
 const EMOJI_QUICK = ["❤️", "👍", "👎", "🔥", "😂", "😮", "😢", "😡", "🎉", "👏", "⭐", "💯", "😍", "🙏", "🤔", "👀", "💔", "✨", "🚀", "🥳", "😎", "👌", "💩", "🤡"];
