@@ -1547,6 +1547,25 @@ input[type=number]::-webkit-outer-spin-button{
 .adv-box[open]>summary{margin-bottom:6px;color:var(--text)}
 .fx-handle{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--primary);border:2px solid #fff;box-shadow:0 0 0 1px var(--primary);transform:translate(-50%,-50%);cursor:grab;pointer-events:auto;z-index:6}
 .fx-handle-line{stroke:var(--primary);stroke-width:1.5;stroke-dasharray:4 4}
+
+/* ===== v8.3: меню сегмента, эмодзи-слой, вес файла, шов цикла, отмена/повтор ===== */
+.ctx-menu{position:fixed;z-index:300;min-width:210px;background:#fff;border:1px solid var(--line-strong,#000);border-radius:10px;padding:5px;box-shadow:0 12px 34px rgba(0,0,0,.16);display:flex;flex-direction:column}
+.ctx-menu>button{text-align:left;padding:8px 10px;border-radius:6px;font-size:14px}
+.ctx-menu>button:hover{background:var(--surface-alt)}
+.ctx-menu>button.danger{color:var(--danger)}
+.emoji-pop{width:292px;padding:10px}
+.ep-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px}
+.ep-grid button{font-size:20px;line-height:1;padding:6px 0;border-radius:6px;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.ep-grid button:hover{background:var(--surface-alt)}
+.ep-row{display:flex;gap:6px;margin-top:8px}
+.ep-row input{flex:1;min-width:0;padding:7px 9px;border:1px solid var(--line);border-radius:8px;outline:none}
+.ep-row input:focus{border-color:var(--primary)}
+.weight-badge{font-size:12px;font-variant-numeric:tabular-nums;color:var(--text-muted);border:1px solid var(--line);border-radius:50px;padding:3px 9px;white-space:nowrap;cursor:help}
+.weight-badge[hidden],.seam-badge[hidden]{display:none}
+.weight-badge.mid{color:#8A5A00;border-color:#E0B252;background:#FFF6DF}
+.weight-badge.heavy{color:#fff;border-color:var(--danger);background:var(--danger)}
+.seam-badge{font-size:12px;color:#8A5A00;border:1px solid #E0B252;background:#FFF6DF;border-radius:50px;padding:3px 9px;white-space:nowrap;cursor:help}
+#undoBtn:disabled,#redoBtn:disabled{opacity:.3;pointer-events:none}
 </style>
 </head>
 <body>
@@ -1572,6 +1591,7 @@ input[type=number]::-webkit-outer-spin-button{
           <option value="pixel8">Pixel 8</option>
           <option value="galaxys">Galaxy S</option>
           <option value="square">Квадрат</option>
+          <option value="react">Реакция 512</option>
           <option value="custom">Кастом</option>
         </select>
         <span id="customDims"><input id="cw" type="number" title="Ширина">×<input id="ch" type="number" title="Высота"></span>
@@ -1583,13 +1603,17 @@ input[type=number]::-webkit-outer-spin-button{
         <div class="segc" id="loopSeg" role="radiogroup" aria-label="Повтор">
           <button data-v="once" class="on">1 раз</button><button data-v="loop">Цикл</button><button data-v="tap">Тап</button>
         </div>
+        <span id="seamBadge" class="seam-badge" hidden></span>
       </div>
     </div>
     <div class="spacer"></div>
+    <button id="undoBtn" class="btn ghost icon-only" title="Отменить (Ctrl+Z)" aria-label="Отменить" disabled><svg class="lic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+    <button id="redoBtn" class="btn ghost icon-only" title="Повторить (Ctrl+Shift+Z)" aria-label="Повторить" disabled><svg class="lic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
     <button id="newBtn" class="btn ghost">Новый</button>
     <button id="projectsBtn" class="btn">Проекты</button>
     <button id="saveBtn" class="btn">Сохранить</button>
     <button id="helpBtn" class="btn ghost icon-only" title="Справка"><svg class="lic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg></button>
+    <span id="weightBadge" class="weight-badge" hidden></span>
     <button id="exportBtn" class="btn primary">Экспорт</button>
   </header>
 
@@ -1603,6 +1627,7 @@ input[type=number]::-webkit-outer-spin-button{
         <button id="addTextBtn" class="btn" style="flex:1;justify-content:center"><svg class="lic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg> Текст</button>
         <button id="addShapeBtn" class="btn" style="flex:1;justify-content:center"><svg class="lic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><circle cx="16" cy="16" r="5"/></svg> Фигура</button>
       </div>
+      <div style="margin:0 16px 8px"><button id="addEmojiBtn" class="btn" style="width:100%;justify-content:center" title="Быстрый слой из эмодзи — без поиска картинки">😀 Слой-эмодзи</button></div>
       <input id="fileInp" type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.svg,.json,image/*,application/json" multiple hidden>
       <input id="projFileInp" type="file" accept="application/json,.json" hidden>
       <input id="relinkInp" type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.svg,image/*" hidden>
@@ -2039,6 +2064,7 @@ const DEVICES = {
   pixel8: { name: "Pixel 8", w: 412, h: 915 },
   galaxys: { name: "Galaxy S", w: 360, h: 780 },
   square: { name: "Квадрат", w: 1080, h: 1080 },
+  react: { name: "Реакция 512", w: 512, h: 512 },
   custom: { name: "Кастом", w: 393, h: 852 },
 };
 
@@ -4496,6 +4522,7 @@ async function rebuildPreview() {
   try {
     const data = await buildLottie({ optimize: false });
     lastLottie = data;
+    scheduleStats();
     const cont = $("#lottieHost");
     if (anim) { anim.destroy(); anim = null; }
     cont.innerHTML = "";
@@ -4573,7 +4600,7 @@ function renderCanvas() {
   wrap.style.width = W * scale + "px";
   wrap.style.height = H * scale + "px";
   wrap.dataset.scale = scale;
-  $("#deviceFrame").style.borderRadius = (project.scene.device === "square" ? 12 : 38) * scale + "px";
+  $("#deviceFrame").style.borderRadius = (project.scene.device === "square" || project.scene.device === "react" ? 12 : 38) * scale + "px";
   const bgEl = $("#previewBg");
   if (bg) { bgEl.style.backgroundImage = `url(${bg})`; bgEl.style.display = "block"; } else { bgEl.style.display = "none"; }
   renderOverlay(scale);
@@ -5195,7 +5222,7 @@ function renderSegParams(host, layer, seg) {
       ${seg.preset === "swarm" ? `<button class="btn-soft wide" id="openAppearEd" style="margin-bottom:10px">${icon("sliders")} Композиция появления (разместить копии)…${(seg.params.appearOverrides && Object.keys(seg.params.appearOverrides).length) ? ` (${Object.keys(seg.params.appearOverrides).length})` : ""}</button>` : ""}
       <div class="field" style="margin-top:12px"><label>Каскад, мс</label><input type="number" id="stagMs" min="0" max="2000" step="10" value="80"><button class="btn-soft" id="stagBtn" style="flex:none" title="Скопировать сегмент на все остальные видимые слои с нарастающей задержкой">${icon("layers")} На все слои</button></div>
       <p class="hint" style="margin:-2px 0 10px">Каскад: копия сегмента на каждом следующем слое стартует на N мс позже — классическое каскадное появление списка.</p>
-      <div class="exp-btns" style="margin-bottom:10px"><button class="btn-soft" id="tplSaveBtn" style="flex:1">${icon("star")} Сохранить как шаблон</button></div>
+      <div class="exp-btns" style="margin-bottom:10px"><button class="btn-soft" id="dupSegBtn" style="flex:1">${icon("layers")} Дублировать</button><button class="btn-soft" id="tplSaveBtn" style="flex:1">${icon("star")} В шаблоны</button></div>
       <button class="btn-danger wide" id="delSeg">Удалить сегмент</button>
     </div>`;
   if (seg.ease === "custom") mountBezier($("#segBez", host), seg);
@@ -5269,6 +5296,7 @@ function renderSegParams(host, layer, seg) {
     if (added) { markDirty(); renderAll(); toast("Каскад: сегмент скопирован на слоёв: " + added, "ok"); }
     else toast("Нет других видимых незаблокированных слоёв", "warn");
   });
+  $("#dupSegBtn", host).addEventListener("click", () => duplicateSeg(layer, seg));
   // сохранить как шаблон
   $("#tplSaveBtn", host).addEventListener("click", async () => {
     const name = prompt("Название шаблона:", def.name + " (мой)");
@@ -5386,6 +5414,8 @@ function renderTimeline() {
       blk.style.setProperty("--c", CATS[def.cat].color);
       if (isDead) blk.title = isBlocked ? "Не применяется к рою: это вход/выход одиночного слоя. Перенесите на отдельный слой." : "Не применяется: на слое уже есть сложный пресет. Перенесите на отдельный слой.";
       blk.innerHTML = `<span class="tl-seg-label">${isDead ? "⚠ " : ""}${escapeHtml(def.name)}</span><div class="tl-handle"></div>`;
+      if (!blk.title) blk.title = def.name + " · " + round(seg.t[1] - seg.t[0], 2) + " с · правый клик — меню";
+      blk.addEventListener("contextmenu", (e) => segContextMenu(e, layer, seg));
       blk.addEventListener("pointerdown", (e) => {
         if (e.target.classList.contains("tl-handle")) return;
         const mk = layer.id + ":" + seg.id;
@@ -6213,9 +6243,152 @@ function markDirty() { dirty = true; updateDirty(); scheduleHistory(); clearTime
 let autosaveTimer = null;
 function updateDirty() { $("#dirtyDot").style.opacity = dirty ? 1 : 0; }
 
+/* ============================================================================
+   v8.3: контекстное меню сегмента, слой-эмодзи, вес файла и проверка шва цикла
+   ========================================================================== */
+let ctxEl = null;
+function closeCtx() { if (ctxEl) { ctxEl.remove(); ctxEl = null; } }
+function showPop(m, x, y) {
+  document.body.appendChild(m);
+  const r = m.getBoundingClientRect();
+  m.style.left = Math.max(8, Math.min(x, window.innerWidth - r.width - 8)) + "px";
+  m.style.top = Math.max(8, Math.min(y, window.innerHeight - r.height - 8)) + "px";
+  ctxEl = m;
+}
+function openCtx(x, y, items) {
+  closeCtx();
+  const m = document.createElement("div"); m.className = "ctx-menu"; m.setAttribute("role", "menu");
+  items.forEach((it) => {
+    if (!it) return;
+    const b = document.createElement("button"); b.type = "button"; b.textContent = it.label; b.setAttribute("role", "menuitem");
+    if (it.danger) b.className = "danger";
+    b.addEventListener("click", () => { closeCtx(); it.run(); });
+    m.appendChild(b);
+  });
+  showPop(m, x, y);
+}
+document.addEventListener("pointerdown", (e) => { if (ctxEl && !ctxEl.contains(e.target)) closeCtx(); }, true);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeCtx(); });
+window.addEventListener("blur", closeCtx);
+
+function duplicateSeg(layer, seg) {
+  if (layer.locked) { toast("Слой заблокирован", "warn"); return; }
+  const len = seg.t[1] - seg.t[0], t0 = round(seg.t[1], 2);
+  if (t0 + len > project.scene.duration) {
+    project.scene.duration = round(Math.ceil((t0 + len) * 10) / 10, 2);
+    toast("Сцена продлена до " + project.scene.duration + " с, чтобы копия поместилась", "ok", 4500);
+  }
+  const ns = JSON.parse(JSON.stringify(seg));
+  ns.id = uid("s"); ns.t = [t0, round(t0 + len, 2)]; ns.chain = false;
+  layer.segments.push(ns);
+  sel = { layerId: layer.id, segId: ns.id, keyId: null }; paramTab = "seg";
+  markDirty(); renderAll();
+}
+function deleteSeg(layer, seg) {
+  if (layer.locked) { toast("Слой заблокирован", "warn"); return; }
+  layer.segments = layer.segments.filter((s) => s.id !== seg.id); delete TILES[seg.id];
+  if (sel.segId === seg.id) sel.segId = null;
+  markDirty(); renderAll();
+}
+async function saveSegAsTemplate(seg) {
+  const def = PRESETS[seg.preset]; if (!def) return;
+  const name = prompt("Название шаблона:", def.name + " (мой)");
+  if (!name) return;
+  await saveTemplate({ id: uid("tpl"), name: name.slice(0, 40), preset: seg.preset, params: JSON.parse(JSON.stringify(seg.params)), ease: seg.ease || "auto", bezier: seg.bezier ? seg.bezier.slice() : undefined, spring: seg.spring ? Object.assign({}, seg.spring) : undefined, dur: round(seg.t[1] - seg.t[0], 2), createdAt: Date.now() });
+  toast("Шаблон «" + name + "» сохранён — он в конце вкладки «Анимации»", "ok");
+}
+function segContextMenu(e, layer, seg) {
+  e.preventDefault();
+  clearMulti(); sel = { layerId: layer.id, segId: seg.id, keyId: null }; paramTab = "seg"; renderAll();
+  openCtx(e.clientX, e.clientY, [
+    { label: "Дублировать", run: () => duplicateSeg(layer, seg) },
+    { label: "Вынести на отдельный слой", run: () => extractSegToNewLayer(layer, seg) },
+    { label: "Сохранить как шаблон…", run: () => saveSegAsTemplate(seg) },
+    { label: "Удалить", danger: true, run: () => deleteSeg(layer, seg) },
+  ]);
+}
+
+/* ----- Быстрый слой-эмодзи: символ растеризуется в PNG системным шрифтом ----- */
+const EMOJI_QUICK = ["❤️", "👍", "👎", "🔥", "😂", "😮", "😢", "😡", "🎉", "👏", "⭐", "💯", "😍", "🙏", "🤔", "👀", "💔", "✨", "🚀", "🥳", "😎", "👌", "💩", "🤡"];
+async function addEmojiLayer(ch) {
+  ch = String(ch || "").trim(); if (!ch) return;
+  const S = 256, cv = document.createElement("canvas"); cv.width = cv.height = S;
+  const c = cv.getContext("2d");
+  c.font = Math.round(S * 0.78) + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+  c.textAlign = "center"; c.textBaseline = "middle"; c.fillStyle = "#191919";
+  // длинную строку ужимаем по ширине, чтобы не обрезалась
+  const w = c.measureText(ch).width, k = w > S * 0.94 ? (S * 0.94) / w : 1;
+  c.translate(S / 2, S / 2 + S * 0.04); c.scale(k, k); c.fillText(ch, 0, 0);
+  const dataURL = cv.toDataURL("image/png");
+  let img = null; try { img = await loadImage(dataURL); } catch (e) {}
+  const id = uid("a");
+  ASSETS[id] = { type: "png", dataURL, w: S, h: S, img };
+  project.assets.push({ id, type: "png", name: "emoji-" + ch });
+  const l = addLayerForAsset(id, "Эмодзи " + ch);
+  l.transform.scale = round(clamp(Math.min(project.scene.w, project.scene.h) * 0.3 / S, 0.2, 1), 2);
+  paramTab = "anim";
+  markDirty(); renderAll();
+  toast("Слой «" + ch + "» добавлен. Выберите рецепт или пресет во вкладке «Анимации».", "ok", 4500);
+}
+function openEmojiPicker(anchor) {
+  closeCtx();
+  const m = document.createElement("div"); m.className = "ctx-menu emoji-pop";
+  m.innerHTML = `<div class="ep-grid">${EMOJI_QUICK.map((e) => `<button type="button" data-e="${e}">${e}</button>`).join("")}</div>
+    <div class="ep-row"><input id="epInp" type="text" maxlength="12" placeholder="Свой эмодзи или символ" aria-label="Свой эмодзи"><button type="button" class="btn primary" id="epAdd">Добавить</button></div>
+    <p class="hint" style="margin:8px 0 0">Эмодзи станет PNG-слоем в начертании вашей системы.</p>`;
+  const r = anchor.getBoundingClientRect();
+  showPop(m, r.left, r.bottom + 6);
+  $$("[data-e]", m).forEach((b) => b.addEventListener("click", () => { closeCtx(); addEmojiLayer(b.dataset.e); }));
+  const go = () => { const v = $("#epInp", m).value; if (v.trim()) { closeCtx(); addEmojiLayer(v); } };
+  $("#epAdd", m).addEventListener("click", go);
+  $("#epInp", m).addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+}
+
+/* ----- Вес файла рядом с «Экспортом» и проверка шва в режиме «Цикл» ----- */
+let statTimer = null, statToken = 0;
+function scheduleStats() { clearTimeout(statTimer); statTimer = setTimeout(updateStats, 900); }
+// Слои, у которых первый и последний кадр заметно различаются (в цикле это видно как рывок)
+function loopSeams(data) {
+  const N = data.op, bad = [];
+  const ends = (pr) => (pr && pr.a === 1 ? [pr.k[0].s, pr.k[pr.k.length - 1].s] : [[].concat(pr ? pr.k : 0), [].concat(pr ? pr.k : 0)]);
+  (data.layers || []).forEach((l) => {
+    const ks = l.ks || {}, o = ends(ks.o);
+    const o0 = l.ip <= 0 ? o[0][0] : 0, oN = l.op >= N ? o[1][0] : 0;
+    if (o0 < 2 && oN < 2) return; // невидим на обоих концах
+    let diff = Math.abs(o0 - oN) > 4;
+    if (!diff) {
+      const p = ends(ks.p), sc = ends(ks.s), r = ends(ks.r);
+      const dr = Math.abs(r[0][0] - r[1][0]) % 360;
+      diff = Math.abs(p[0][0] - p[1][0]) > 1.5 || Math.abs(p[0][1] - p[1][1]) > 1.5 || Math.abs(sc[0][0] - sc[1][0]) > 1.5 || Math.abs(sc[0][1] - sc[1][1]) > 1.5 || Math.min(dr, 360 - dr) > 1.5;
+    }
+    if (diff) { const nm = String(l.nm || "слой").split(" · ")[0].split(" #")[0]; if (bad.indexOf(nm) < 0) bad.push(nm); }
+  });
+  return bad;
+}
+async function updateStats() {
+  const token = ++statToken, wb = $("#weightBadge"), sb = $("#seamBadge");
+  if (!wb || !sb) return;
+  if (!project.layers.some((l) => l.visible && ASSETS[l.assetId])) { wb.hidden = true; sb.hidden = true; return; }
+  let data; try { data = await buildLottie({ optimize: true }); } catch (e) { return; }
+  if (token !== statToken) return;
+  const st = lottieStats(data), kb = st.bytes / 1024;
+  wb.hidden = false;
+  wb.textContent = "≈ " + (kb >= 1000 ? (kb / 1024).toFixed(1) + " МБ" : Math.max(1, Math.round(kb)) + " КБ");
+  wb.className = "weight-badge" + (kb > 500 ? " heavy" : kb > 150 ? " mid" : "");
+  wb.title = "Размер Lottie JSON с оптимизацией. Слоёв: " + st.layers + ", ключей: " + st.keyframes + ", ассетов: " + st.assets + "." + (kb > 150 ? " Чтобы облегчить файл, уменьшите число частиц и копий или длительность эффектов." : "");
+  const bad = project.scene.loop === "loop" ? loopSeams(data) : [];
+  sb.hidden = !bad.length;
+  sb.textContent = "Шов: " + bad.length;
+  sb.title = "В режиме «Цикл» первый и последний кадр не совпадают — при повторе будет рывок. Слои: " + bad.slice(0, 8).join(", ") + (bad.length > 8 ? " и ещё " + (bad.length - 8) : "") + ". Доведите анимацию до исходного состояния к концу сцены.";
+}
+
 /* ----- История изменений (отмена / повтор) ------------------------------- */
 let history = [], histIdx = -1, histPending = false, histTimer = null;
-function resetHistory() { history = [JSON.stringify(project)]; histIdx = 0; histPending = false; clearTimeout(histTimer); }
+function updateHistBtns() { // v8: видимые кнопки отмены/повтора в шапке
+  const u = $("#undoBtn"), r = $("#redoBtn"); if (!u || !r) return;
+  u.disabled = histIdx <= 0 && !histPending; r.disabled = histIdx >= history.length - 1;
+}
+function resetHistory() { history = [JSON.stringify(project)]; histIdx = 0; histPending = false; clearTimeout(histTimer); updateHistBtns(); }
 function commitNow() {
   const snap = JSON.stringify(project);
   if (histIdx >= 0 && history[histIdx] === snap) return;
@@ -6224,8 +6397,8 @@ function commitNow() {
   if (history.length > 80) history.shift();
   histIdx = history.length - 1;
 }
-function scheduleHistory() { histPending = true; clearTimeout(histTimer); histTimer = setTimeout(() => { histPending = false; commitNow(); }, 450); }
-function flushHistory() { if (histPending) { clearTimeout(histTimer); histPending = false; commitNow(); } }
+function scheduleHistory() { histPending = true; clearTimeout(histTimer); histTimer = setTimeout(() => { histPending = false; commitNow(); updateHistBtns(); }, 450); updateHistBtns(); }
+function flushHistory() { if (histPending) { clearTimeout(histTimer); histPending = false; commitNow(); } updateHistBtns(); }
 function sanitizeSel() {
   const l = getLayer(sel.layerId);
   if (!l) { sel = { layerId: project.layers[0] ? project.layers[0].id : null, segId: null, keyId: null }; return; }
@@ -6239,8 +6412,8 @@ function restoreSnap(snap) {
   dirty = true; updateDirty();
   renderAll();
 }
-function undo() { flushHistory(); if (histIdx > 0) { histIdx--; restoreSnap(history[histIdx]); toast("Отменено", "ok"); } else toast("Нечего отменять", "warn"); }
-function redo() { if (histIdx < history.length - 1) { histIdx++; restoreSnap(history[histIdx]); toast("Возвращено", "ok"); } else toast("Нечего возвращать", "warn"); }
+function undo() { flushHistory(); if (histIdx > 0) { histIdx--; restoreSnap(history[histIdx]); toast("Отменено", "ok"); } else toast("Нечего отменять", "warn"); updateHistBtns(); }
+function redo() { if (histIdx < history.length - 1) { histIdx++; restoreSnap(history[histIdx]); toast("Возвращено", "ok"); } else toast("Нечего возвращать", "warn"); updateHistBtns(); }
 
 /* ---------------------- Ширина боковых панелей -------------------------- */
 const PANEL_WIDTH_KEY = "lb-panel-widths";
@@ -6425,6 +6598,9 @@ function wireEvents() {
     sc.scrollLeft = Math.max(0, tAt * 160 * zoom - (e.clientX - rect.left));
   }, { passive: false });
   // onion skin
+  $("#undoBtn").addEventListener("click", undo);
+  $("#redoBtn").addEventListener("click", redo);
+  $("#addEmojiBtn").addEventListener("click", (e) => openEmojiPicker(e.currentTarget));
   $("#loopSegBtn").classList.toggle("on", loopSegOn);
   $("#loopSegBtn").addEventListener("click", (e) => {
     loopSegOn = !loopSegOn; LS.set("lb-loop-seg", loopSegOn); e.currentTarget.classList.toggle("on", loopSegOn);
