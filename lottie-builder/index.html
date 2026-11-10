@@ -1528,6 +1528,25 @@ input[type=number]::-webkit-outer-spin-button{
 .pv-label{display:none;position:absolute;top:10px;left:50%;transform:translateX(-50%);background:#000;color:#fff;font-size:12px;padding:4px 12px;border-radius:50px;white-space:nowrap;z-index:6;pointer-events:none}
 .tl-seg{box-shadow:inset 3px 0 0 var(--c)}
 .cdot{width:9px;height:9px;border-radius:2px;display:inline-block;flex:none}
+
+/* ===== v8.2: настройка параметров ===== */
+.field label{position:relative}
+.p-reset{margin-left:5px;font-size:13px;line-height:1;color:var(--primary);padding:0 2px;vertical-align:baseline}
+.p-reset[hidden]{display:none}
+.p-reset:hover{color:var(--action)}
+.ic.dice{flex:none;font-size:15px;padding:2px 4px}
+.seed-row input[type=range]{display:none}
+.seed-row .val-inp{flex:1}
+.color-wrap{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.color-wrap .color-inp{flex:none;width:100%}
+.swatches{display:flex;gap:4px;flex-wrap:wrap}
+.swatches .sw{width:18px;height:18px;border-radius:50%;border:1px solid rgba(0,0,0,.18);padding:0;flex:none}
+.swatches .sw:hover{transform:scale(1.15)}
+.adv-box{margin:4px 0 12px;border:1px solid var(--line);border-radius:8px;padding:0 10px}
+.adv-box>summary{cursor:pointer;font-size:13px;font-weight:500;padding:9px 0;list-style-position:inside;color:var(--text-muted)}
+.adv-box[open]>summary{margin-bottom:6px;color:var(--text)}
+.fx-handle{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--primary);border:2px solid #fff;box-shadow:0 0 0 1px var(--primary);transform:translate(-50%,-50%);cursor:grab;pointer-events:auto;z-index:6}
+.fx-handle-line{stroke:var(--primary);stroke-width:1.5;stroke-dasharray:4 4}
 </style>
 </head>
 <body>
@@ -1598,6 +1617,7 @@ input[type=number]::-webkit-outer-spin-button{
         <button id="playBtn" class="play-btn"><svg class="lic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4.5v15a.5.5 0 0 0 .77.42l11.5-7.5a.5.5 0 0 0 0-.84L6.77 4.08A.5.5 0 0 0 6 4.5Z" fill="currentColor" stroke="none"/></svg></button>
         <input id="scrub" type="range" min="0" max="100" value="0" step="0.1">
         <span id="timeLabel">0.00с / 1.40с</span>
+        <button id="loopSegBtn" class="tgl" title="Зациклить сегмент: пока на таймлайне выбран сегмент, Play крутит по кругу только его — удобно подбирать параметры"><svg class="lic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
         <button id="onionBtn" class="tgl" title="Onion skin: призраки слоя на ключевых кадрах"><svg class="lic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/></svg></button>
         <div class="bg-ctrls">
           <button id="bgBtn" class="btn ghost" title="Фон для примерки (не входит в экспорт)"><svg class="lic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg> Фон</button>
@@ -2909,6 +2929,29 @@ const PRESET_INFO = {
   trail: ["Шлейф", "Полупрозрачные копии повторяют движение с задержкой", "trail motion шлейф"],
 };
 Object.keys(PRESET_INFO).forEach((id) => { const d = PRESETS[id], i = PRESET_INFO[id]; if (d) { d.name = i[0]; d.desc = i[1]; d.kw = i[2]; } });
+
+// «Тонкая настройка»: параметры, которые нужны редко, прячутся в сворачиваемый блок
+const PRESET_ADV = {
+  swarm: ["spacing", "scaleMin", "scaleMax", "rotRange", "spin", "gravity", "returnBack", "seed", "fxOrder"],
+  swarmHide: ["count", "pattern", "rangeX", "rangeY", "spacing", "scaleMin", "scaleMax", "rotRange", "spin", "gravity", "seed"],
+  splitGrid: ["gravity", "rotate", "random", "fade"], splitPath: ["gravity", "rotate", "fade"], explode: ["rotate", "hold", "random"],
+  confetti: ["gravity", "size", "originX", "originY", "seed"], ringBurst: ["dotSize"], rays: ["size", "seed"],
+  sparkles: ["life", "seed"], shockwave: ["gap", "opacity", "width"], satellites: ["depth", "dir"],
+  orbit: ["depth", "dir"], liveHeart: ["waves", "seed"], flame: ["speed", "seed"], doubleTap: ["tilt", "hold"],
+};
+Object.keys(PRESET_ADV).forEach((id) => { if (PRESETS[id]) PRESETS[id].params.forEach((pp) => { if (PRESET_ADV[id].indexOf(pp.k) >= 0) pp.adv = true; }); });
+// Ручка на холсте: точка «позиция слоя + (kx, ky)» перетаскивается мышью вместо двух ползунков
+PRESETS.flyTo.handle = { kx: "dx", ky: "dy", label: "Старт полёта" };
+PRESETS.confetti.handle = { kx: "originX", ky: "originY", label: "Точка вылета" };
+const advOpen = {}; // запоминаем, раскрыт ли блок «Тонкая настройка» у пресета
+// Образцы цветов: уже использованные в проекте + базовая палитра
+function projectSwatches() {
+  const seen = [];
+  project.layers.forEach((l) => l.segments.forEach((sg) => { const d = PRESETS[sg.preset]; if (!d) return;
+    (d.params || []).forEach((pp) => { if (pp.type === "color") { const c = String(sg.params[pp.k] || "").toUpperCase(); if (/^#[0-9A-F]{6}$/.test(c) && seen.indexOf(c) < 0) seen.push(c); } }); }));
+  FX_PALETTES.rainbow.forEach((c) => { if (seen.indexOf(c.toUpperCase()) < 0) seen.push(c.toUpperCase()); });
+  return seen.slice(0, 8);
+}
 
 // Готовые реакции: связки «вход → акцент → эффект» одним кликом. off/dur — секунды от плейхеда.
 const RECIPES = [
@@ -4462,8 +4505,10 @@ async function rebuildPreview() {
       autoplay: false, animationData: JSON.parse(JSON.stringify(data)),
     });
     anim.addEventListener("DOMLoaded", () => { applyPlayhead(); });
+    segPlay = false; const thisAnim = anim;
     anim.addEventListener("enterFrame", (e) => {
-      if (playing) { playhead = e.currentTime / project.scene.fps; updateScrubUI(); }
+      // при проигрывании диапазона lottie считает кадры от его начала — возвращаем абсолютное время
+      if (playing && anim === thisAnim) { playhead = (e.currentTime + (segPlay ? (thisAnim.firstFrame || 0) : 0)) / project.scene.fps; updateScrubUI(); }
     });
     anim.addEventListener("complete", () => { if (project.scene.loop === "once") { playing = false; updatePlayBtn(); } });
   } catch (e) { console.error(e); toast("Ошибка генерации превью: " + e.message, "warn"); }
@@ -4471,18 +4516,39 @@ async function rebuildPreview() {
   if (rebuildQueued) { rebuildQueued = false; rebuildPreview(); }
 }
 let playing = false;
+// v8: «зациклить сегмент» — пока выбран сегмент, Play крутит только его: удобно подбирать параметры
+let loopSegOn = LS.get("lb-loop-seg", true), segPlay = false;
+function playRange() {
+  const sg = selectedSeg();
+  if (!loopSegOn || !sg) return null;
+  const fps = project.scene.fps;
+  const f0 = Math.max(0, Math.floor(sg.t[0] * fps) - Math.round(fps * 0.1));
+  const f1 = Math.min(sceneFrames(), Math.ceil(sg.t[1] * fps) + Math.round(fps * 0.25));
+  return f1 - f0 >= 2 ? [f0, f1] : null;
+}
+function animFull() { // вернуть плееру полную шкалу после проигрывания диапазона
+  if (anim && segPlay) { anim.resetSegments(true); anim.setLoop(project.scene.loop !== "once"); }
+  segPlay = false;
+}
+function startPlayback() {
+  if (!anim) return;
+  const r = playRange();
+  if (r) { segPlay = true; anim.setLoop(true); anim.playSegments(r, true); }
+  else { animFull(); anim.goToAndPlay(clamp(playhead * project.scene.fps, 0, sceneFrames()), true); }
+}
 function applyPlayhead() {
   if (!anim) return;
   const fr = clamp(playhead * project.scene.fps, 0, sceneFrames());
-  if (playing) anim.play(); else anim.goToAndStop(fr, true);
+  // после пересборки продолжаем с того же места (раньше воспроизведение начиналось с нуля при каждом движении ползунка)
+  if (playing) startPlayback(); else { animFull(); anim.goToAndStop(fr, true); }
 }
 function togglePlay() {
   if (!anim) return;
   playing = !playing;
   if (playing) {
     if (playhead >= project.scene.duration - 0.001) playhead = 0;
-    anim.goToAndPlay(playhead * project.scene.fps, true);
-  } else { anim.pause(); }
+    startPlayback();
+  } else { anim.pause(); animFull(); anim.goToAndStop(clamp(playhead * project.scene.fps, 0, sceneFrames()), true); }
   updatePlayBtn();
 }
 function updatePlayBtn() { $("#playBtn").innerHTML = icon(playing ? "pause" : "play"); }
@@ -4579,6 +4645,35 @@ function renderOverlay(scale) {
       });
       ov.appendChild(dot);
     });
+  }
+  // v8: ручка параметра-смещения выбранного сегмента (старт полёта, точка вылета конфетти)
+  const hSeg = selectedSeg(), hDef = hSeg && PRESETS[hSeg.preset];
+  if (hDef && hDef.handle && !l.locked) {
+    const hd = hDef.handle, kxp = hDef.params.find((pp) => pp.k === hd.kx), kyp = hDef.params.find((pp) => pp.k === hd.ky);
+    const b0 = hasKeys ? baseAt(l, hSeg.t[0] * project.scene.fps) : { x: l.transform.x, y: l.transform.y };
+    const val = (k, pp) => (hSeg.params[k] == null ? pp.def : hSeg.params[k]);
+    const hx = (b0.x + val(hd.kx, kxp)) * scale, hy = (b0.y + val(hd.ky, kyp)) * scale;
+    const NS2 = "http://www.w3.org/2000/svg", sv = document.createElementNS(NS2, "svg");
+    sv.setAttribute("width", project.scene.w * scale); sv.setAttribute("height", project.scene.h * scale);
+    sv.style.cssText = "position:absolute;left:0;top:0;overflow:visible;pointer-events:none";
+    const ln = document.createElementNS(NS2, "line");
+    ln.setAttribute("x1", b0.x * scale); ln.setAttribute("y1", b0.y * scale); ln.setAttribute("x2", hx); ln.setAttribute("y2", hy);
+    ln.setAttribute("class", "fx-handle-line"); sv.appendChild(ln); ov.appendChild(sv);
+    const dot = document.createElement("div");
+    dot.className = "fx-handle"; dot.style.left = hx + "px"; dot.style.top = hy + "px"; dot.title = hd.label + " — перетащите";
+    dot.addEventListener("pointerdown", (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const sx = e.clientX, sy = e.clientY, ox = val(hd.kx, kxp), oy = val(hd.ky, kyp);
+      const snapTo = (v, pp) => clamp(Math.round(v / pp.step) * pp.step, pp.min, pp.max);
+      const move = (ev) => {
+        hSeg.params[hd.kx] = snapTo(ox + (ev.clientX - sx) / scale, kxp); hSeg.params[hd.ky] = snapTo(oy + (ev.clientY - sy) / scale, kyp);
+        [hd.kx, hd.ky].forEach((k) => { $$(`#paramHost [data-p="${k}"],#paramHost [data-pn="${k}"]`).forEach((el) => { el.value = hSeg.params[k]; }); });
+        renderOverlay(scale); scheduleRebuild();
+      };
+      const up = () => { document.removeEventListener("pointermove", move); document.removeEventListener("pointerup", up); markDirty(); renderParams(); };
+      document.addEventListener("pointermove", move); document.addEventListener("pointerup", up);
+    });
+    ov.appendChild(dot);
   }
   if (hasKeys && !editKey) {
     const tip = document.createElement("div");
@@ -5039,19 +5134,27 @@ function renderSegParams(host, layer, seg) {
   // поля, видимые только при определённом значении другого параметра (зависимость)
   const condParams = { exitAngle: ["exit", "directional"], exitDist: ["exit", "directional"], exitSpread: ["exit", "directional"],
     monoColor: ["palette", "mono"], rise: ["exit", "up"], width: ["source", "ring"], color: ["source", "ring"] };
+  let advFields = "";
+  const swatches = projectSwatches(), pdef = {};
   (def.params || []).forEach((pp) => {
+    pdef[pp.k] = pp;
     const v = seg.params[pp.k] == null ? pp.def : seg.params[pp.k]; // у старых сегментов новых параметров нет — берём дефолт
     const cond = condParams[pp.k];
     const hidden = cond && String(seg.params[cond[0]]) !== String(cond[1]);
-    const rowAttr = cond ? ` data-prow="${pp.k}"${hidden ? ' style="display:none"' : ""}` : "";
+    const rowAttr = ` data-prow="${pp.k}"${hidden ? ' style="display:none"' : ""}`;
+    const lab = `<label>${pp.label}<button type="button" class="p-reset" data-reset="${pp.k}" title="Сбросить к значению по умолчанию (${escapeHtml(String(pp.def))})" ${String(v) === String(pp.def) ? "hidden" : ""}>↺</button></label>`;
+    let row;
     if (pp.type === "select") {
-      fields += `<div class="field"${rowAttr}><label>${pp.label}</label><select data-p="${pp.k}">${pp.options.map((o) => `<option value="${o[0]}" ${String(v) === String(o[0]) ? "selected" : ""}>${o[1]}</option>`).join("")}</select></div>`;
+      row = `<div class="field"${rowAttr}>${lab}<select data-p="${pp.k}">${pp.options.map((o) => `<option value="${o[0]}" ${String(v) === String(o[0]) ? "selected" : ""}>${o[1]}</option>`).join("")}</select></div>`;
     } else if (pp.type === "color") {
-      fields += `<div class="field"${rowAttr}><label>${pp.label}</label><input type="color" class="color-inp" data-p="${pp.k}" value="${v}"></div>`;
+      row = `<div class="field"${rowAttr}>${lab}<div class="color-wrap"><input type="color" class="color-inp" data-p="${pp.k}" value="${v}"><div class="swatches">${swatches.map((c) => `<button type="button" class="sw" data-sw="${pp.k}" data-c="${c}" style="background:${c}" title="${c}"></button>`).join("")}</div></div></div>`;
     } else {
-      fields += `<div class="field"${rowAttr}><label>${pp.label}</label><input type="range" min="${pp.min}" max="${pp.max}" step="${pp.step}" data-p="${pp.k}" value="${v}"><input type="number" class="val-inp" min="${pp.min}" max="${pp.max}" step="${pp.step}" data-pn="${pp.k}" value="${v}"></div>`;
+      row = `<div class="field${pp.k === "seed" ? " seed-row" : ""}"${rowAttr}>${lab}<input type="range" min="${pp.min}" max="${pp.max}" step="${pp.step}" data-p="${pp.k}" value="${v}"><input type="number" class="val-inp" min="${pp.min}" max="${pp.max}" step="${pp.step}" data-pn="${pp.k}" value="${v}">${pp.k === "seed" ? `<button type="button" class="ic dice" data-dice="${pp.k}" title="Случайный вариант">🎲</button>` : ""}</div>`;
     }
+    if (pp.adv) advFields += row; else fields += row;
   });
+  if (advFields) fields += `<details class="adv-box" id="advBox" ${advOpen[seg.preset] ? "open" : ""}><summary>Тонкая настройка</summary>${advFields}</details>`;
+  if (def.handle) fields += `<p class="hint" style="margin:0 0 10px">«${def.handle.label}» можно перетащить мышью прямо на холсте — это синяя точка с пунктиром.</p>`;
   const exp = def.experimental ? `<div class="notice">${icon("alert")} Экспериментальный пресет. ${def.id === "morph" || seg.preset === "morph" ? "Morph требует векторных shape-слоёв (вне MVP) — применена аппроксимация." : "Расщепление по path аппроксимировано сеточной нарезкой растра."}</div>` : "";
   // предупреждение: этот сложный сегмент не применится (на слое уже есть другой сложный)
   const deadSet = inactiveSegIds(layer);
@@ -5101,19 +5204,32 @@ function renderSegParams(host, layer, seg) {
   if (ease) ease.addEventListener("change", (e) => { seg.ease = e.target.value; if (seg.ease === "custom" && !Array.isArray(seg.bezier)) seg.bezier = [0.33, 0, 0.67, 1]; if (seg.ease === "spring" && !seg.spring) seg.spring = { stiffness: 170, damping: 12, mass: 1 }; markDirty(); renderParams(); scheduleRebuild(); });
   const chain = $("#segChain", host);
   if (chain) chain.addEventListener("change", (e) => { seg.chain = e.target.checked; relayoutChains(layer); markDirty(); renderTimeline(); renderParams(); scheduleRebuild(); });
+  // v8: сброс параметра, кубик у сида, образцы цветов, состояние блока «Тонкая настройка»
+  const syncReset = (k) => { const rs = $(`[data-reset="${k}"]`, host); if (rs && pdef[k]) rs.hidden = String(seg.params[k]) === String(pdef[k].def); };
+  const afterParam = (k) => { if (k === "grid" || k === "random" || k === "pattern") delete TILES[seg.id]; markDirty(); renderParams(); renderCanvas(); scheduleRebuild(); };
+  $$("[data-reset]", host).forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); const k = b.dataset.reset; seg.params[k] = pdef[k].def; afterParam(k); }));
+  $$("[data-dice]", host).forEach((b) => b.addEventListener("click", () => { const pp = pdef[b.dataset.dice]; seg.params[pp.k] = pp.min + Math.floor(Math.random() * (pp.max - pp.min + 1)); afterParam(pp.k); }));
+  $$("[data-sw]", host).forEach((b) => b.addEventListener("click", () => {
+    const k = b.dataset.sw; seg.params[k] = b.dataset.c;
+    const inp = $(`[data-p="${k}"]`, host); if (inp) inp.value = b.dataset.c.toLowerCase();
+    syncReset(k); markDirty(); scheduleRebuild();
+  }));
+  const advBox = $("#advBox", host);
+  if (advBox) advBox.addEventListener("toggle", () => { advOpen[seg.preset] = advBox.open; });
   $$("[data-p]", host).forEach((inp) => {
     const isSelect = inp.tagName === "SELECT";
     const handler = (e) => {
       let v = (isSelect || inp.type === "color") ? e.target.value : parseFloat(e.target.value);
       seg.params[inp.dataset.p] = v;
       const numEl = $(`[data-pn="${inp.dataset.p}"]`, host); if (numEl) numEl.value = v;
+      syncReset(inp.dataset.p);
       // смена паттерна/сетки/рандома инвалидирует кэш нарезки тайлов
       if (inp.dataset.p === "grid" || inp.dataset.p === "random" || inp.dataset.p === "pattern") delete TILES[seg.id];
       // показываем/прячем зависимые поля (поля направленного ухода зависят от exit)
       Object.keys(condParams).forEach((ck) => {
         if (condParams[ck][0] === inp.dataset.p) {
           const row = $(`[data-prow="${ck}"]`, host);
-          if (row) row.style.display = String(v) === String(condParams[ck][1]) ? "flex" : "none";
+          if (row) row.style.display = String(v) === String(condParams[ck][1]) ? "" : "none";
         }
       });
       markDirty(); scheduleRebuild();
@@ -5125,6 +5241,7 @@ function renderSegParams(host, layer, seg) {
   $$("[data-pn]", host).forEach((inp) => inp.addEventListener("input", (e) => {
     const v = parseFloat(e.target.value); if (isNaN(v)) return;
     seg.params[inp.dataset.pn] = v;
+    syncReset(inp.dataset.pn);
     const rng = $(`[data-p="${inp.dataset.pn}"]`, host); if (rng) rng.value = v;
     if (inp.dataset.pn === "grid" || inp.dataset.pn === "random") delete TILES[seg.id];
     markDirty(); scheduleRebuild();
@@ -6308,6 +6425,12 @@ function wireEvents() {
     sc.scrollLeft = Math.max(0, tAt * 160 * zoom - (e.clientX - rect.left));
   }, { passive: false });
   // onion skin
+  $("#loopSegBtn").classList.toggle("on", loopSegOn);
+  $("#loopSegBtn").addEventListener("click", (e) => {
+    loopSegOn = !loopSegOn; LS.set("lb-loop-seg", loopSegOn); e.currentTarget.classList.toggle("on", loopSegOn);
+    if (playing) startPlayback();
+    toast(loopSegOn ? "Зацикливание сегмента включено: выберите сегмент и нажмите Play" : "Зацикливание сегмента выключено: Play проигрывает всю сцену", "ok");
+  });
   $("#onionBtn").addEventListener("click", (e) => { onion = !onion; e.currentTarget.classList.toggle("on", onion); renderCanvas(); });
   // текст и фигуры
   $("#addTextBtn").addEventListener("click", () => openTextModal(null));
