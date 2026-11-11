@@ -463,10 +463,11 @@ function featureTabs(e) {
   return `<div class="ftabs">${f.tests.map((t) => `<a href="#" class="ftab ${t.id === e.id ? 'on' : ''}" data-open="${t.id}" title="${esc(STAGE[t.stage].name)}">${stageDot(t.stage)}${esc(t.seg ? t.label : '№' + t.iter + ' ' + t.ver)}</a>`).join('')}</div>`;
 }
 
-function pastOf(f) {
+const MON_N = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+function pastOf(f, exceptId) {
   const kindOf = (t) => (t.flags.includes('stopped') ? 'stop' : outcome(t).startsWith('Победил') || outcome(t).startsWith('Не хуже') ? 'win' : 'none');
-  const fromTests = f.tests.filter((t) => t.stage === 'done' && t.type !== 'rollout').map((t) => ({
-    n: t.iter, it: '№' + t.iter, theme: t.theme || t.branch, what: `${t.branch}, ${t.ver}`, when: `${MON[(t.d.enableStart || t.d.created).getMonth()]} ${(t.d.enableStart || t.d.created).getFullYear()}`,
+  const fromTests = f.tests.filter((t) => t.stage === 'done' && t.id !== exceptId).map((t) => ({
+    n: t.iter, it: '№' + t.iter + (t.seg ? ' · ' + t.seg : ''), theme: t.theme || '', what: `${t.seg ? 'АБ-тест: ' + t.seg : t.branch}, ${t.ver}`, when: `${MON_N[(t.d.enableStart || t.d.rolloutStart || t.d.created).getMonth()]} ${(t.d.enableStart || t.d.rolloutStart || t.d.created).getFullYear()}`,
     out: t.flags.includes('stopped') ? 'Остановлен: ошибка разметки' : outcome(t), kind: kindOf(t), id: t.id,
   }));
   return [...f.history, ...fromTests].sort((a, b) => a.n - b.n);
@@ -480,7 +481,7 @@ function histRow(h) {
 }
 
 function historyBlock(f, e) {
-  const past = pastOf(f);
+  const past = pastOf(f, e.id);
   if (!past.length) return '';
   if (past.length <= 8) return `<div class="small" style="font-weight:650;margin-bottom:4px">Что уже пробовали</div>${past.slice().reverse().map(histRow).join('')}`;
   const cnt = (k) => past.filter((h) => h.kind === k).length;
@@ -512,10 +513,11 @@ function historyBlock(f, e) {
 
 function featureSection(e) {
   const f = featureOf(e);
-  const past = pastOf(f);
+  const past = pastOf(f, e.id);
   const work = f.tests.filter((t) => t.stage !== 'done');
   if (work.length < 2 && !past.length) return '';
-  return `<div class="sec"><h3>Фича: ${work.length} в работе${past.length ? ` · ${past.length} в истории` : ''}<span class="sp"></span><span class="small muted" style="font-weight:400">${featureKind(f)}</span></h3>
+  const head = work.length ? `${work.length} в работе${past.length ? ` · ${past.length} в истории` : ''}` : `${f.tests.length} ${plural(f.tests.length, 'АБ-тест', 'АБ-теста', 'АБ-тестов')}, все завершены`;
+  return `<div class="sec"><h3>Фича: ${head}<span class="sp"></span><span class="small muted" style="font-weight:400">${featureKind(f)}</span></h3>
     ${work.length > 1 ? `<div>${work.map((t) => `<div class="ftest ${t.id === e.id ? 'cur' : ''}">
       <div class="row" style="gap:8px;min-width:0">${stageDot(t.stage)}<a href="#" data-open="${t.id}" style="color:var(--ink);font-weight:600">${esc(t.label)}</a><span class="small muted nowrap">${t.tag} · <span class="mono">${t.key}</span></span></div>
       <span class="small ink2 nowrap" style="text-align:right">${STAGE[t.stage].name}</span>
@@ -570,7 +572,7 @@ function passportHTML(e) {
     ${featureSection(e)}
     ${e.type === 'rollout' ? noAbSection(e) : ''}
 
-    ${e.type !== 'rollout' && e.d.fullAt ? `<div class="sec"><h3>Когда смотреть результаты <span class="sp"></span>${readiness(e)?.canLook ? '<span class="sev-label good">Уже можно</span>' : `<span class="sev-label info">${e.lookAt ? 'С ' + fmt(e.lookAt, true) : ''}</span>`}</h3>
+    ${e.type !== 'rollout' && e.d.fullAt && e.stage !== 'done' ? `<div class="sec"><h3>Когда смотреть результаты <span class="sp"></span>${readiness(e)?.canLook ? '<span class="sev-label good">Уже можно</span>' : `<span class="sev-label info">${e.lookAt ? 'С ' + fmt(e.lookAt, true) : ''}</span>`}</h3>
       ${readinessBar(e)}
       <div class="kv" style="margin-top:14px">
         <dt>На всех блоках с</dt><dd>${fmt(e.d.fullAt, true)} · ${e.d.platformEnd ? 'шёл' : 'идёт'} ${dn(e.dayN)}</dd>

@@ -1,6 +1,6 @@
 /* ===================== 4. Умный тираж ===================== */
 
-const regState = { view: 'active', tab: 'features', byRelease: true, open: new Set(['style14']) };
+const regState = { q: '', view: 'active', tab: 'features', byRelease: true, open: new Set(['style14']) };
 const REG_VIEWS = [
   { k: 'all', name: 'Все', f: () => true },
   { k: 'active', name: 'Активные АБ', f: (e) => e.type !== 'rollout' && ['enabling', 'collecting', 'ready', 'rollout'].includes(e.stage) },
@@ -9,6 +9,7 @@ const REG_VIEWS = [
   { k: 'prep', name: 'В подготовке', f: (e) => ['prep', 'release'].includes(e.stage) },
   { k: 'cleanup', name: 'Ждут чистки', f: (e) => e.stage === 'cleanup' },
   { k: 'noab', name: 'Без АБ', f: (e) => e.type === 'rollout' },
+  { k: 'onall', name: 'Включены на всех', f: (e) => e.stage === 'done' && (e.onCount === ALL_BLOCKS.length || e.type === 'rollout') },
   { k: 'done', name: 'Архив', f: (e) => e.stage === 'done' },
 ];
 
@@ -51,17 +52,17 @@ function regRow(e, S, nested = false) {
     <td style="width:28px;padding-right:0"><button class="btn ghost sm" data-expand="${e.id}" style="padding:0 4px;transform:rotate(${isOpen ? 0 : -90}deg)">${ICON.chev}</button></td>
     <td style="min-width:240px;max-width:300px;${nested ? 'padding-left:28px;border-left:3px solid var(--line-2)' : ''}">
       ${nested ? `<a href="#" data-open="${e.id}" style="font-weight:600;color:var(--ink)">АБ-тест: ${esc(e.label)}</a>` : `<a href="#" data-open="${e.id}" style="font-weight:600;color:var(--ink)">${esc(e.feature)}</a>`}
-      <div class="row wrap small muted" style="gap:2px 6px;margin-top:2px"><span class="nowrap">${e.tag}</span><span class="mono" style="font-size:11px">${e.key}</span>${!nested && pastOf(featureOf(e)).length ? `<span class="nowrap" title="Прошлые итерации фичи">· ${pastOf(featureOf(e)).length} в истории</span>` : ''}</div>
+      <div class="row wrap small muted" style="gap:2px 6px;margin-top:2px"><span class="nowrap">${e.tag}</span><span class="mono" style="font-size:11px">${e.key}</span>${!nested && pastOf(featureOf(e), e.id).length ? `<span class="nowrap" title="Прошлые итерации фичи">· ещё ${pastOf(featureOf(e), e.id).length} в истории</span>` : ''}</div>
       <div class="row wrap" style="gap:6px;margin-top:6px">${stageChip(e.stage)}${e.type === 'rollout' ? '<span class="small muted">без АБ</span>' : `<span class="small muted">платформа: ${e.platform}</span>`}${e.blockers ? `<span class="chip" style="background:#fef4dc;color:#8a5d00" data-tip="${esc(e.blockers)}">Есть блокер</span>` : ''}</div>
       ${sev ? `<div class="row small" style="gap:6px;margin-top:6px;align-items:flex-start">${sevIcon(sev.sev)}<span>${esc(sev.title)}</span></div>` : ''}
     </td>
     <td>${blockMatrix(e, { head: false, fixed: '33px' })}</td>
-    <td style="min-width:180px;max-width:230px">
+    <td style="min-width:170px;max-width:205px">
       ${le ? `<div class="small"><span class="muted tnum">${fmt(le._d)}</span> ${esc(le.txt)}${le.sd ? ` <span class="mono" style="color:var(--accent)">${le.sd}</span>` : ''}</div>` : ''}
       ${e.nextPlan ? `<div class="small" style="margin-top:4px"><span class="muted">Дальше ${fmt(e.nextPlan.d)}:</span> ${blockList(e.nextPlan.blocks)}${e.nextPlan.sd ? '' : ' <span class="sev-label warn">нет SD</span>'}</div>` : ''}
     </td>
     <td style="min-width:150px;max-width:180px">${abCell(e)}</td>
-    <td>${togglesCell(e)}</td>
+    <td style="white-space:nowrap">${togglesCell(e)}</td>
   </tr>
   ${isOpen ? `<tr><td></td><td colspan="5" style="background:var(--surface-2)">
     <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:24px">
@@ -100,9 +101,12 @@ function rowsFor(list, S) {
 function renderRegistry(root) {
   const S = regState;
   const V = REG_VIEWS.find((v) => v.k === S.view);
-  const list = EXPERIMENTS.filter(V.f);
+  const q = S.q.trim().toLowerCase();
+  const hay = (e) => [e.feature, e.seg, e.key, e.release, e.branch, e.owner, ...e.toggles.map((t) => t.n), ...e.events.map((ev) => ev.sd || '')].join(' ').toLowerCase();
+  const list = q ? EXPERIMENTS.filter((e) => hay(e).includes(q)) : EXPERIMENTS.filter(V.f);
   const relOf = (v) => RELEASES.find((r) => r.v === v);
-  const rels = [...new Set(list.map((e) => e.release))].sort((a, b) => parseFloat(b.split('.')[1]) - parseFloat(a.split('.')[1]));
+  const relKey = (v) => v.split('.').map(Number);
+  const rels = [...new Set(list.map((e) => e.release))].sort((a, b) => { const [a1, a2] = relKey(a), [b1, b2] = relKey(b); return b1 - a1 || b2 - a2; });
 
   const toggles = EXPERIMENTS.flatMap((e) => e.toggles.map((t) => ({ ...t, e })));
   const tg = {
@@ -127,8 +131,10 @@ function renderRegistry(root) {
     <div class="row wrap" style="margin-bottom:14px;gap:10px">
       <div class="seg">${REG_VIEWS.map((v) => `<button class="${S.view === v.k ? 'on' : ''}" data-view="${v.k}">${v.name}<span class="cnt">${EXPERIMENTS.filter(v.f).length}</span></button>`).join('')}</div>
       <span class="toggle ${S.byRelease ? 'on' : ''}" id="rg-rel"><i></i>Группировать по релизам</span>
-      <span class="sp"></span>${bmLegend()}
+      <span class="sp"></span>
+      <div class="search" style="min-width:300px">${ICON.search}<input id="rg-q" value="${esc(S.q)}" placeholder="Поиск по всем фичам: название, тогл, SD, релиз"></div>
     </div>
+    <div class="row wrap" style="margin:-4px 0 12px;gap:12px">${q ? `<span class="chip">Поиск по всем фичам, включая историю: найдено ${list.length}</span><button class="btn sm ghost" id="rg-clear">Сбросить</button>` : ''}${S.view === 'onall' && !q ? `<span class="small ink2">Фичи, уже включённые на всех клиентов: итог, даты, кто решал, какие тоглы удалены и в какой части «Удаления тоглов». Самая ранняя — ${fmt(EXPERIMENTS.filter(V.f).map((e) => e.d.rolloutDoneAt || e.d.created).sort((a, b) => a - b)[0], true)}</span>` : ''}<span class="sp"></span>${bmLegend()}</div>
     <div class="card reg" style="overflow-x:auto">
       <table class="t"><thead>${head}</thead><tbody>
       ${S.byRelease ? rels.map((r) => { const items = list.filter((e) => e.release === r); const rr = relOf(r); return `<tr><td colspan="6" style="background:var(--surface-3);padding:8px 12px;font-weight:650">Релиз ${r}${rr ? ` <span class="muted" style="font-weight:500">· ${rr.d}${D(rr.d) > TODAY ? ' · ещё не вышел' : ''}</span>` : ''} <span class="muted" style="font-weight:500">· ${new Set(items.map((e) => e.fid)).size} ${plural(new Set(items.map((e) => e.fid)).size, 'фича', 'фичи', 'фич')}, ${items.length} ${plural(items.length, 'тест', 'теста', 'тестов')}</span></td></tr>${rowsFor(items, S)}`; }).join('')
@@ -160,6 +166,8 @@ function renderRegistry(root) {
   $$('[data-tab]', root).forEach((b) => b.onclick = () => { S.tab = b.dataset.tab; renderRegistry(root); });
   $$('[data-view]', root).forEach((b) => b.onclick = () => { S.view = b.dataset.view; renderRegistry(root); });
   const rg = $('#rg-rel'); if (rg) rg.onclick = () => { S.byRelease = !S.byRelease; renderRegistry(root); };
+  const qi = $('#rg-q'); if (qi) qi.addEventListener('input', () => { S.q = qi.value; renderRegistry(root); const n = $('#rg-q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); });
+  const qc = $('#rg-clear'); if (qc) qc.onclick = () => { S.q = ''; renderRegistry(root); };
   $$('[data-expand]', root).forEach((b) => b.onclick = (ev) => { ev.stopPropagation(); const id = b.dataset.expand; S.open.has(id) ? S.open.delete(id) : S.open.add(id); renderRegistry(root); });
   $$('tr[data-row]', root).forEach((tr) => tr.addEventListener('click', (ev) => {
     if (ev.target.closest('a,button,[data-tip]')) return;

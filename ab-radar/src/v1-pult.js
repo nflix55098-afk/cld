@@ -34,6 +34,7 @@ function renderPult(root) {
   const liveF = [];
   live.forEach((e) => { let g = liveF.find((x) => x.fid === e.fid); if (!g) { g = { fid: e.fid, tests: [] }; liveF.push(g); } g.tests.push(e); });
   const moving = EXPERIMENTS.filter((e) => ['enabling', 'rollout'].includes(e.stage));
+  const onAll = EXPERIMENTS.filter((e) => e.stage === 'done' && e.d.rolloutDoneAt && (e.onCount === ALL_BLOCKS.length || e.type === 'rollout')).sort((a, b) => b.d.rolloutDoneAt - a.d.rolloutDoneAt);
   const finished = EXPERIMENTS.filter((e) => e.decision && days(D(e.decision.d), TODAY) <= 45 && e.type !== 'rollout')
     .sort((a, b) => D(b.decision.d) - D(a.decision.d));
 
@@ -85,6 +86,12 @@ function renderPult(root) {
           ${finished.map((e) => { const out = outcome(e); return `<div class="row"><a href="#" data-open="${e.id}" class="grow" style="color:var(--ink)">${esc(e.short)} <span class="muted small">№${e.iter}</span></a><span class="chip">${out}</span></div>`; }).join('')}
           </div></div>
 
+        <div class="card"><div class="card-h"><h3>История</h3><span class="sp"></span><span class="small muted">${onAll.length} ${plural(onAll.length, 'фича', 'фичи', 'фич')} на всех клиентах</span></div>
+          <div class="card-b stack" style="gap:8px">
+          ${onAll.slice(0, 4).map((e) => `<div class="row" style="align-items:flex-start"><a href="#" data-open="${e.id}" class="grow small" style="color:var(--ink)">${esc(e.short)}</a><span class="small muted nowrap tnum">${fmt(e.d.rolloutDoneAt, true)}</span></div>`).join('')}
+          <a href="#registry" class="small" data-gohist>Вся история с ${onAll.length ? onAll[onAll.length - 1].d.rolloutDoneAt.getFullYear() : ''} года в Умном тираже →</a>
+          </div></div>
+
         <div class="card"><div class="card-h"><h3>Дежурные по включению</h3></div>
           <div class="card-b stack" style="gap:8px">
           ${DUTY.map((d) => `<div class="row">${avatar(d.who)}<span class="grow ${d.now ? '' : 'ink2'}" style="${d.now ? 'font-weight:600' : ''}">${d.who}${d.who === ME ? ' (вы)' : ''}</span><span class="small muted tnum">${d.week}</span>${d.now ? '<span class="chip">сейчас</span>' : ''}</div>`).join('')}
@@ -93,6 +100,7 @@ function renderPult(root) {
     </div>
   </div>`;
 
+  $$('[data-gohist]', root).forEach((a) => a.addEventListener('click', () => { regState.view = 'onall'; regState.q = ''; }));
   $$('[data-scope]', root).forEach((b) => b.addEventListener('click', () => { S.scope = b.dataset.scope; renderPult(root); }));
   $$('[data-stage]', root).forEach((b) => b.addEventListener('click', () => {
     const v = b.dataset.stage; S.stage = !v || (S.stage && S.stage.join() === v) ? null : v.split(','); renderPult(root);

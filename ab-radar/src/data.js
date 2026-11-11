@@ -24,6 +24,17 @@ const DUTY = [
 const BLOCKS = ['ГФ', '12', '9', '8', '7', '6', '5', '4', '3', '2', '1', 'SI1', 'SI2', 'SI3', 'SI4'];
 
 const RELEASES = [
+  { v: '14.13', d: '29.05.2023' },
+  { v: '14.14', d: '19.06.2023' },
+  { v: '14.15', d: '10.07.2023' },
+  { v: '14.16', d: '31.07.2023' },
+  { v: '14.17', d: '21.08.2023' },
+  { v: '16.12', d: '21.07.2025' },
+  { v: '16.14', d: '01.09.2025' },
+  { v: '17.5', d: '11.05.2026' },
+  { v: '17.6', d: '25.05.2026' },
+  { v: '17.7', d: '08.06.2026' },
+  { v: '17.8', d: '22.06.2026' },
   { v: '17.11', d: '24.08.2026' },
   { v: '17.12', d: '14.09.2026' },
   { v: '17.13', d: '05.10.2026' },
@@ -607,7 +618,6 @@ const FEATURE_META = {
   ] },
   'f-br-cms': { history: [{ n: 1, it: '№1', what: 'Текст кнопки на лендинге', when: 'авг 2026', out: 'Нет эффекта', kind: 'none' }] },
   'f-cards': { history: [{ n: 0, it: '—', what: 'Карточки с маскотом, 1.0–2.0', when: 'апр 2026', out: 'Победил 2.0, раскатано', kind: 'win' }] },
-  'f-react': { history: [{ n: 1, it: 'Итерация 1', what: 'Базовый набор реакций', when: 'май 2026', out: 'Раскатано 1.0', kind: 'win' }] },
   'f-shtorka': { history: [{ n: 1, it: '№1', what: 'Шторка детализации, 1.0–2.0', when: 'авг 2026', out: 'Остановлен: некорректные тексты', kind: 'stop' }] },
   'f-return1': { history: [{ n: 0, it: 'Перезапуск', what: '1.0/2.0 → 3.0/4.0 из-за ошибки сплита', when: '17.06.2026', out: 'Данные до перезапуска не учитываются', kind: 'stop' }] },
 };
@@ -748,3 +758,112 @@ FEATURE_META['f-activ'] = {
     H(31, 'Порядок продуктов', 'Кредитки первыми, V4', 'авг 2026', 'Нет эффекта', 'none'),
   ],
 };
+
+/* ------------------------------------------------------------------
+   История: фичи, уже включённые на всех клиентов (тоглы удалены).
+   Сюжеты — со страницы тиража 2023–2026.
+   ------------------------------------------------------------------ */
+const HISTF = (o) => {
+  const ab = o.type === 'ab';
+  const events = [];
+  if (ab) events.push({ d: o.abStart, t: 'ab', b: 'all', txt: 'Запущен АБ — все блоки', sd: o.sdAb });
+  if (o.note) events.push({ d: o.noteD, t: 'note', txt: o.note });
+  if (ab) events.push({ d: o.decided, t: 'decision', txt: `Решение: раскатываем ${o.value}` });
+  if (!ab && o.start && o.start !== o.done) events.push({ d: o.start, t: 'on', b: ['ГФ'], v: o.value, txt: `Включено ${o.value} на пром ГФ` });
+  events.push({ d: o.done, t: 'on', b: 'all', v: o.value, txt: `Включено ${o.value} на всех клиентов`, sd: o.sd });
+  events.push({ d: o.cleaned, t: 'toggle', txt: `Тоглы удалены: «${o.where}»` });
+  return {
+    id: o.id, fid: o.fid || 'f-' + o.id, feature: o.feature, seg: o.seg, iter: o.iter || 1, branch: o.branch || o.seg || 'раскатка', theme: o.theme,
+    ver: 'V1', range: o.range || o.value, launch: o.abStart || o.done, key: o.toggles[o.toggles.length - 1], release: o.release, owner: o.owner,
+    type: o.type, platform: ab ? 'Завершён' : 'Нет', stage: 'done', hist: true,
+    noAb: ab ? undefined : o.noAb,
+    check: ab ? undefined : { what: o.check || 'Ошибки и обращения в поддержку после раскатки', days: 7, done: `Проверено ${o.checked || 'через 7 дней'}: без отклонений` },
+    hypothesis: o.hyp, metric: o.metric || '', metric2: '',
+    minDays: ab ? 14 : 0, planDays: ab ? 28 : 0, sample: ab ? 100 : 0,
+    dates: ab
+      ? { created: o.created, enableStart: o.abStart, fullAt: o.abStart, platformEnd: o.decided, decisionAt: o.decided, rolloutDoneAt: o.done, cleanupDoneAt: o.cleaned }
+      : { created: o.created, rolloutStart: o.start || o.done, rolloutDoneAt: o.done, cleanupDoneAt: o.cleaned },
+    variants: ab
+      ? [{ v: o.ctrl, name: 'Контроль', share: 50, control: true }, { v: o.value, name: o.what, share: 50 }]
+      : [{ v: o.value, name: o.what, share: 100 }],
+    results: ab ? { status: 'reviewed', direction: o.dir || 'up', threshold: o.thr, note: o.resNote, rows: [{ v: o.ctrl, value: o.res[0], control: true }, { v: o.value, value: o.res[1], delta: +(o.res[1] - o.res[0]).toFixed(2), lo: o.res[2], hi: o.res[3], sig: o.sig !== false, verdict: o.verdict }] } : null,
+    decision: ab ? { d: o.decided, who: o.owner, winner: o.value, text: o.decText } : null,
+    events,
+    toggles: o.toggles.map((n) => ({ n, kind: n.startsWith('DBPU') ? 'тогл' : 'рубильник', st: 'done', where: o.where })),
+    cross: { clean: 0, mixed: 0, with: [] },
+  };
+};
+
+EXPERIMENTS.push(
+  HISTF({ id: 'h-ext-browser', feature: 'Открывать ссылку из пуша во внешнем браузере вместо встроенного', release: '14.13', owner: 'Игорь Л.', type: 'rollout',
+    noAb: 'Исправление ошибки: ссылки из пушей не открывались во встроенном браузере', value: '1.0', what: 'Внешний браузер для ссылок из пушей',
+    hyp: 'Без АБ. Ссылки из пушей открываются во внешнем браузере.', created: '02.05.2023', done: '15.05.2023', checked: '22.05.2023', cleaned: '20.06.2023',
+    toggles: ['DBPU_PUSH_EXTERNAL_LINK_WORKAROUND_ENABLED'], where: '[Android] Удаление тогглов (Часть 6)', sd: 'SD0000102213' }),
+  HISTF({ id: 'h-p2-tools', feature: 'Миграция на П2. Разные инструменты в настройках', release: '14.13', owner: 'Мария С.', type: 'ab',
+    ctrl: '1.0', value: '2.0', what: 'Инструменты миграции в настройках', res: [3.1, 3.9, 0.4, 1.2],
+    hyp: 'Если вывести инструменты миграции на П2 в настройки, то больше клиентов перейдут на П2.', metric: 'Доля клиентов, перешедших на П2',
+    resNote: 'Победил 2.0: +0,8 п.п. к переходу на П2.', decText: 'Останавливаем АБ, на всех блоках включаем 2.0.',
+    created: '22.05.2023', abStart: '31.05.2023', decided: '20.06.2023', done: '20.06.2023', cleaned: '25.09.2023',
+    toggles: ['DBPU_MAIN_PHONE_MIGRATION_VARIANTS_ENABLED', 'abForMigrationView'], where: '[Android] Удаление тогглов и конфига (Часть 7)' }),
+  HISTF({ id: 'h-p2-texts', fid: 'f-p2-comm', feature: 'Миграция на П2. Коммуникации в шторке настроек', seg: 'тексты', release: '14.14', owner: 'Мария С.', type: 'ab',
+    ctrl: '1.0', value: '3.0', range: '1.0-3.0', what: 'Новый текст шторки', res: [2.4, 2.9, 0.2, 0.8],
+    hyp: 'Другой текст в шторке миграции увеличит переходы на П2.', metric: 'Переходы на П2 из шторки',
+    resNote: 'Победил 3.0: +0,5 п.п.', decText: 'Включаем 3.0 на всех, ветки 1.0–2.0 удаляем из кода.',
+    created: '20.06.2023', abStart: '29.06.2023', decided: '10.08.2023', done: '16.08.2023', cleaned: '25.09.2023',
+    toggles: ['DBPU_MAIN_PHONE_MIGRATION_TEXTS_ENABLED', 'abForMigrationText'], where: '[Android] Удаление тогглов и конфига (Часть 7)' }),
+  HISTF({ id: 'h-p2-buttons', fid: 'f-p2-comm', feature: 'Миграция на П2. Коммуникации в шторке настроек', seg: 'кнопки', release: '14.14', owner: 'Мария С.', type: 'ab',
+    ctrl: '1.0', value: '2.0', what: 'Две кнопки вместо одной', res: [2.4, 2.7, 0.1, 0.5],
+    hyp: 'Две кнопки в шторке миграции увеличат переходы на П2.', metric: 'Переходы на П2 из шторки',
+    resNote: 'Победил 2.0: +0,3 п.п.', decText: 'Включаем 2.0 на всех.',
+    created: '05.07.2023', abStart: '14.07.2023', decided: '10.08.2023', done: '16.08.2023', cleaned: '25.09.2023',
+    toggles: ['abForMigrationButton'], where: '[Android] Удаление тогглов и конфига (Часть 7)' }),
+  HISTF({ id: 'h-addcards', feature: 'Дополнительные карты: управление уведомлениями владельцем дополнительной карты', release: '14.14', owner: 'Ольга В.', type: 'rollout',
+    noAb: 'Продуктовое требование: владелец должен управлять уведомлениями по всем своим картам', value: '1.0', what: 'Управление уведомлениями доп. карт',
+    hyp: 'Без АБ. Владелец дополнительной карты управляет её уведомлениями.', created: '12.06.2023', start: '22.06.2023', done: '29.06.2023', checked: '06.07.2023', cleaned: '25.09.2023',
+    toggles: ['DBPU_MANAGE_ADDITIONAL_CARD_FOR_OWNER_ENABLED'], where: '[Android] Удаление тогглов и конфига (Часть 7)' }),
+  HISTF({ id: 'h-push-status', feature: 'Перевод запроса статуса пуша с ЕРИБа на ЕФС', release: '14.15', owner: 'Дмитрий П.', type: 'rollout',
+    noAb: 'Технический переезд на новый бэкенд, для клиента ничего не меняется', value: '1.0', what: 'Запрос статуса через ЕФС',
+    hyp: 'Без АБ. Статус пуша запрашивается через ЕФС.', created: '19.06.2023', start: '31.07.2023', done: '01.08.2023', checked: '08.08.2023', cleaned: '23.10.2023',
+    toggles: ['DBPU_TRANSACT_PUSH_STATE_REQUEST_ENABLED'], where: '[Android] Удаление тогглов и конфига (Часть 8)' }),
+  HISTF({ id: 'h-offboarding', feature: 'Оффбординг при отключении уведомлений об операциях: добавляем отключение рекламы', release: '14.16', owner: 'Анна К.', type: 'ab',
+    ctrl: '1.0', value: '2.0', what: 'Предложение отключить рекламу вместо уведомлений', res: [41.0, 36.2, -6.1, -3.5], dir: 'down',
+    hyp: 'Если при отключении уведомлений предложить отключить рекламу, меньше клиентов отключат уведомления об операциях.', metric: 'Доля отключивших уведомления в оффбординге',
+    resNote: 'Победил 2.0: отключений на 4,8 п.п. меньше.', decText: 'Включаем 2.0 на всех блоках.',
+    created: '20.07.2023', abStart: '02.08.2023', decided: '14.08.2023', done: '15.08.2023', cleaned: '23.10.2023',
+    toggles: ['DBPU_OFFBOARDING_FOR_DISABLE_NOTIFICATION_AND_ADS_AB_ENABLED', 'abRetentionWithAds'], where: '[Android] Удаление тогглов и конфига (Часть 8)' }),
+  HISTF({ id: 'h-feedback', feature: 'Редизайн окна сбора обратной связи', release: '14.17', owner: 'Игорь Л.', type: 'rollout',
+    noAb: 'Редизайн по гайдлайнам без изменения сценария', value: '1.0', what: 'Новое окно обратной связи',
+    hyp: 'Без АБ. Окно сбора обратной связи переведено на новые компоненты.', created: '07.08.2023', done: '28.08.2023', checked: '04.09.2023', cleaned: '23.10.2023',
+    toggles: ['DBPU_FEED_BACK_REASON_SCREEN_REDESIGN_ENABLED'], where: '[Android] Удаление тогглов и конфига (Часть 8)' }),
+  HISTF({ id: 'h-su-grace', feature: 'СУ: грейс-период для родителей по детскому шарингу', release: '14.17', owner: 'Ольга В.', type: 'rollout',
+    noAb: 'Продуктовое требование для всех родителей; флоу по диплинку сохраняем', value: '1.0', what: 'Грейс-период для родителей',
+    hyp: 'Без АБ. Родители получают грейс-период по детскому шарингу.', created: '07.08.2023', done: '28.08.2023', checked: '04.09.2023', cleaned: '23.10.2023',
+    toggles: ['DBPU_SHARED_NOTIFICATIONS_GRACE_WITH_CHILD_ENABLED', 'sharingGraceWithChild'], where: '[Android] Удаление тогглов и конфига (Часть 8)' }),
+  HISTF({ id: 'h-bell', feature: 'ИО+К: онбординг через колокольчик', release: '14.17', owner: 'Анна К.', type: 'rollout',
+    noAb: 'Включается вместе с раскаткой ИО+К, отдельный АБ не нужен', value: '1.0', what: 'Онбординг через колокольчик',
+    hyp: 'Без АБ. Онбординг в раздел уведомлений через колокольчик.', created: '07.08.2023', start: '28.08.2023', done: '28.08.2023', checked: '04.09.2023', cleaned: '23.10.2023',
+    toggles: ['DBPU_PUSH_BELL_ONBOARDING_ENABLED', 'pushBellOnboarding'], where: '[Android] Удаление тогглов и конфига (Часть 8)' }),
+  HISTF({ id: 'h-custom-screen', feature: 'Отдельный экран кастомизации уведомлений об операциях', release: '16.14', owner: 'Ольга В.', type: 'ab',
+    ctrl: '1.0', value: '2.0', what: 'Отдельный экран кастомизации', res: [7.4, 8.6, 0.7, 1.7],
+    hyp: 'Отдельный экран кастомизации поможет продвинуть новую ценность уведомлений и увеличит число настроек.', metric: 'Доля клиентов, изменивших настройки уведомлений',
+    resNote: 'Победил 2.0: +1,2 п.п.', decText: 'Раскатываем 2.0 по обычному плану тиража.',
+    created: '21.07.2025', abStart: '04.08.2025', decided: '15.09.2025', done: '03.10.2025', cleaned: '17.11.2025',
+    note: 'Обычный план тиража: ГФ 26.09 → 7 блок 29.09 → 6, 5, 4 30.09 → 3, 2, 1 01.10 → SI1–SI4 03.10', noteD: '26.09.2025',
+    toggles: ['customizationScreenAb'], where: '[Android] Удаление тоглов, конфига, Launcher. Часть 18' }),
+  HISTF({ id: 'h-badges', feature: 'Убираем бейджи уведомлений', release: '17.5', owner: 'Анна К.', type: 'ab',
+    ctrl: '0.0', value: '1.0', range: '0.0-4.0', what: 'Без бейджа на иконке раздела', res: [62.0, 62.4, -0.3, 1.1], dir: 'noninf', thr: -1.0, sig: false, verdict: 'не хуже',
+    hyp: 'Если убрать бейджи уведомлений, вовлечённость в раздел не упадёт (A/B/C/D, 96/1/1/1/1).', metric: 'MAU раздела «Уведомления»',
+    resNote: 'Не хуже контроля: +0,4 п.п., порог −1 п.п. не нарушен.', decText: 'Включаем 1.0 на всех, остальные ветки удаляем.',
+    created: '05.05.2026', abStart: '13.05.2026', decided: '30.06.2026', done: '03.07.2026', cleaned: '30.10.2026',
+    toggles: ['removeNotificationBadgesAb'], where: '[Android] Удаление тоглов, конфига, Launcher. Часть 21' }),
+  HISTF({ id: 'h-react1', fid: 'f-react', iter: 1, branch: 'базовый набор реакций', feature: 'Реакции на переводы в СБОЛ', release: '17.6', owner: 'Игорь Л.', type: 'rollout',
+    noAb: 'Первая версия реакций: катили на всех, эффект оценивали в итерации 2 через АБ', value: '1.0', what: 'Базовый набор реакций',
+    hyp: 'Без АБ. Получатель перевода может ответить реакцией.', created: '20.05.2026', start: '18.06.2026', done: '24.06.2026', checked: '01.07.2026', cleaned: '30.10.2026',
+    note: 'Убедились, что в битбакете в конфиге лончера тоже 1.0', noteD: '29.05.2026',
+    toggles: ['moneyTransferReact'], where: '[Android] Удаление тоглов, конфига, Launcher. Часть 21', sd: 'SD0000997421' }),
+  HISTF({ id: 'h-style-cond', feature: 'Стиль уведомлений, доступный только при определённых условиях', release: '17.7', owner: 'Ольга В.', type: 'rollout',
+    noAb: 'Новый стиль в каталоге, выбор за клиентом: АБ не нужен. Перед включением прожат ДОР от ЕРКЦ', value: '1.0', what: 'Условный стиль в каталоге',
+    hyp: 'Без АБ. В каталоге стилей появляется стиль, доступный при определённых условиях.', created: '28.05.2026', start: '19.06.2026', done: '25.06.2026', checked: '02.07.2026', cleaned: '30.10.2026',
+    note: 'Добавлены стили «Шукаша» (09.07) и «Мультики» (22.08) — каждый раз с оповещением ЕРКЦ', noteD: '22.08.2026',
+    toggles: ['conditionalNotificationStyle'], where: '[Android] Удаление тоглов, конфига, Launcher. Часть 21', sd: 'SD0000998809' }),
+);

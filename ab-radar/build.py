@@ -4,8 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 SRC = ROOT / "src"
-ORDER = ["data.js", "core.js", "v0-overview.js", "v1-pult.js", "v2-board.js",
-         "v3-timeline.js", "v4-registry.js", "v5-assistant.js"]
+ORDER = ["data.js", "core.js", "v0-overview.js", "v1-pult.js", "v4-registry.js", "v5-assistant.js"]
 
 shell = (SRC / "shell.html").read_text(encoding="utf-8")
 css = (SRC / "styles.css").read_text(encoding="utf-8")

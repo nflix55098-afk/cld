@@ -99,6 +99,14 @@ function chatAct(a, root) {
           <div class="hstrip sm" style="margin-bottom:8px">${past.map((h) => `<i style="background:${HCOLOR[h.kind]}" data-tip="<b>${esc(h.it)} · ${esc(h.theme)}</b><br>${esc(h.what)}<br>${esc(h.out)}"></i>`).join('')}<i class="now"></i></div>
           <div class="small"><b>По теме №34 «Иллюстрация»:</b> ${past.filter((h) => h.theme === 'Иллюстрация').map((h) => `${esc(h.it)} — ${esc(h.out.toLowerCase())}`).join(', ')}. Маскот уже был в №19, тогда без эффекта.</div>`, [{ l: 'Открыть историю', a: 'open:activ34' }]);
       }
+      if (arg === 'find') {
+        const e = EX['h-bell'];
+        meSay('/найти колокольчик');
+        botSay(`Нашёл в истории 1 фичу:<div class="cm-plan" style="gap:4px"><div><a href="#" data-open="${e.id}"><b>${esc(e.feature)}</b></a></div>
+          <div>Релиз ${e.release} · включена на всех клиентов ${fmt(e.d.rolloutDoneAt, true)} · без АБ</div>
+          <div class="ink2">Почему без АБ: ${esc(e.noAb)}</div>
+          <div class="ink2">Тоглы удалены: ${e.toggles.map((t) => `<span class="mono">${esc(t.n)}</span>`).join(', ')} — «${esc(e.toggles[0].where)}»</div></div>`, [{ l: 'Открыть паспорт', a: 'open:h-bell' }]);
+      }
       if (arg === 'duty') { meSay('/дежурный'); botSay(`На этой неделе включает <b>${dutyNow()}</b> (вы). Дальше: ${DUTY.filter((d) => !d.now).map((d) => `${d.who} — ${d.week}`).join('; ')}.`); }
       if (arg === 'digest') { meSay('/сводка'); botSay(digestHTML()); }
       break;
@@ -157,7 +165,7 @@ function renderAssistant(root, keepScroll) {
             <div class="bub">${m.html}${m.btns ? `<div class="cm-btns">${m.btns.map((b) => `<button class="btn sm ${b.primary ? 'primary' : ''}" data-chat="${b.a}">${esc(b.l)}</button>`).join('')}</div>` : ''}<div class="t">${m.time}</div></div></div>`).join('')}
         </div>
         <div class="msgr-f">
-          <div class="cmds"><button data-chat="cmd:digest">/сводка</button><button data-chat="cmd:status">/статус стиль 14</button><button data-chat="cmd:status2">/статус реакции</button><button data-chat="cmd:feat">/статус лендинги</button><button data-chat="cmd:hist">/история активация</button><button data-chat="cmd:duty">/дежурный</button></div>
+          <div class="cmds"><button data-chat="cmd:digest">/сводка</button><button data-chat="cmd:status">/статус стиль 14</button><button data-chat="cmd:status2">/статус реакции</button><button data-chat="cmd:feat">/статус лендинги</button><button data-chat="cmd:hist">/история активация</button><button data-chat="cmd:find">/найти колокольчик</button><button data-chat="cmd:duty">/дежурный</button></div>
           <div class="inp">Напишите команду или вопрос: «что можно смотреть на этой неделе?»</div>
         </div>
       </div>
