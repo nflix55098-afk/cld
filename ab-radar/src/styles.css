@@ -402,3 +402,10 @@ table.t tr.clickable:hover td { background: #fbfbf9; cursor: pointer; }
 .ftest.cur { background: linear-gradient(90deg, var(--accent-wash), transparent); margin: 0 -16px; padding: 10px 16px; }
 .fhist { display: grid; grid-template-columns: 74px 1fr auto; gap: 10px; padding: 6px 0; font-size: 13px; border-bottom: 1px solid var(--line); }
 .fhist:last-child { border-bottom: 0; }
+
+/* длинная история итераций */
+.hstrip { display: flex; gap: 2px; flex-wrap: wrap; align-items: center; }
+.hstrip i { width: 14px; height: 18px; border-radius: 3px; display: block; }
+.hstrip i.now { background: repeating-linear-gradient(45deg, #2a78d6 0 2px, #dbe8f8 2px 5px); box-shadow: inset 0 0 0 1.5px #2a78d6; }
+.hstrip.sm i { width: 10px; height: 12px; border-radius: 2px; }
+details.hall summary { cursor: pointer; font-size: 13px; color: var(--accent); margin-top: 12px; }

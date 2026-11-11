@@ -410,6 +410,13 @@ table.t tr.clickable:hover td { background: #fbfbf9; cursor: pointer; }
 .fhist { display: grid; grid-template-columns: 74px 1fr auto; gap: 10px; padding: 6px 0; font-size: 13px; border-bottom: 1px solid var(--line); }
 .fhist:last-child { border-bottom: 0; }
 
+/* длинная история итераций */
+.hstrip { display: flex; gap: 2px; flex-wrap: wrap; align-items: center; }
+.hstrip i { width: 14px; height: 18px; border-radius: 3px; display: block; }
+.hstrip i.now { background: repeating-linear-gradient(45deg, #2a78d6 0 2px, #dbe8f8 2px 5px); box-shadow: inset 0 0 0 1.5px #2a78d6; }
+.hstrip.sm i { width: 10px; height: 12px; border-radius: 2px; }
+details.hall summary { cursor: pointer; font-size: 13px; color: var(--accent); margin-top: 12px; }
+
 </style>
 </head>
 <body>
@@ -470,7 +477,7 @@ const RELEASES = [
 /* Единый жизненный цикл АБ-теста — общий для всех вариантов сервиса */
 const STAGES = [
   { k: 'prep',       name: 'Подготовка',       color: '#898781', hint: 'Аналитика, гипотеза, метрики, варианты рубильника, тест заведён на платформе' },
-  { k: 'release',    name: 'Ждёт релиза',      color: '#6250d6', hint: 'Код в релизе, пилот на бете; старт АБ — после раскатки релиза' },
+  { k: 'release',    name: 'Релиз и пилот',    color: '#6250d6', hint: 'Код в релизе, пилот на бете или на пилотной группе; старт АБ или раскатки — после' },
   { k: 'enabling',   name: 'Включение',        color: '#eda100', hint: 'SD-заявки и поблочное включение: ГФ → 12, 9, 8, 7 → … → SI1–SI4' },
   { k: 'collecting', name: 'Сбор данных',      color: '#2a78d6', hint: 'АБ на всех блоках, копим выборку. Смотреть результаты пока рано' },
   { k: 'ready',      name: 'Готов к анализу',  color: '#eb6834', hint: 'Минимальный срок и выборка набраны: смотрим результаты, записываем решение' },
@@ -628,7 +635,7 @@ const EXPERIMENTS = [
   {
     id: 'activ33',
     feature: 'Активация клиента с 1 продуктом',
-    iter: 33, branch: 'Заголовок', ver: 'V2', range: '87.0-88.0', launch: '01.10.2026',
+    iter: 33, branch: 'Заголовок', theme: 'Заголовок', ver: 'V2', range: '87.0-88.0', launch: '01.10.2026',
     key: 'activationTitleAb', release: '17.12', owner: 'Дмитрий П.',
     type: 'ab', platform: 'Завершён', stage: 'done',
     hypothesis: 'Заголовок «С уведомлениями спокойнее» может увеличить количество подключаемых уведомлений.',
@@ -662,7 +669,7 @@ const EXPERIMENTS = [
   {
     id: 'activ32',
     feature: 'Активация клиента с 1 продуктом',
-    iter: 32, branch: 'Заголовок «Спокойнее за ваши деньги»', ver: 'V1', range: '85.0-86.0', launch: '21.09.2026',
+    iter: 32, branch: 'Заголовок «Спокойнее за ваши деньги»', theme: 'Заголовок', ver: 'V1', range: '85.0-86.0', launch: '21.09.2026',
     key: 'activationTitleAb', release: '17.12', owner: 'Дмитрий П.',
     type: 'ab', platform: 'Завершён', stage: 'done', flags: ['stopped'],
     hypothesis: 'Заголовок «Спокойнее за ваши деньги» может увеличить количество подключаемых уведомлений.',
@@ -877,6 +884,8 @@ const EXPERIMENTS = [
     iter: 1, branch: 'настройки из CMS', ver: 'V1', range: '1.0-2.0', launch: 'DD.MM.YYYY',
     key: 'closeOnesSettingsCms', release: '17.12', owner: 'Игорь Л.',
     type: 'rollout', platform: 'Новый', stage: 'cleanup',
+    noAb: 'АБ отменили: UI не меняется, это перенос страницы в CMS. Черновик на платформе остался',
+    check: { what: 'Ошибки загрузки страницы из CMS, обращения в поддержку', days: 7, done: 'Проверено 14.10: без отклонений' },
     hypothesis: 'Перенос страницы настроек в CMS без изменения UI. Решили катить без АБ после FF-раскаток.',
     metric: '', metric2: '',
     minDays: 0, planDays: 0, sample: 0,
@@ -1030,18 +1039,155 @@ EXPERIMENTS.forEach((e) => { e.fid = e.fid || FID[e.id] || 'f-' + e.id; });
 /* История фичи: прошлые итерации, которых уже нет в работе */
 const FEATURE_META = {
   'f-style': { history: [
-    { it: '№1–8', what: 'Описания стилей «Мини» и «Позитивный», V1–V3', when: 'янв – май 2026', out: '2 победы раскатаны, 6 без эффекта', kind: 'win' },
-    { it: '№9', what: 'Порядок стилей на экране', when: 'июн 2026', out: 'Победил 21.0', kind: 'win' },
-    { it: '№10', what: 'Превью стиля в карточке', when: 'июл 2026', out: 'Нет эффекта', kind: 'none' },
-    { it: '№11', what: 'Новый стиль из CMS', when: 'июл 2026', out: 'Остановлен: ошибка CMS', kind: 'stop' },
-    { it: '№12', what: 'Новый стиль из CMS, V2 — перезапуск №11', when: 'авг 2026', out: 'Победил 31.0', kind: 'win' },
-    { it: '№13', what: 'Описание стиля «Мультики»', when: 'сен 2026', out: 'Нет эффекта', kind: 'none' },
+    { n: 8, it: '№1–8', theme: 'Описание стиля', what: 'Описания стилей «Мини» и «Позитивный», V1–V3', when: 'янв – май 2026', out: '2 победы раскатаны, 6 без эффекта', kind: 'win' },
+    { n: 9, it: '№9', theme: 'Порядок стилей', what: 'Порядок стилей на экране', when: 'июн 2026', out: 'Победил 21.0', kind: 'win' },
+    { n: 10, it: '№10', theme: 'Превью стиля', what: 'Превью стиля в карточке', when: 'июл 2026', out: 'Нет эффекта', kind: 'none' },
+    { n: 11, it: '№11', theme: 'Новый стиль', what: 'Новый стиль из CMS', when: 'июл 2026', out: 'Остановлен: ошибка CMS', kind: 'stop' },
+    { n: 12, it: '№12', theme: 'Новый стиль', what: 'Новый стиль из CMS, V2 — перезапуск №11', when: 'авг 2026', out: 'Победил 31.0', kind: 'win' },
+    { n: 13, it: '№13', theme: 'Описание стиля', what: 'Описание стиля «Мультики»', when: 'сен 2026', out: 'Нет эффекта', kind: 'none' },
   ] },
-  'f-br-cms': { history: [{ it: '№1', what: 'Текст кнопки на лендинге', when: 'авг 2026', out: 'Нет эффекта', kind: 'none' }] },
-  'f-cards': { history: [{ it: '—', what: 'Карточки с маскотом, 1.0–2.0', when: 'апр 2026', out: 'Победил 2.0, раскатано', kind: 'win' }] },
-  'f-react': { history: [{ it: 'Итерация 1', what: 'Базовый набор реакций', when: 'май 2026', out: 'Раскатано 1.0', kind: 'win' }] },
-  'f-shtorka': { history: [{ it: '№1', what: 'Шторка детализации, 1.0–2.0', when: 'авг 2026', out: 'Остановлен: некорректные тексты', kind: 'stop' }] },
-  'f-return1': { history: [{ it: 'Перезапуск', what: '1.0/2.0 → 3.0/4.0 из-за ошибки сплита', when: '17.06.2026', out: 'Данные до перезапуска не учитываются', kind: 'stop' }] },
+  'f-br-cms': { history: [{ n: 1, it: '№1', what: 'Текст кнопки на лендинге', when: 'авг 2026', out: 'Нет эффекта', kind: 'none' }] },
+  'f-cards': { history: [{ n: 0, it: '—', what: 'Карточки с маскотом, 1.0–2.0', when: 'апр 2026', out: 'Победил 2.0, раскатано', kind: 'win' }] },
+  'f-react': { history: [{ n: 1, it: 'Итерация 1', what: 'Базовый набор реакций', when: 'май 2026', out: 'Раскатано 1.0', kind: 'win' }] },
+  'f-shtorka': { history: [{ n: 1, it: '№1', what: 'Шторка детализации, 1.0–2.0', when: 'авг 2026', out: 'Остановлен: некорректные тексты', kind: 'stop' }] },
+  'f-return1': { history: [{ n: 0, it: 'Перезапуск', what: '1.0/2.0 → 3.0/4.0 из-за ошибки сплита', when: '17.06.2026', out: 'Данные до перезапуска не учитываются', kind: 'stop' }] },
+};
+
+/* ------------------------------------------------------------------
+   Фичи без АБ-теста (АБ не планируется) — тоже строки тиража
+   ------------------------------------------------------------------ */
+EXPERIMENTS.push(
+  {
+    id: 'kps', fid: 'f-kps',
+    feature: 'Целевое управление по КПС и кредитным картам',
+    iter: 1, branch: 'раскатка на всех', ver: 'V1', range: '2.0', launch: '22.10.2026',
+    key: 'targetedKpsCardsControl', release: '17.14', owner: 'Игорь Л.',
+    type: 'rollout', platform: 'Нет', stage: 'enabling',
+    noAb: 'Регуляторное требование: функция должна быть у всех клиентов, контрольная группа недопустима',
+    check: { what: 'Обращения в поддержку, ошибки экрана, доля отключений уведомлений по картам', days: 7 },
+    hypothesis: 'Без АБ. Клиент управляет уведомлениями по КПС и кредитным картам на одном экране.',
+    metric: '', metric2: '', minDays: 0, planDays: 0, sample: 0,
+    dates: { created: '15.10.2026', rolloutStart: '22.10.2026' },
+    variants: [{ v: '2.0', name: 'Новый экран управления уведомлениями', share: 100 }],
+    results: null, decision: null,
+    events: [
+      { d: '22.10.2026', t: 'beta', b: ['Бета+'], v: '2.0', txt: 'Включаем в Бета+ на ГФ', sd: 'SD0002379510' },
+      { d: '28.10.2026', t: 'on', b: ['ГФ'], v: '2.0', txt: 'Включено 2.0 на пром ГФ', sd: 'SD0002427502' },
+      { d: '04.11.2026', t: 'on', b: ['12', '9', '8', '7'], v: '2.0', txt: 'Включено 2.0', sd: 'SD0002410733' },
+      { d: '12.11.2026', t: 'plan', b: ['6', '5', '4'], v: '2.0', txt: 'План: включить 2.0', sd: 'SD0002448901' },
+      { d: '13.11.2026', t: 'plan', b: ['3', '2', '1'], v: '2.0', txt: 'План: включить 2.0', sd: 'SD0002448902' },
+      { d: '16.11.2026', t: 'plan', b: ['SI1', 'SI2', 'SI3', 'SI4'], v: '2.0', txt: 'План: включить 2.0' },
+    ],
+    toggles: [{ n: 'targetedKpsCardsControl', kind: 'тогл', st: 'todo' }],
+    cross: { clean: 0, mixed: 0, with: [] },
+  },
+  {
+    id: 'dep-switch', fid: 'f-dep-switch',
+    feature: 'Уведомления по вкладам переезжают в единый свитчер уведомлений',
+    iter: 1, branch: 'пилот', ver: 'V1', range: '2.0', launch: '29.10.2026',
+    key: 'depositNotificationsUnifiedSwitcher', release: '17.12', owner: 'Ольга В.',
+    type: 'rollout', platform: 'Нет', stage: 'release',
+    noAb: 'Технический переезд: для клиента ничего не меняется. Проверяем на пилотной группе сотрудников',
+    pilot: { group: 'Пилотная группа сотрудников, 9 человек', since: '29.10.2026', feedback: '2 замечания, оба исправлены в 17.13' },
+    check: { what: 'Расхождения настроек уведомлений до и после переезда, обращения', days: 7 },
+    hypothesis: 'Без АБ. Настройки уведомлений по вкладам переезжают в единый свитчер без изменений для клиента.',
+    metric: '', metric2: '', minDays: 0, planDays: 0, sample: 0,
+    dates: { created: '20.10.2026' },
+    variants: [{ v: '2.0', name: 'Единый свитчер', share: 100 }],
+    results: null, decision: null,
+    events: [
+      { d: '28.10.2026', t: 'note', txt: 'Заявка на включение на пилотную группу по ЕПК', sd: 'SD0002436073' },
+      { d: '29.10.2026', t: 'beta', b: ['Бета+'], v: '2.0', txt: 'Включено на пилотную группу на ГФ (с 17.13)' },
+      { d: '05.11.2026', t: 'note', txt: 'Пилот: 2 замечания, оба исправлены в 17.13' },
+    ],
+    toggles: [{ n: 'depositNotificationsUnifiedSwitcher', kind: 'тогл', st: 'todo' }],
+    cross: { clean: 0, mixed: 0, with: [] },
+  },
+  {
+    id: 'rustore', fid: 'f-rustore',
+    feature: 'Обновление RuStore SDK до версии 7.5.0',
+    iter: 1, branch: 'обновление', ver: 'V1', range: '—', launch: '27.10.2026',
+    key: '—', release: '17.14', owner: 'Дмитрий П.',
+    type: 'rollout', platform: 'Нет', stage: 'done',
+    noAb: 'Обновление библиотеки без рубильников: включается вместе с релизом',
+    check: { what: 'Crash-free, ошибки доставки пушей через RuStore', days: 7, done: 'Проверено 03.11: без отклонений' },
+    hypothesis: 'Без АБ. Обновление SDK, поведение для клиента не меняется.',
+    metric: '', metric2: '', minDays: 0, planDays: 0, sample: 0,
+    dates: { created: '01.10.2026', rolloutStart: '27.10.2026', rolloutDoneAt: '27.10.2026', cleanupDoneAt: '03.11.2026' },
+    variants: [{ v: '7.5.0', name: 'Новая версия SDK', share: 100 }],
+    results: null, decision: null,
+    events: [
+      { d: '27.10.2026', t: 'note', txt: 'Вышло в релизе 17.14 на всех клиентов, рубильников нет' },
+      { d: '03.11.2026', t: 'sys', txt: 'Проверка через 7 дней: crash-free и доставка пушей без отклонений' },
+    ],
+    toggles: [],
+    cross: { clean: 0, mixed: 0, with: [] },
+  },
+);
+
+/* ------------------------------------------------------------------
+   Фича с длинной историей: 33 прошлых АБ-теста и новая итерация №34
+   ------------------------------------------------------------------ */
+EXPERIMENTS.push({
+  id: 'activ34', fid: 'f-activ',
+  feature: 'Активация клиента с 1 продуктом',
+  iter: 34, branch: 'Иллюстрация с маскотом в шторке', theme: 'Иллюстрация', ver: 'V5', range: '89.0-90.0', launch: '09.11.2026',
+  key: 'activationIllustrationAb', release: '17.14', owner: 'Дмитрий П.',
+  type: 'ab', platform: 'Запущен', stage: 'collecting',
+  hypothesis: 'Иллюстрация с маскотом в шторке активации увеличит количество подключаемых уведомлений у клиентов с одним продуктом.',
+  metric: 'Подключение уведомлений', metric2: 'Закрытия шторки без действия',
+  minDays: 14, planDays: 28, sample: 18,
+  dates: { created: '30.10.2026', enableStart: '06.11.2026', fullAt: '09.11.2026' },
+  variants: [
+    { v: '89.0', name: 'Контроль — иллюстрация из №27', share: 50, control: true },
+    { v: '90.0', name: 'Иллюстрация с маскотом', share: 50 },
+  ],
+  results: null, decision: null,
+  events: [
+    { d: '30.10.2026', t: 'note', txt: 'Заведена итерация №34: номер и версия подставлены автоматически' },
+    { d: '06.11.2026', t: 'ab', b: ['ГФ'], txt: 'Запущен АБ 50/50 на пром ГФ', sd: 'SD0002426011' },
+    { d: '09.11.2026', t: 'ab', b: ['12', '9', '8', '7', '6', '5', '4', '3', '2', '1', 'SI1', 'SI2', 'SI3', 'SI4'], txt: 'Запущен АБ — все блоки', sd: 'SD0002433150' },
+  ],
+  toggles: [{ n: 'activationIllustrationAb', kind: 'рубильник', st: 'todo' }],
+  cross: { clean: 30, mixed: 70, with: ['ap-0'] },
+});
+
+const H = (n, theme, what, when, out, kind) => ({ n, it: '№' + n, theme, what, when, out, kind });
+FEATURE_META['f-activ'] = {
+  prod: 'Сейчас в проде — сумма побед: момент показа из №4, бонус из №8, порядок продуктов из №12, заголовок из №21, кнопка из №26, иллюстрация из №27',
+  history: [
+    H(1, 'Заголовок', '«Подключите уведомления»', 'мар 2024', 'Победил 2.0', 'win'),
+    H(2, 'Текст кнопки', '«Подключить» против «Включить»', 'апр 2024', 'Нет эффекта', 'none'),
+    H(3, 'Иллюстрация', 'Телефон с пушем', 'апр 2024', 'Нет эффекта', 'none'),
+    H(4, 'Момент показа', 'Показ после второго входа', 'май 2024', 'Победил 2.0', 'win'),
+    H(5, 'Порядок продуктов', 'Карты выше вкладов', 'июн 2024', 'Нет эффекта', 'none'),
+    H(6, 'Заголовок', '«Будьте в курсе операций», V2', 'июн 2024', 'Нет эффекта', 'none'),
+    H(7, 'Бонус', 'Месяц уведомлений бесплатно', 'июл 2024', 'Остановлен: ошибка тарификации', 'stop'),
+    H(8, 'Бонус', 'Месяц бесплатно, V2 — перезапуск №7', 'авг 2024', 'Победил 2.0', 'win'),
+    H(9, 'Push-напоминание', 'Напоминание через 3 дня', 'сен 2024', 'Нет эффекта', 'none'),
+    H(10, 'Текст кнопки', '«Попробовать бесплатно», V2', 'окт 2024', 'Нет эффекта', 'none'),
+    H(11, 'Иллюстрация', 'Абстрактная иллюстрация, V2', 'ноя 2024', 'Нет эффекта', 'none'),
+    H(12, 'Порядок продуктов', 'Самый частый продукт первым, V2', 'дек 2024', 'Победил 3.0', 'win'),
+    H(13, 'Заголовок', '«Знайте о каждом списании», V3', 'янв 2025', 'Нет эффекта', 'none'),
+    H(14, 'Момент показа', 'Показ после оплаты, V2', 'фев 2025', 'Нет эффекта', 'none'),
+    H(15, 'Push-напоминание', 'Напоминание через 1 день, V2', 'мар 2025', 'Остановлен: жалобы на частые пуши', 'stop'),
+    H(16, 'Бонус', 'Кешбэк за подключение, V3', 'апр 2025', 'Нет эффекта', 'none'),
+    H(17, 'Заголовок', '«Спокойнее с уведомлениями», V4', 'май 2025', 'Нет эффекта', 'none'),
+    H(18, 'Текст кнопки', '«Включить за 0 ₽», V3', 'июн 2025', 'Нет эффекта', 'none'),
+    H(19, 'Иллюстрация', 'Маскот на экране, V3', 'июл 2025', 'Нет эффекта', 'none'),
+    H(20, 'Момент показа', 'Показ в выходные, V3', 'авг 2025', 'Остановлен: пересечение с акцией', 'stop'),
+    H(21, 'Заголовок', '«Все операции под рукой», V5', 'сен 2025', 'Победил 2.0', 'win'),
+    H(22, 'Порядок продуктов', 'Без вкладов, V3', 'окт 2025', 'Нет эффекта', 'none'),
+    H(23, 'Бонус', 'Баллы за подключение, V4', 'ноя 2025', 'Нет эффекта', 'none'),
+    H(24, 'Заголовок', '«Деньги под контролем», V6', 'дек 2025', 'Нет эффекта', 'none'),
+    H(25, 'Push-напоминание', 'Напоминание с примером пуша, V3', 'янв 2026', 'Нет эффекта', 'none'),
+    H(26, 'Текст кнопки', '«Подключить уведомления», V4', 'фев 2026', 'Победил 2.0', 'win'),
+    H(27, 'Иллюстрация', 'Скриншот пуша с суммой, V4', 'мар 2026', 'Победил 2.0', 'win'),
+    H(28, 'Момент показа', 'Показ при первом переводе, V4', 'апр 2026', 'Нет эффекта', 'none'),
+    H(29, 'Бонус', 'Скидка на первый месяц, V5', 'май 2026', 'Остановлен: не прошёл ПСИ', 'stop'),
+    H(30, 'Заголовок', '«Уведомления — это безопасность», V7', 'июн 2026', 'Нет эффекта', 'none'),
+    H(31, 'Порядок продуктов', 'Кредитки первыми, V4', 'авг 2026', 'Нет эффекта', 'none'),
+  ],
 };
 
 
@@ -1199,7 +1345,7 @@ function alertsFor(e) {
 
   if (['enabling', 'rollout'].includes(e.stage)) {
     const np = e.nextPlan;
-    const what = e.stage === 'rollout' ? `включение ${e.decision?.winner || ''}` : 'включение АБ';
+    const what = e.type === 'rollout' ? `включение ${e.variants[0].v}` : e.stage === 'rollout' ? `включение ${e.decision?.winner || ''}` : 'включение АБ';
     if (!np) {
       const n = e.lastMove ? days(e.lastMove, t) : 0;
       if (n >= 3) add('warn', `Включение стоит ${dn(n)}`, `Включено на ${e.coverage} из ${ALL_BLOCKS.length} блоков, следующий шаг не запланирован`, e.lastMove, { k: 'plan', label: 'Запланировать шаг' }, 'stuck');
@@ -1224,6 +1370,25 @@ function alertsFor(e) {
 
   if (['enabling', 'collecting', 'ready'].includes(e.stage) && e.type !== 'holdout' && e.cross.mixed >= 90) {
     add('warn', `Пересечения: ${e.cross.mixed}% выборки в других тестах`, `Пересекается с: ${e.cross.with.map((id) => EX[id] ? `${EX[id].feature} №${EX[id].iter}` : id).join('; ')}. Проверьте, не смешиваются ли эффекты`, null, { k: 'cross', label: 'Посмотреть' }, 'cross');
+  }
+
+  /* фичи без АБ: пилот и проверка после раскатки вместо результатов */
+  if (e.pilot && e.stage === 'release') {
+    const n = days(D(e.pilot.since), t);
+    if (n >= 10 && !e.nextPlan) add('warn', `Пилот идёт ${dn(n)}, решения о раскатке нет`, `${e.pilot.group}. ${e.pilot.feedback}. Раскатываем на всех или продлеваем пилот?`, addDays(D(e.pilot.since), 10), { k: 'pilot', label: 'Запланировать раскатку' }, 'pilot');
+  }
+  if (e.type === 'rollout' && e.check && !e.check.done && e.d.rolloutDoneAt) {
+    const due = addDays(e.d.rolloutDoneAt, e.check.days);
+    if (due <= t) add('warn', 'Проверьте метрики после раскатки', `Вместо АБ: ${e.check.what}. Сравнение до и после, срок был ${fmt(due)}`, due, { k: 'check', label: 'Отметить проверку' }, 'postcheck');
+    else add('info', `Проверка метрик после раскатки ${fmtH(due)}`, `Вместо АБ: ${e.check.what}`, due, { k: 'remind', label: 'Напомнить мне' }, 'postcheck');
+  }
+  /* длинная история: похожую гипотезу уже проверяли */
+  if (e.theme && ['prep', 'release', 'enabling', 'collecting'].includes(e.stage)) {
+    const hist = ((FEATURE_META[e.fid] || {}).history || []).filter((h) => h.theme === e.theme);
+    if (hist.length) {
+      const wins = hist.filter((h) => h.kind === 'win');
+      add('info', `Тему «${e.theme}» уже проверяли ${hist.length} ${plural(hist.length, 'раз', 'раза', 'раз')}`, hist.map((h) => `${h.it} ${h.what} — ${h.out.toLowerCase()}`).join('; ') + (wins.length ? `. В проде сейчас победитель ${wins[wins.length - 1].it}` : ''), null, { k: 'open', label: 'История фичи' }, 'similar');
+    }
   }
 
   if (e.stage === 'release' && e.d.plannedStart) {
@@ -1272,6 +1437,7 @@ function mergedAlerts() {
 
 function outcome(e) {
   if (e.flags.includes('stopped')) return 'Остановлен досрочно';
+  if (e.type === 'rollout') return ['cleanup', 'done'].includes(e.stage) ? 'Раскатано без АБ' : 'Раскатка без АБ';
   if (!e.decision) return '';
   if (e.results?.direction === 'noninf') return `Не хуже контроля · ${e.decision.winner}`;
   const w = e.variants.find((v) => v.v === e.decision.winner);
@@ -1430,10 +1596,13 @@ function forest(e) {
   ${R.threshold != null ? `<div class="small muted" style="margin-top:6px">Красная линия — порог «не хуже»: ${sgn(R.threshold)} п.п.</div>` : ''}`;
 }
 
+const ROLLOUT_STEPS = { prep: 'Подготовка', release: 'Релиз и пилот', enabling: 'Раскатка по блокам', cleanup: 'Проверка и чистка', done: 'Архив' };
 function stepper(e) {
-  const cur = STAGE[e.stage].i;
-  const dateFor = { prep: e.d.created, enabling: e.d.enableStart, collecting: e.d.fullAt, ready: e.minAt && e.minAt <= TODAY ? e.minAt : null, rollout: e.decision ? D(e.decision.d) : null, cleanup: e.d.rolloutDoneAt, done: e.d.cleanupDoneAt };
-  return `<div class="stepper">${STAGES.map((s, i) => `<div class="step ${i < cur ? 'done' : i === cur ? 'cur' : ''}" style="--c:${s.color}" title="${esc(s.hint)}"><span class="bar"></span><span>${s.name}<br><small>${dateFor[s.k] && i <= cur ? fmt(dateFor[s.k]) : '&nbsp;'}</small></span></div>`).join('')}</div>`;
+  const noAb = e.type === 'rollout';
+  const list = noAb ? STAGES.filter((s) => ROLLOUT_STEPS[s.k]) : STAGES;
+  const cur = list.findIndex((s) => s.k === e.stage);
+  const dateFor = { prep: e.d.created, release: e.pilot ? D(e.pilot.since) : null, enabling: noAb ? e.d.rolloutStart : e.d.enableStart, collecting: e.d.fullAt, ready: e.minAt && e.minAt <= TODAY ? e.minAt : null, rollout: e.decision ? D(e.decision.d) : null, cleanup: e.d.rolloutDoneAt, done: e.d.cleanupDoneAt };
+  return `<div class="stepper" style="grid-template-columns:repeat(${list.length},1fr)">${list.map((s, i) => `<div class="step ${i < cur ? 'done' : i === cur ? 'cur' : ''}" style="--c:${s.color}" title="${esc(s.hint)}"><span class="bar"></span><span>${noAb ? ROLLOUT_STEPS[s.k] : s.name}<br><small>${dateFor[s.k] && i <= cur ? fmt(dateFor[s.k]) : '&nbsp;'}</small></span></div>`).join('')}</div>`;
 }
 
 function journal(e) {
@@ -1487,19 +1656,82 @@ function featureTabs(e) {
   return `<div class="ftabs">${f.tests.map((t) => `<a href="#" class="ftab ${t.id === e.id ? 'on' : ''}" data-open="${t.id}" title="${esc(STAGE[t.stage].name)}">${stageDot(t.stage)}${esc(t.seg ? t.label : '№' + t.iter + ' ' + t.ver)}</a>`).join('')}</div>`;
 }
 
+function pastOf(f) {
+  const kindOf = (t) => (t.flags.includes('stopped') ? 'stop' : outcome(t).startsWith('Победил') || outcome(t).startsWith('Не хуже') ? 'win' : 'none');
+  const fromTests = f.tests.filter((t) => t.stage === 'done' && t.type !== 'rollout').map((t) => ({
+    n: t.iter, it: '№' + t.iter, theme: t.theme || t.branch, what: `${t.branch}, ${t.ver}`, when: `${MON[(t.d.enableStart || t.d.created).getMonth()]} ${(t.d.enableStart || t.d.created).getFullYear()}`,
+    out: t.flags.includes('stopped') ? 'Остановлен: ошибка разметки' : outcome(t), kind: kindOf(t), id: t.id,
+  }));
+  return [...f.history, ...fromTests].sort((a, b) => a.n - b.n);
+}
+const HK = { win: 'good', none: 'info', stop: 'warn' };
+const HCOLOR = { win: '#0ca30c', none: '#c3c2b7', stop: '#fab219' };
+const HNAME = { win: 'Победа', none: 'Нет эффекта', stop: 'Остановлен' };
+
+function histRow(h) {
+  return `<div class="fhist" data-htext="${esc((h.it + ' ' + h.theme + ' ' + h.what + ' ' + h.out).toLowerCase())}"><span class="muted tnum">${esc(h.it)}</span><span>${h.id ? `<a href="#" data-open="${h.id}">${esc(h.what)}</a>` : esc(h.what)} <span class="muted small">· ${esc(h.theme ? h.theme + ' · ' : '')}${esc(h.when)}</span></span><span class="sev-label ${HK[h.kind]}">${esc(h.out)}</span></div>`;
+}
+
+function historyBlock(f, e) {
+  const past = pastOf(f);
+  if (!past.length) return '';
+  if (past.length <= 8) return `<div class="small" style="font-weight:650;margin-bottom:4px">Что уже пробовали</div>${past.slice().reverse().map(histRow).join('')}`;
+  const cnt = (k) => past.filter((h) => h.kind === k).length;
+  const themes = [...new Set(past.map((h) => h.theme))];
+  const cur = f.tests.filter((t) => t.stage !== 'done');
+  const meta = FEATURE_META[f.id] || {};
+  return `
+    <div class="small" style="font-weight:650;margin-bottom:8px">История фичи: ${past.length} ${plural(past.length, 'АБ-тест', 'АБ-теста', 'АБ-тестов')} до текущего</div>
+    <div class="row wrap" style="gap:8px;margin-bottom:10px">
+      <span class="chip"><span class="dot" style="background:${HCOLOR.win}"></span>Побед ${cnt('win')}</span>
+      <span class="chip"><span class="dot" style="background:${HCOLOR.none}"></span>Без эффекта ${cnt('none')}</span>
+      <span class="chip"><span class="dot" style="background:${HCOLOR.stop}"></span>Остановлено ${cnt('stop')}</span>
+      <span class="small muted">с ${esc(past[0].when)}</span>
+    </div>
+    <div class="hstrip">${past.map((h) => `<i style="background:${HCOLOR[h.kind]}" data-tip="<b>${esc(h.it)} · ${esc(h.theme)}</b><br>${esc(h.what)}<br>${esc(h.when)} · ${esc(h.out)}"></i>`).join('')}${cur.map((t) => `<i class="now" data-tip="<b>№${t.iter} · сейчас</b><br>${esc(t.branch)}"></i>`).join('')}</div>
+    <div class="row small muted" style="justify-content:space-between;margin-top:4px"><span>${esc(past[0].it)}</span><span>${cur.length ? '№' + cur[cur.length - 1].iter + ' — сейчас' : esc(past[past.length - 1].it)}</span></div>
+    ${meta.prod ? `<div class="small" style="margin-top:12px;padding:8px 10px;border-radius:8px;background:#e5f5e5;color:#0b3d0b">${esc(meta.prod)}</div>` : ''}
+    <table class="t" style="margin-top:12px"><thead><tr><th style="position:static">Тема</th><th style="position:static">Тестов</th><th style="position:static">Итоги по порядку</th><th style="position:static">Последний</th></tr></thead><tbody>
+      ${themes.map((th) => { const L = past.filter((h) => h.theme === th); const last = L[L.length - 1]; const isCur = e.theme === th && e.stage !== 'done';
+        return `<tr style="${isCur ? 'background:var(--accent-wash)' : ''}"><td><b>${esc(th)}</b>${isCur ? '<br><span class="small" style="color:var(--accent)">тема текущего теста</span>' : ''}</td><td class="tnum">${L.length}</td>
+        <td><span class="hstrip sm">${L.map((h) => `<i style="background:${HCOLOR[h.kind]}" data-tip="<b>${esc(h.it)}</b> ${esc(h.what)}<br>${esc(h.out)}"></i>`).join('')}</span></td>
+        <td class="small"><span class="muted">${esc(last.it)}</span> <span class="sev-label ${HK[last.kind]}">${esc(last.out)}</span></td></tr>`; }).join('')}
+    </tbody></table>
+    <details class="hall"><summary>Все ${past.length} ${plural(past.length, 'итерация', 'итерации', 'итераций')}</summary>
+      <div class="search" style="margin:10px 0;min-width:0">${ICON.search}<input data-hsearch placeholder="Поиск по истории: тема, текст, номер…"></div>
+      <div>${past.slice().reverse().map(histRow).join('')}</div>
+    </details>`;
+}
+
 function featureSection(e) {
   const f = featureOf(e);
-  if (f.tests.length < 2 && !f.history.length) return '';
-  const hk = { win: 'good', none: 'info', stop: 'warn' };
-  return `<div class="sec"><h3>Фича: ${f.tests.length} ${plural(f.tests.length, 'АБ-тест', 'АБ-теста', 'АБ-тестов')} в работе${f.history.length ? ` и ${f.history.length} в истории` : ''}<span class="sp"></span><span class="small muted" style="font-weight:400">${featureKind(f)}</span></h3>
-    ${f.tests.length > 1 ? `<div>${f.tests.map((t) => `<div class="ftest ${t.id === e.id ? 'cur' : ''}">
+  const past = pastOf(f);
+  const work = f.tests.filter((t) => t.stage !== 'done');
+  if (work.length < 2 && !past.length) return '';
+  return `<div class="sec"><h3>Фича: ${work.length} в работе${past.length ? ` · ${past.length} в истории` : ''}<span class="sp"></span><span class="small muted" style="font-weight:400">${featureKind(f)}</span></h3>
+    ${work.length > 1 ? `<div>${work.map((t) => `<div class="ftest ${t.id === e.id ? 'cur' : ''}">
       <div class="row" style="gap:8px;min-width:0">${stageDot(t.stage)}<a href="#" data-open="${t.id}" style="color:var(--ink);font-weight:600">${esc(t.label)}</a><span class="small muted nowrap">${t.tag} · <span class="mono">${t.key}</span></span></div>
       <span class="small ink2 nowrap" style="text-align:right">${STAGE[t.stage].name}</span>
       <div class="small ink2">${esc(testBrief(t))}${t.alerts.find((a) => ['crit', 'serious', 'warn'].includes(a.sev)) ? ` · <span class="sev-label ${t.alerts[0].sev}">${esc(t.alerts[0].title)}</span>` : ''}</div>
       <span class="small muted" style="text-align:right">${t.id === e.id ? 'открыт' : ''}</span>
     </div>`).join('')}</div>
-    <div class="small muted" style="margin-top:8px">${isParallel(f) ? 'У каждого сегмента свой рубильник, своя выборка, срок готовности, результат и решение. Общими остаются строка тиража, аналитика и задача на удаление тоглов.' : 'Итерации идут друг за другом. Новая итерация получает следующий номер, а при перезапуске с той же гипотезой поднимается версия сути теста.'}</div>` : ''}
-    ${f.history.length ? `<div style="margin-top:${f.tests.length > 1 ? 14 : 0}px"><div class="small" style="font-weight:650;margin-bottom:4px">Что уже пробовали</div>${f.history.slice().reverse().map((h) => `<div class="fhist"><span class="muted tnum">${esc(h.it)}</span><span>${esc(h.what)} <span class="muted small">· ${esc(h.when)}</span></span><span class="sev-label ${hk[h.kind]}">${esc(h.out)}</span></div>`).join('')}</div>` : ''}
+    <div class="small muted" style="margin:8px 0 14px">${isParallel(f) ? 'У каждого сегмента свой рубильник, своя выборка, срок готовности, результат и решение. Общими остаются строка тиража, аналитика и задача на удаление тоглов.' : 'Итерации идут друг за другом. Новая итерация получает следующий номер, а при перезапуске с той же гипотезой поднимается версия сути теста.'}</div>` : ''}
+    ${historyBlock(f, e)}
+  </div>`;
+}
+
+function noAbSection(e) {
+  const c = e.check || {};
+  const due = e.d.rolloutDoneAt && c.days ? addDays(e.d.rolloutDoneAt, c.days) : null;
+  return `<div class="sec"><h3>Без АБ-теста <span class="sp"></span><span class="chip">АБ не планируется</span></h3>
+    <div class="kv">
+      <dt>Почему без АБ</dt><dd>${esc(e.noAb || 'Не указано')}</dd>
+      ${e.pilot ? `<dt>Пилот</dt><dd>${esc(e.pilot.group)} · с ${e.pilot.since}<br><span class="small ink2">${esc(e.pilot.feedback)}</span></dd>` : ''}
+      <dt>Включаемое значение</dt><dd><span class="mono">${esc(e.variants[0].v)}</span> — ${esc(e.variants[0].name)} · на всех клиентов</dd>
+      ${c.what ? `<dt>Что проверяем вместо АБ</dt><dd>${esc(c.what)}</dd>` : ''}
+      ${c.days ? `<dt>Контрольная точка</dt><dd>${c.done ? `<span class="sev-label good">${esc(c.done)}</span>` : due ? `${fmt(due, true)} — через ${dn(c.days)} после 100 %` : `через ${dn(c.days)} после включения на всех блоках`}</dd>` : ''}
+    </div>
+    <div class="small muted" style="margin-top:10px">Сервис не ждёт от такой фичи результатов и решения по АБ. Он следит за раскаткой по блокам, SD-заявками, контрольной точкой и удалением тоглов.</div>
   </div>`;
 }
 
@@ -1509,18 +1741,18 @@ function passportHTML(e) {
   return `
   <div class="drawer-head">
     <button class="btn ghost sm x" data-close>${ICON.x}</button>
-    <div class="row wrap" style="margin-bottom:8px">${stageChip(e.stage)}${platChip(e.platform)}${typeChip(e)}${e.flags.includes('stopped') ? '<span class="chip">Остановлен досрочно</span>' : ''}<span class="chip outline">Релиз ${e.release}${r ? ' · ' + r.d.slice(0, 5) : ''}</span></div>
+    <div class="row wrap" style="margin-bottom:8px">${stageChip(e.stage)}${e.type === 'rollout' ? '' : platChip(e.platform)}${typeChip(e)}${e.flags.includes('stopped') ? '<span class="chip">Остановлен досрочно</span>' : ''}<span class="chip outline">Релиз ${e.release}${r ? ' · ' + r.d.slice(0, 5) : ''}</span></div>
     <h2>${esc(e.feature)} <span class="muted" style="font-weight:500">№${e.iter}${e.seg ? ' · ' + esc(e.seg) : ''}</span></h2>
     ${f.tests.length > 1 ? `<div class="small ink2" style="margin-top:4px">В фиче ${f.tests.length} ${plural(f.tests.length, 'АБ-тест', 'АБ-теста', 'АБ-тестов')} (${featureKind(f)}). Переключайтесь между ними:</div>${featureTabs(e)}` : ''}
     <div class="row wrap small ink2" style="margin-top:6px;gap:12px">
       <span class="row" style="gap:6px">${avatar(e.owner)}${esc(e.owner)}</span>
-      <span>Рубильник <span class="mono" style="color:var(--ink)">${e.key}</span></span>
-      <span>Ветка: ${esc(e.branch)} ${e.ver}</span>
+      <span>${e.type === 'rollout' ? 'Тогл' : 'Рубильник'} <span class="mono" style="color:var(--ink)">${e.key}</span></span>
+      ${e.type === 'rollout' ? '' : `<span>Ветка: ${esc(e.branch)} ${e.ver}</span>`}
     </div>
-    <div class="conv-name"><span class="nowrap">Имя по конвенции</span><code>${esc(e.name)}</code><button class="btn ghost sm" data-copy="${esc(e.name)}" title="Скопировать">${ICON.copy}</button></div>
+    ${e.type === 'rollout' ? '' : `<div class="conv-name"><span class="nowrap">Имя по конвенции</span><code>${esc(e.name)}</code><button class="btn ghost sm" data-copy="${esc(e.name)}" title="Скопировать">${ICON.copy}</button></div>`}
     <div class="row wrap small" style="margin-top:10px;gap:14px">
       <a href="#" data-act="link">Аналитика в Confluence ${ICON.ext}</a>
-      <a href="#" data-act="link">АБ-платформа ${ICON.ext}</a>
+      ${e.type === 'rollout' ? '' : `<a href="#" data-act="link">АБ-платформа ${ICON.ext}</a>`}
       <a href="#" data-act="link">Строка в тираже ${ICON.ext}</a>
       <a href="#" data-act="link">Дашборд метрик ${ICON.ext}</a>
     </div>
@@ -1529,6 +1761,7 @@ function passportHTML(e) {
     ${e.alerts.length ? `<div class="stack">${e.alerts.map((a) => alertRow(a, { showExp: false, meta: false })).join('')}</div>` : ''}
     <div class="sec"><h3>Жизненный цикл</h3>${stepper(e)}</div>
     ${featureSection(e)}
+    ${e.type === 'rollout' ? noAbSection(e) : ''}
 
     ${e.type !== 'rollout' && e.d.fullAt ? `<div class="sec"><h3>Когда смотреть результаты <span class="sp"></span>${readiness(e)?.canLook ? '<span class="sev-label good">Уже можно</span>' : `<span class="sev-label info">${e.lookAt ? 'С ' + fmt(e.lookAt, true) : ''}</span>`}</h3>
       ${readinessBar(e)}
@@ -1540,23 +1773,23 @@ function passportHTML(e) {
         <dt>План окончания</dt><dd>${fmt(e.planEnd, true)}${e.d.platformEnd ? ` · фактически завершён ${fmt(e.d.platformEnd, true)}` : ''}${e.lookAt > e.planEnd && !e.d.platformEnd ? ' <span class="sev-label warn">выборка не успевает</span>' : ''}</dd>
       </div></div>` : ''}
 
-    <div class="sec"><h3>Гипотеза и метрики</h3>
+    <div class="sec"><h3>${e.type === 'rollout' ? 'Описание' : 'Гипотеза и метрики'}</h3>
       <p>${esc(e.hypothesis)}</p>
       <div class="kv" style="margin-top:12px">
-        <dt>Целевая метрика</dt><dd>${e.metric ? esc(e.metric) : '<span class="sev-label warn">Не заполнена</span>'}</dd>
+        ${e.type === 'rollout' ? '' : `<dt>Целевая метрика</dt><dd>${e.metric ? esc(e.metric) : '<span class="sev-label warn">Не заполнена</span>'}</dd>`}
         ${e.metric2 ? `<dt>Доп. метрика</dt><dd>${esc(e.metric2)}</dd>` : ''}
         ${e.blockers ? `<dt>Блокеры</dt><dd><span class="sev-label warn">${esc(e.blockers)}</span></dd>` : '<dt>Блокеры</dt><dd class="muted">Нет</dd>'}
       </div>
     </div>
 
-    <div class="sec"><h3>Варианты и сплит</h3>${splitBar(e)}</div>
+    ${e.type === 'rollout' ? '' : `<div class="sec"><h3>Варианты и сплит</h3>${splitBar(e)}</div>`}
 
     ${e.results ? `<div class="sec"><h3>Результаты <span class="sp"></span>${e.results.status === 'ready' ? '<span class="sev-label serious">Посчитаны, не разобраны</span>' : e.results.status === 'invalid' ? '<span class="sev-label crit">Невалидны</span>' : '<span class="sev-label good">Разобраны</span>'}</h3>
       ${e.metric ? `<div class="small muted" style="margin-bottom:8px">${esc(e.metric)}</div>` : ''}
       ${forest(e)}
       <div class="small ink2" style="margin-top:10px">${esc(e.results.note)}</div></div>` : ''}
 
-    <div class="sec"><h3>Решение</h3>${decisionBlock(e)}</div>
+    ${e.type === 'rollout' && !e.decision ? '' : `<div class="sec"><h3>Решение</h3>${decisionBlock(e)}</div>`}
 
     <div class="sec"><h3>Где включено <span class="sp"></span><span class="small muted" style="font-weight:400">${e.coverage} из ${ALL_BLOCKS.length} блоков</span></h3>
       <div style="overflow-x:auto">${blockMatrix(e)}</div>
@@ -1567,7 +1800,7 @@ function passportHTML(e) {
 
     <div class="sec"><h3>Тоглы и рубильники</h3>${toggleList(e)}</div>
 
-    <div class="sec"><h3>Пересечения с другими АБ-тестами</h3>${crossBlock(e)}</div>
+    ${e.type === 'rollout' ? '' : `<div class="sec"><h3>Пересечения с другими АБ-тестами</h3>${crossBlock(e)}</div>`}
   </div>`;
 }
 
@@ -1673,36 +1906,86 @@ function addEventModal(e) {
   <div class="modal-f"><button class="btn" data-mclose>Отмена</button><button class="btn primary" data-confirm-generic="Событие добавлено, матрица блоков обновлена">Добавить</button></div>`);
 }
 
+const ntState = { mode: 'iter', fid: 'f-activ' };
+const nextIter = (f) => Math.max(0, ...pastOf(f).map((h) => h.n), ...f.tests.map((t) => t.iter)) + 1;
+const themeVer = (f, th) => 'V' + (pastOf(f).filter((h) => h.theme === th).length + f.tests.filter((t) => t.stage !== 'done' && t.theme === th).length + 1);
+
 function newTestModal() {
+  const S = ntState;
+  const feats = Object.values(FEATURES).filter((f) => f.tests.some((t) => t.type !== 'rollout') && !isParallel(f));
+  const f = FEATURES[S.fid] || feats[0];
+  const past = pastOf(f);
+  const themes = [...new Set([...past.map((h) => h.theme), ...f.tests.map((t) => t.theme)].filter(Boolean))];
+  const work = f.tests.filter((t) => t.stage !== 'done');
+  const cnt = (k) => past.filter((h) => h.kind === k).length;
+  const field = (label, html, w) => `<div class="field ${w ? '' : 'grow'}" ${w ? `style="width:${w}px"` : ''}><label>${label}</label>${html}</div>`;
+  const inp = (k, v, extra = '') => `<input type="text" data-nt="${k}" value="${esc(v)}" ${extra}>`;
+
+  const modes = `<div class="seg" style="align-self:flex-start">
+    <button class="${S.mode === 'iter' ? 'on' : ''}" data-ntmode="iter">Новая итерация в фиче</button>
+    <button class="${S.mode === 'new' ? 'on' : ''}" data-ntmode="new">Новая фича с АБ</button>
+    <button class="${S.mode === 'noab' ? 'on' : ''}" data-ntmode="noab">Фича без АБ</button></div>`;
+
+  let body = '';
+  if (S.mode === 'iter') {
+    body = `
+      ${field('Фича (строка тиража)', `<select class="sel" data-ntf style="width:100%">${feats.map((x) => `<option value="${x.id}" ${x.id === f.id ? 'selected' : ''}>${esc(x.name)} · ${pastOf(x).length + x.tests.filter((t) => t.stage !== 'done').length} итер.</option>`).join('')}</select>`)}
+      ${past.length ? `<div style="padding:10px 12px;border-radius:10px;background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line)">
+        <div class="small" style="margin-bottom:6px"><b>История фичи: ${past.length} ${plural(past.length, 'тест', 'теста', 'тестов')}</b> · побед ${cnt('win')} · без эффекта ${cnt('none')} · остановлено ${cnt('stop')}${work.length ? ` · сейчас в работе ${work.map((t) => '№' + t.iter).join(', ')}` : ''}</div>
+        <div class="hstrip sm">${past.map((h) => `<i style="background:${HCOLOR[h.kind]}" data-tip="<b>${esc(h.it)} · ${esc(h.theme)}</b><br>${esc(h.what)}<br>${esc(h.out)}"></i>`).join('')}${work.map(() => '<i class="now"></i>').join('')}</div>
+      </div>` : ''}
+      <div class="row" style="gap:12px">
+        ${field('№ итерации', inp('iter', nextIter(f), 'readonly style="background:var(--surface-2)"'), 110)}
+        ${field('Тема', `<select class="sel" data-nt="theme" style="width:100%">${themes.map((t) => `<option>${esc(t)}</option>`).join('')}<option value="">Новая тема</option></select>`)}
+        ${field('Версия сути', inp('ver', themeVer(f, themes[0]), 'readonly style="background:var(--surface-2)"'), 110)}
+      </div>
+      <div class="row" style="gap:12px">${field('Суть теста (ветка)', inp('branch', 'Иллюстрация с маскотом и суммой'))}${field('Варианты', inp('range', '91.0-92.0'), 130)}${field('Дата запуска', inp('launch', '30.11.2026'), 130)}</div>
+      <div id="nt-sim"></div>
+      <div class="conv-name" style="margin-top:0"><span class="nowrap">Имя</span><code id="nt-name"></code></div>
+      <div class="small muted">Номер итерации берётся из истории фичи, версия сути — из числа тестов на ту же тему. Вручную считать 30+ прошлых тестов не нужно.</div>`;
+  } else if (S.mode === 'new') {
+    body = `
+      <div class="row" style="gap:12px">${field('Название фичи (без «АБ-тест»)', inp('feature', 'Push-напоминание о неподключённых уведомлениях'))}</div>
+      <div class="row" style="gap:12px">${field('№ итерации', inp('iter', '1', 'readonly style="background:var(--surface-2)"'), 110)}${field('Суть теста (ветка)', inp('branch', 'текст напоминания'))}${field('Версия', inp('ver', 'V1', 'readonly style="background:var(--surface-2)"'), 90)}</div>
+      <div class="row" style="gap:12px">${field('Варианты рубильника', inp('range', '1.0-2.0'))}${field('Дата запуска', inp('launch', '01.12.2026'))}</div>
+      <div class="row" style="gap:12px">${field('Целевая метрика', inp('metric', 'Подключение уведомлений'))}${field('Мин. срок, дней', inp('min', '14'), 150)}</div>
+      <div class="conv-name" style="margin-top:0"><span class="nowrap">Имя</span><code id="nt-name"></code></div>`;
+  } else {
+    body = `
+      <div class="row" style="gap:12px">${field('Название фичи', inp('feature', 'Новый экран истории уведомлений'))}${field('Релиз', inp('rel', '17.16'), 100)}</div>
+      <div class="field"><label>Почему без АБ-теста</label><div class="opt-list">
+        ${['Регуляторное или обязательное требование: функция нужна всем', 'Технический переезд: для клиента ничего не меняется', 'Обновление библиотеки или SDK', 'Исправление ошибки', 'Другое'].map((r, k) => `<label class="opt ${k === 1 ? 'sel' : ''}"><input type="radio" name="noab" ${k === 1 ? 'checked' : ''}> <span>${r}</span></label>`).join('')}
+      </div></div>
+      <label class="check"><input type="checkbox" checked> <span>Сначала пилот на бете или пилотной группе</span></label>
+      <div class="row" style="gap:12px">${field('Что проверяем после раскатки вместо АБ', inp('check', 'Ошибки экрана, обращения в поддержку'))}${field('Через, дней', inp('days', '7'), 110)}</div>
+      <div class="small muted">У такой фичи не будет стадий «Сбор данных» и «Готов к анализу», и сервис не станет ждать результатов. Он будет следить за пилотом, раскаткой по блокам, SD-заявками, контрольной точкой и удалением тоглов.</div>`;
+  }
+
   openModal(`
-  <div class="modal-h"><div class="grow"><h2>Новый АБ-тест</h2><div class="small ink2" style="margin-top:4px">Имя собирается по конвенции автоматически</div></div><button class="btn ghost sm" data-mclose>${ICON.x}</button></div>
-  <div class="modal-b" id="nt">
-    <div class="row" style="gap:12px">
-      <div class="field" style="width:140px"><label>Платформа</label><select class="sel" data-nt="platform"><option>Android</option><option>iOS</option></select></div>
-      <div class="field grow"><label>Название фичи (без «АБ-тест»)</label><input type="text" data-nt="feature" value="Стиль уведомлений. Выводим 4+ стили"></div>
-    </div>
-    <div class="row" style="gap:12px">
-      <div class="field" style="width:110px"><label>№ итерации</label><input type="text" data-nt="iter" value="15"></div>
-      <div class="field grow"><label>Суть теста (ветка)</label><input type="text" data-nt="branch" value="описание стиля Мини"></div>
-      <div class="field" style="width:90px"><label>Версия</label><input type="text" data-nt="ver" value="V2"></div>
-    </div>
-    <div class="row" style="gap:12px">
-      <div class="field grow"><label>Варианты рубильника</label><input type="text" data-nt="range" value="54.0-56.0"></div>
-      <div class="field grow"><label>Дата запуска</label><input type="text" data-nt="launch" value="24.11.2026"></div>
-    </div>
-    <div class="row" style="gap:12px">
-      <div class="field grow"><label>Целевая метрика</label><input type="text" value="Конверсия в установку стиля «Мини»"></div>
-      <div class="field" style="width:150px"><label>Мин. срок, дней</label><input type="text" value="14"></div>
-    </div>
-    <div class="conv-name" style="margin-top:0"><span class="nowrap">Имя</span><code id="nt-name"></code></div>
-    <div class="small muted">Сервис подскажет, что №14 уже был (V1), и предложит поднять версию сути теста при перезапуске.</div>
-  </div>
-  <div class="modal-f"><button class="btn" data-mclose>Отмена</button><button class="btn primary" data-confirm-generic="Черновик создан: строка в тираже и тест на АБ-платформе">Создать черновик</button></div>`);
+  <div class="modal-h"><div class="grow"><h2>Новая строка в тираже</h2><div class="small ink2" style="margin-top:4px">Итерация существующей фичи, новая фича с АБ-тестом или фича без АБ</div></div><button class="btn ghost sm" data-mclose>${ICON.x}</button></div>
+  <div class="modal-b" id="nt">${modes}${body}</div>
+  <div class="modal-f"><button class="btn" data-mclose>Отмена</button><button class="btn primary" data-confirm-generic="${S.mode === 'noab' ? 'Строка тиража создана: фича без АБ, контрольная точка запланирована' : 'Черновик создан: строка в тираже и тест на АБ-платформе'}">Создать черновик</button></div>`);
+
+  $$('[data-ntmode]').forEach((b) => b.addEventListener('click', () => { S.mode = b.dataset.ntmode; newTestModal(); }));
+  const fs = $('[data-ntf]'); if (fs) fs.addEventListener('change', () => { S.fid = fs.value; newTestModal(); });
+  const v = (k) => ($(`[data-nt="${k}"]`) || {}).value || '';
   const upd = () => {
-    const v = (k) => $(`[data-nt="${k}"]`).value;
-    $('#nt-name').textContent = `[${TEAM.name}] ${v('platform')}. ${v('feature')}. №${v('iter')} Ветка: ${v('branch')} ${v('ver')}. ${v('range')}. ${v('launch')}`;
+    if (S.mode === 'iter') {
+      const th = v('theme');
+      $('[data-nt="ver"]').value = th ? themeVer(f, th) : 'V1';
+      const same = past.filter((h) => th && h.theme === th);
+      const wins = same.filter((h) => h.kind === 'win');
+      $('#nt-sim').innerHTML = same.length ? `<div class="alert ${wins.length ? 'warn' : 'warn'}" style="padding:10px 12px">${sevIcon('warn')}<div class="a-body"><div class="a-title" style="font-size:13px">Тему «${esc(th)}» уже проверяли ${same.length} ${plural(same.length, 'раз', 'раза', 'раз')}</div>
+        <div class="a-sub small">${same.map((h) => `${esc(h.it)} ${esc(h.what)} — <b>${esc(h.out.toLowerCase())}</b>`).join('<br>')}</div>
+        ${wins.length ? `<div class="a-sub small" style="margin-top:4px">Контролем будет текущий победитель ${esc(wins[wins.length - 1].it)}. Проверьте, что новая гипотеза отличается от прошлых</div>` : ''}</div></div>` : (th ? '' : '<div class="small muted">Новая тема: версия начнётся с V1</div>');
+      $('#nt-name').textContent = `[${TEAM.name}] ${TEAM.platform}. ${f.name}. №${v('iter')} Ветка: ${v('branch')} ${v('ver')}. ${v('range')}. ${v('launch')}`;
+    } else if (S.mode === 'new') {
+      $('#nt-name').textContent = `[${TEAM.name}] ${TEAM.platform}. ${v('feature')}. №1 Ветка: ${v('branch')} V1. ${v('range')}. ${v('launch')}`;
+    }
   };
-  $$('#nt [data-nt]').forEach((i) => i.addEventListener('input', upd)); upd();
+  $$('#nt [data-nt]').forEach((x) => { x.addEventListener('input', upd); x.addEventListener('change', upd); });
+  const ths = $('[data-nt="theme"]'); if (ths && themes.includes('Иллюстрация')) ths.value = 'Иллюстрация';
+  upd();
 }
 
 function decideOne(e) {
@@ -1820,11 +2103,22 @@ function initGlobal() {
         case 'cleanup': toast('Добавлено в «Удаление тоглов, ч. 22» (релиз 17.16)'); break;
         case 'cross': openPassport(e.id); setTimeout(() => { const s = $$('#drawer .sec').find((x) => x.textContent.startsWith('Пересечения')); s && s.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 260); break;
         case 'link': toast('В рабочей версии откроется внешняя ссылка'); break;
+        case 'pilot': {
+          rolloutPlan(addDays(TODAY, 1)).forEach((p, i) => e.events.push({ d: fmt(p.d, true), t: 'plan', b: p.b, v: e.variants[0].v, txt: `План: включить ${e.variants[0].v}`, sd: i === 0 ? 'SD0002462' + (100 + Math.floor(Math.random() * 800)) : undefined }));
+          e.stage = 'enabling'; e.dates.rolloutStart = fmt(addDays(TODAY, 1), true); prepare(e);
+          toast('План раскатки на всех создан, SD на первый шаг заведена'); rerender(); if ($('#drawer').classList.contains('open')) openPassport(e.id); break;
+        }
+        case 'check': e.check.done = `Проверено ${fmt(TODAY)}: без отклонений`; prepare(e); toast('Проверка после раскатки отмечена'); rerender(); if ($('#drawer').classList.contains('open')) openPassport(e.id); break;
         case 'open': default: if (e) openPassport(e.id);
       }
     }
   });
   document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') { closeModal(); closePassport(); } });
+  document.addEventListener('input', (ev) => {
+    if (!ev.target.matches('[data-hsearch]')) return;
+    const q = ev.target.value.trim().toLowerCase();
+    $$('.fhist', ev.target.closest('details')).forEach((r) => { r.style.display = !q || r.dataset.htext.includes(q) ? '' : 'none'; });
+  });
   window.addEventListener('hashchange', route);
 }
 
@@ -1878,6 +2172,8 @@ const NEEDS = [
   ['Связь с релизами', [0, 1, 2, 2, 0]],
   ['Пересечения тестов', [1, 0, 2, 1, 0]],
   ['Несколько АБ-тестов в одной фиче', [2, 2, 2, 2, 1]],
+  ['Фичи без АБ-теста', [2, 2, 1, 2, 2]],
+  ['Длинная история итераций (30+)', [1, 0, 1, 2, 1]],
   ['Порог входа для команды', [2, 2, 1, 2, 2]],
 ];
 
@@ -1891,6 +2187,9 @@ const RULES = [
   ['warn', 'Сильные пересечения', '90 % выборки или больше попадает в другие тесты'],
   ['warn', 'Не заполнено обязательное', 'Нет целевой метрики, гипотезы или ссылки на аналитику'],
   ['warn', 'Выборка не успевает', 'При текущем темпе 100 % выборки наберётся позже плановой даты окончания (типично для маленьких сегментов)'],
+  ['warn', 'Пилот затянулся', 'Фича без АБ: пилот идёт больше 10 дней, а плана раскатки нет'],
+  ['warn', 'Проверка после раскатки', 'Фича без АБ: через N дней после 100 % пора сравнить метрики до и после'],
+  ['info', 'Похожую гипотезу уже проверяли', 'Тема новой итерации уже встречалась в истории фичи: показываем итоги прошлых тестов'],
   ['good', 'Можно смотреть результаты', 'Набраны и минимальный срок, и 100 % выборки. Для каждого теста фичи считается отдельно'],
   ['info', 'Скоро', 'Результаты через N дней, срез холдаута, старт после релиза'],
 ];
@@ -1940,10 +2239,11 @@ function renderOverview(root) {
 
     <div class="section-label" style="margin-top:28px">Фича и её АБ-тесты <span class="cnt">тоже общее для всех вариантов</span></div>
     <div class="card" style="padding:16px">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px 28px">
         <div><div style="font-weight:650">Фича = строка тиража</div><div class="small ink2" style="margin-top:4px">Ссылка на аналитику, релиз, блокеры, история итераций («что уже пробовали»), задача на удаление тоглов. Внутри — один или несколько АБ-тестов.</div></div>
         <div><div style="font-weight:650">Параллельные тесты</div><div class="small ink2" style="margin-top:4px">Один запуск, разные сегменты или рубильники: лендинги 0 / 59 / 99 ₽, <span class="mono">returnNotificationsPrice1/2/3Ab</span>. У каждого своя выборка и поэтому своя дата «можно смотреть», свой результат и своё решение: где-то раскатываем, где-то оставляем контроль.</div></div>
-        <div><div style="font-weight:650">Последовательные итерации</div><div class="small ink2" style="margin-top:4px">№32 → №33, стиль уведомлений №1…№14, перезапуск с новой версией сути (V1 → V2). Сервис связывает их в историю фичи и при создании следующего теста сам предлагает номер и версию по конвенции.</div></div>
+        <div><div style="font-weight:650">Последовательные итерации и длинная история</div><div class="small ink2" style="margin-top:4px">«Активация клиента с 1 продуктом»: 33 прошлых теста и сейчас №34. В паспорте — сводка (побед / без эффекта / остановлено), лента всех итераций, разбивка по темам и что из этого сейчас в проде. Если тему нового теста уже проверяли, сервис покажет, чем это кончилось. Номер и версию при создании итерации подставит сам. <a href="#" data-open="activ34">Открыть пример</a></div></div>
+        <div><div style="font-weight:650">Фича без АБ-теста</div><div class="small ink2" style="margin-top:4px">Регуляторное требование, технический переезд, обновление SDK. Причину «почему без АБ» указывают при создании. Цикл короче: релиз и пилот → раскатка по блокам → проверка и чистка. Вместо результатов — контрольная точка по метрикам через N дней после 100 %. Сервис не ждёт итогов АБ, но следит за раскаткой, пилотом и тоглами. Примеры: <a href="#" data-open="kps">КПС</a>, <a href="#" data-open="dep-switch">вклады в свитчер</a>, <a href="#" data-open="rustore">RuStore SDK</a></div></div>
       </div>
       <div class="small muted" style="margin-top:12px">В Пульте и Ассистенте напоминания по тестам одной фичи склеиваются в одну строку со списком тестов. В Конвейере их можно свернуть в одну карточку, в Таймлайне — сгруппировать по фичам, в Умном тираже фича — строка, а тесты — вложенные строки. В паспорте есть переключатель между тестами фичи.</div>
     </div>
@@ -2122,6 +2422,7 @@ function cardBody(e) {
       return `<div class="small ink2">Создан ${fmt(e.d.created)} · ${e.blockers ? `<span class="sev-label warn">${esc(e.blockers)}</span>` : 'без блокеров'}</div>`;
     case 'release': {
       const r = RELEASES.find((x) => x.v === e.release);
+      if (e.pilot) return `<div class="small ink2">Пилот с ${e.pilot.since.slice(0, 5)}: ${esc(e.pilot.group)}</div><div class="small muted">АБ не планируется</div>`;
       return `<div class="small ink2">Релиз ${e.release} · ${r ? r.d.slice(0, 5) : ''} → старт АБ ${fmt(e.d.plannedStart)}</div>${e.beta ? '<div class="small muted">Пилот на бете включён</div>' : ''}`;
     }
     case 'enabling':
@@ -2134,6 +2435,7 @@ function cardBody(e) {
       return `${readinessBar(e, true)}<div class="small ink2">${e.d.platformEnd ? `Завершён ${fmt(e.d.platformEnd)}` : `Платформа: ${e.platform}`} · решения нет</div>`;
     case 'cleanup': {
       const done = e.toggles.filter((x) => x.st === 'done').length;
+      if (!e.toggles.length) return '<div class="small ink2">Тоглов нет</div>';
       return `<div class="row small ink2"><span class="grow">Тоглы удалены: ${done} из ${e.toggles.length}</span></div>
         <div class="meter" style="background:#d9ecd9"><b style="width:${(done / Math.max(1, e.toggles.length)) * 100}%;background:var(--st-cleanup)"></b></div>`;
     }
@@ -2156,7 +2458,7 @@ function boardCard(e) {
   const edge = top.length ? `box-shadow: inset 3px 0 0 var(--${top[0].sev}), var(--shadow)` : '';
   return `<div class="kcard" draggable="true" data-id="${e.id}" style="${edge}">
     <div class="row" style="align-items:flex-start"><a href="#" data-open="${e.id}" class="grow ktitle">${esc(e.short)}</a></div>
-    <div class="row small muted" style="gap:6px"><span>${e.tag}</span>·<span>${e.release}</span>${featureOf(e).tests.length > 1 ? `· <span title="Тестов в фиче">${featureOf(e).tests.indexOf(e) + 1}/${featureOf(e).tests.length} в фиче</span>` : ''}${e.type === 'holdout' ? '· <span>холдаут</span>' : ''}${e.type === 'rollout' ? '· <span>без АБ</span>' : ''}</div>
+    <div class="row small muted" style="gap:6px"><span>${e.tag}</span>·<span>${e.release}</span>${featureOf(e).tests.length > 1 ? `· <span title="Тестов в фиче">${featureOf(e).tests.indexOf(e) + 1}/${featureOf(e).tests.length} в фиче</span>` : ''}${e.type === 'holdout' ? '· <span>холдаут</span>' : ''}${pastOf(featureOf(e)).length > 8 ? `· <span title="Прошлых итераций">${pastOf(featureOf(e)).length} в истории</span>` : ''}${e.type === 'rollout' ? '· <span class="chip" style="height:18px">без АБ</span>' : ''}</div>
     ${cardBody(e)}
     ${top.length ? `<div class="stack" style="gap:4px">${top.slice(0, 2).map((a) => `<div class="row small" style="gap:6px;align-items:flex-start">${sevIcon(a.sev)}<span>${esc(a.title)}</span></div>`).join('')}</div>` : ''}
     <div class="row" style="margin-top:2px">${avatar(e.owner)}<span class="small muted grow nowrap" style="overflow:hidden;text-overflow:ellipsis">${esc(e.owner)}</span>${age != null ? `<span class="small nowrap ${age > 14 && !['done', 'collecting'].includes(e.stage) ? '' : 'muted'}" title="Дней на текущей стадии">${age} дн. на стадии</span>` : ''}</div>
@@ -2307,6 +2609,7 @@ const PHASE = {
   ready: { name: 'Анализ и решение', css: 'background:var(--st-ready)' },
   rollout: { name: 'Раскатка решения', css: 'background:var(--st-rollout)' },
   cleanup: { name: 'Чистка тоглов', css: 'background:var(--st-cleanup)' },
+  pilot: { name: 'Пилот (без АБ)', css: 'background:repeating-linear-gradient(45deg,#6250d6 0 3px,#d9d4f6 3px 6px)' },
   plan: { name: 'План', css: 'background:rgba(42,120,214,.12);box-shadow:inset 0 0 0 1px rgba(42,120,214,.55)' },
   planroll: { name: 'План раскатки', css: 'background:rgba(27,175,122,.14);box-shadow:inset 0 0 0 1px rgba(27,175,122,.7)' },
 };
@@ -2314,7 +2617,14 @@ const PHASE = {
 function phasesOf(e) {
   const P = []; const T = TODAY;
   const push = (k, from, to) => { if (from && to && to > from) P.push({ k, from, to }); };
-  if (e.type === 'rollout') { push('rollout', e.d.rolloutStart, e.d.rolloutDoneAt); push('cleanup', e.d.rolloutDoneAt, e.d.cleanupDoneAt || T); return P; }
+  if (e.type === 'rollout') {
+    if (e.stage === 'prep' || e.pilot) push('prep', e.d.created, e.pilot ? D(e.pilot.since) : T);
+    if (e.pilot) push('pilot', D(e.pilot.since), e.d.rolloutStart || T);
+    push('rollout', e.d.rolloutStart, e.d.rolloutDoneAt || T);
+    if (!e.d.rolloutDoneAt && e.nextPlan) { const last = Object.values(e.plan).reduce((m, p) => (p.d > m ? p.d : m), T); push('planroll', T, last); }
+    push('cleanup', e.d.rolloutDoneAt, e.d.cleanupDoneAt || T);
+    return P;
+  }
   if (e.stage === 'prep') { push('prep', e.d.created, T); return P; }
   if (e.stage === 'release') { push('prep', e.d.created, T); push('plan', e.d.plannedStart, addDays(e.d.plannedStart, e.planDays)); return P; }
   push('enabling', e.d.enableStart, e.d.fullAt || T);
@@ -2387,7 +2697,7 @@ function renderTimeline(root) {
     const sev = e.alerts.find((a) => ['crit', 'serious', 'warn'].includes(a.sev));
     return `<div class="tl-row">
       <div class="tl-lab" ${byF ? 'style="padding-left:28px"' : ''}><a href="#" data-open="${e.id}" class="tl-name" title="${esc(e.short)}">${esc(name)}</a>
-        <div class="row small muted" style="gap:6px">${sev ? sevIcon(sev.sev) : ''}<span>${e.tag}</span>${S.group !== 'stage' ? stageDot(e.stage) + `<span>${STAGE[e.stage].name}</span>` : `<span>· ${e.release}</span>`}${!byF && featureOf(e).history.length ? `<span title="Прошлые итерации фичи">· +${featureOf(e).history.length} в истории</span>` : ''}</div></div>
+        <div class="row small muted" style="gap:6px">${sev ? sevIcon(sev.sev) : ''}<span>${e.tag}</span>${S.group !== 'stage' ? stageDot(e.stage) + `<span>${STAGE[e.stage].name}</span>` : `<span>· ${e.release}</span>`}${e.type === 'rollout' ? '<span>· без АБ</span>' : ''}${!byF && pastOf(featureOf(e)).length ? `<span title="Прошлые итерации фичи">· +${pastOf(featureOf(e)).length} в истории</span>` : ''}</div></div>
       <div class="tl-plot">${bars}${flag}</div>
     </div>`;
   };
@@ -2448,7 +2758,7 @@ function renderTimeline(root) {
       <div class="seg"><button class="${S.group === 'feature' ? 'on' : ''}" data-group="feature">По фичам</button><button class="${S.group === 'stage' ? 'on' : ''}" data-group="stage">По стадиям</button><button class="${S.group === 'release' ? 'on' : ''}" data-group="release">По релизам</button></div>
       <span class="toggle ${S.hideDone ? 'on' : ''}" id="tl-hide"><i></i>Скрыть архив</span>
       <span class="sp"></span>
-      <div class="tl-legend">${['enabling', 'collecting', 'overdue', 'ready', 'rollout', 'cleanup', 'plan'].map((k) => `<span><i style="${PHASE[k].css};height:10px;top:0"></i>${PHASE[k].name}</span>`).join('')}<span>${ICON.flag} Можно смотреть</span></div>
+      <div class="tl-legend">${['enabling', 'collecting', 'overdue', 'ready', 'rollout', 'cleanup', 'pilot', 'plan'].map((k) => `<span><i style="${PHASE[k].css};height:10px;top:0"></i>${PHASE[k].name}</span>`).join('')}<span>${ICON.flag} Можно смотреть</span></div>
     </div>
 
     <div class="tl">
@@ -2465,7 +2775,7 @@ function renderTimeline(root) {
           <span class="vt" style="left:${x(TODAY)}%"></span>
         </div>
         ${groups.map((g) => g.feature
-          ? `<div class="tl-grp"><div style="grid-column:1/-1;flex-wrap:wrap"><span class="dot" style="background:#141413"></span>${esc(g.title)}<span class="chip" style="height:18px;font-weight:500">${g.items.length} ${plural(g.items.length, 'тест', 'теста', 'тестов')} · ${featureKind(g.feature)}</span>${g.feature.history.length ? `<span class="muted" style="font-weight:500">ещё ${g.feature.history.length} в истории</span>` : ''}</div></div>${g.items.map(row).join('')}`
+          ? `<div class="tl-grp"><div style="grid-column:1/-1;flex-wrap:wrap"><span class="dot" style="background:#141413"></span>${esc(g.title)}<span class="chip" style="height:18px;font-weight:500">${g.items.length} ${plural(g.items.length, 'тест', 'теста', 'тестов')} · ${featureKind(g.feature)}</span>${g.feature.history.length ? `<span class="muted" style="font-weight:500">и ещё ${g.feature.history.length} ${plural(g.feature.history.length, 'итерация', 'итерации', 'итераций')} раньше</span>` : ''}</div></div>${g.items.map(row).join('')}`
           : `<div class="tl-grp"><div style="grid-column:1/-1">${g.color ? `<span class="dot" style="background:${g.color}"></span>` : ''}${esc(g.title)}<span class="muted" style="font-weight:500">${g.items.length}</span></div></div>${g.items.map(row).join('')}`).join('')}
       </div>
       <div class="tl-chart">
@@ -2496,11 +2806,12 @@ VIEWS.timeline = { render: renderTimeline };
 const regState = { view: 'active', tab: 'features', byRelease: true, open: new Set(['style14']) };
 const REG_VIEWS = [
   { k: 'all', name: 'Все', f: () => true },
-  { k: 'active', name: 'Активные АБ', f: (e) => ['enabling', 'collecting', 'ready', 'rollout'].includes(e.stage) },
+  { k: 'active', name: 'Активные АБ', f: (e) => e.type !== 'rollout' && ['enabling', 'collecting', 'ready', 'rollout'].includes(e.stage) },
   { k: 'enabling', name: 'Включаются', f: (e) => ['enabling', 'rollout'].includes(e.stage) },
   { k: 'ready', name: 'Готовы к анализу', f: (e) => e.stage === 'ready' || e.alerts.some((a) => a.rule === 'canlook') },
   { k: 'prep', name: 'В подготовке', f: (e) => ['prep', 'release'].includes(e.stage) },
   { k: 'cleanup', name: 'Ждут чистки', f: (e) => e.stage === 'cleanup' },
+  { k: 'noab', name: 'Без АБ', f: (e) => e.type === 'rollout' },
   { k: 'done', name: 'Архив', f: (e) => e.stage === 'done' },
 ];
 
@@ -2510,7 +2821,11 @@ function lastEvent(e) {
 }
 
 function abCell(e) {
-  if (e.type === 'rollout') return '<span class="small muted">Без АБ</span>' + (e.alerts.some((a) => a.rule === 'draft') ? '<div class="small"><span class="sev-label warn">Висит черновик</span></div>' : '');
+  if (e.type === 'rollout') {
+    const c = e.check || {};
+    const st = c.done ? `<span class="sev-label good">${esc(c.done.split(':')[0])}</span>` : e.d.rolloutDoneAt && c.days ? `<span class="small ink2">проверка ${fmt(addDays(e.d.rolloutDoneAt, c.days))}</span>` : e.pilot ? `<span class="small ink2">пилот с ${e.pilot.since.slice(0, 5)}</span>` : `<span class="small ink2">проверка через ${c.days || 7} дн. после 100 %</span>`;
+    return `<span class="chip">Без АБ</span><div style="margin-top:4px">${st}</div>` + (e.alerts.some((a) => a.rule === 'draft') ? '<div class="small"><span class="sev-label warn">Висит черновик</span></div>' : '');
+  }
   if (['prep', 'release'].includes(e.stage)) return `<span class="small ink2">${e.platform === 'Новый' ? 'Создан на платформе' : ''}${e.d.plannedStart ? `<br>старт ${fmt(e.d.plannedStart)}` : ''}</span>`;
   if (['collecting', 'enabling'].includes(e.stage) && e.d.fullAt) return readinessBar(e, true);
   if (e.stage === 'enabling') return '<span class="small ink2">Отсчёт начнётся после включения на всех блоках</span>';
@@ -2539,8 +2854,8 @@ function regRow(e, S, nested = false) {
     <td style="width:28px;padding-right:0"><button class="btn ghost sm" data-expand="${e.id}" style="padding:0 4px;transform:rotate(${isOpen ? 0 : -90}deg)">${ICON.chev}</button></td>
     <td style="min-width:240px;max-width:300px;${nested ? 'padding-left:28px;border-left:3px solid var(--line-2)' : ''}">
       ${nested ? `<a href="#" data-open="${e.id}" style="font-weight:600;color:var(--ink)">АБ-тест: ${esc(e.label)}</a>` : `<a href="#" data-open="${e.id}" style="font-weight:600;color:var(--ink)">${esc(e.feature)}</a>`}
-      <div class="row wrap small muted" style="gap:2px 6px;margin-top:2px"><span class="nowrap">${e.tag}</span><span class="mono" style="font-size:11px">${e.key}</span></div>
-      <div class="row wrap" style="gap:6px;margin-top:6px">${stageChip(e.stage)}<span class="small muted">платформа: ${e.platform}</span>${e.blockers ? `<span class="chip" style="background:#fef4dc;color:#8a5d00" data-tip="${esc(e.blockers)}">Есть блокер</span>` : ''}</div>
+      <div class="row wrap small muted" style="gap:2px 6px;margin-top:2px"><span class="nowrap">${e.tag}</span><span class="mono" style="font-size:11px">${e.key}</span>${!nested && pastOf(featureOf(e)).length ? `<span class="nowrap" title="Прошлые итерации фичи">· ${pastOf(featureOf(e)).length} в истории</span>` : ''}</div>
+      <div class="row wrap" style="gap:6px;margin-top:6px">${stageChip(e.stage)}${e.type === 'rollout' ? '<span class="small muted">без АБ</span>' : `<span class="small muted">платформа: ${e.platform}</span>`}${e.blockers ? `<span class="chip" style="background:#fef4dc;color:#8a5d00" data-tip="${esc(e.blockers)}">Есть блокер</span>` : ''}</div>
       ${sev ? `<div class="row small" style="gap:6px;margin-top:6px;align-items:flex-start">${sevIcon(sev.sev)}<span>${esc(sev.title)}</span></div>` : ''}
     </td>
     <td>${blockMatrix(e, { head: false, fixed: '33px' })}</td>
@@ -2573,7 +2888,7 @@ function featureRows(f, items, S) {
       <div class="row wrap" style="gap:8px"><a href="#" data-open="${items[0].id}" style="font-weight:650;color:var(--ink);font-size:14px">${esc(f.name)}</a>
       <span class="chip">${f.tests.length} ${plural(f.tests.length, 'АБ-тест', 'АБ-теста', 'АБ-тестов')} · ${featureKind(f)}</span>
       ${stages.map((k) => stageChip(k)).join('')}
-      ${f.history.length ? `<span class="small muted">ещё ${f.history.length} в истории</span>` : ''}
+      ${f.history.length ? `<span class="small muted">и ещё ${f.history.length} ${plural(f.history.length, 'итерация', 'итерации', 'итераций')} раньше</span>` : ''}
       ${hidden ? `<span class="small muted">${hidden} не попадают в фильтр</span>` : ''}
       ${worst ? `<span class="row small" style="gap:6px">${sevIcon(worst.sev)}${esc(worst.title)}</span>` : ''}</div>
       <div class="small muted" style="margin-top:4px">Одна строка тиража и одна аналитика. Ниже — тесты, у каждого свои блоки, сроки, результат и решение</div>
@@ -2690,6 +3005,7 @@ function initChat() {
     { from: 'bot', time: '10:00', html: digestHTML(), btns: [{ l: 'Открыть Пульт', a: 'goto:pult' }, { l: 'Только мои', a: 'mine' }] },
     { from: 'bot', time: '10:00', html: `<div class="cm-ev">${sevIcon('crit')}<b>Решение не записано уже 7 дней</b></div>Тест <a href="#" data-open="style14">${esc(s14.short)} №14</a> завершился на АБ-платформе 04.11. Результаты посчитаны: у трёх вариантов значимое снижение конверсии в «Стандарт», как и предполагала гипотеза.<div class="muted small" style="margin-top:4px">Владелец: ${s14.owner}. Если решения не будет до 13.11, напишу руководителю.</div>`, btns: [{ l: 'Записать решение', a: 'decide', primary: true }, { l: 'Показать результаты', a: 'open:style14' }, { l: 'Напомнить через 2 дня', a: 'snooze2' }] },
     { from: 'bot', time: '10:01', html: `<div class="cm-ev">${sevIcon('warn')}<b>Завтра включение без SD-заявки</b></div><a href="#" data-open="pay-spasibo">${esc(pay.short)}</a>: 12.11 по плану блоки 12, 9, 8, 7. Вы дежурная по включению на этой неделе. Значение в бете совпадает с веткой _beta, можно заводить.`, btns: [{ l: 'Создать SD', a: 'sd', primary: true }, { l: 'Перенести на день', a: 'move' }] },
+    { from: 'bot', time: '10:01', html: `<div class="cm-ev">${sevIcon('warn')}<b>Пилот идёт 13 дней, решения о раскатке нет</b></div><a href="#" data-open="dep-switch">${esc(EX['dep-switch'].feature)}</a>. АБ по этой фиче не планируется: технический переезд. На пилотной группе 2 замечания, оба исправлены.`, btns: [{ l: 'Раскатать на всех по плану', a: 'pilotgo', primary: true }, { l: 'Продлить пилот на неделю', a: 'pilotext' }] },
     { from: 'bot', time: '10:01', html: `<div class="cm-ev">${sevIcon('crit')}<b>3 теста фичи идут на 71 день дольше плана</b></div><a href="#" data-open="rp-99">${esc(rp.feature)}</a>: результаты готовы с 25.08, трафик всё ещё делится 50/50. Результаты по сегментам разные:<div class="cm-plan">${['rp-99', 'rp-59', 'rp-0'].map((id) => `<div><a href="#" data-open="${id}">${esc(EX[id].label)}</a> · ${esc(testBrief(EX[id]))}</div>`).join('')}</div>`, btns: [{ l: 'Раскатать 2.0 в 99 ₽ и 0 ₽, в 59 ₽ оставить контроль', a: 'rpdecide', primary: true }, { l: 'Решать по каждому отдельно', a: 'open:rp-99' }, { l: 'Это не мой тест', a: 'reassign' }] },
   ];
 }
@@ -2731,6 +3047,16 @@ function chatAct(a, root) {
       meSay('Раскатать 2.0 в 99 ₽ и 0 ₽, в 59 ₽ оставить контроль');
       if (!EX['rp-99'].decision) ['rp-99', 'rp-59', 'rp-0'].forEach((id) => decideOne(EX[id]));
       botSay(`<div class="cm-ev">${sevIcon('good')}<b>Записал 3 решения</b></div><div class="cm-plan">${['rp-99', 'rp-59', 'rp-0'].map((id) => `<div>${esc(EX[id].label)} · ${esc(outcome(EX[id]))}</div>`).join('')}</div>Остановил АБ, создал план раскатки 2.0 для двух сегментов и задачу на удаление <span class="mono">returnNotificationsPrice2Ab</span>. Тесты 59 ₽ и 99/0 ₽ дальше живут каждый своей стадией.`, [{ l: 'Открыть паспорт', a: 'open:rp-59' }]); break;
+    case 'pilotgo': {
+      meSay('Раскатать на всех по плану');
+      const d = EX['dep-switch'];
+      if (d.stage === 'release') {
+        rolloutPlan(addDays(TODAY, 1)).forEach((p, i) => d.events.push({ d: fmt(p.d, true), t: 'plan', b: p.b, v: '2.0', txt: 'План: включить 2.0', sd: i === 0 ? 'SD0002462411' : undefined }));
+        d.stage = 'enabling'; d.dates.rolloutStart = fmt(addDays(TODAY, 1), true); prepare(d);
+      }
+      botSay(`<div class="cm-ev">${sevIcon('good')}<b>План раскатки создан</b></div><div class="cm-plan">${rolloutPlan(addDays(TODAY, 1)).map((p) => `<div><span class="tnum muted">${fmt(p.d)}</span> ${blockList(p.b)}</div>`).join('')}</div>Через 7 дней после 100 % напомню проверить расхождения настроек и обращения: это контрольная точка вместо АБ.`); break;
+    }
+    case 'pilotext': meSay('Продлить пилот на неделю'); botSay('Продлил пилот до 18.11. Напомню в этот день.'); break;
     case 'later': meSay('Пока не раскатываем'); botSay('Хорошо, победитель записан, раскатку не планирую. Напомню через неделю.'); break;
     case 'snooze2': meSay('Напомнить через 2 дня'); botSay('Напомню 13.11 в 10:00. Если решения не будет, напишу руководителю.'); break;
     case 'sd': meSay('Создать SD'); botSay(`<div class="cm-ev">${sevIcon('good')}<b>Заявка создана</b></div><span class="mono">SD0002461337</span>: <span class="mono">payNotificationsBonusAb</span>, АБ 50/50, ПРОМ, блоки 12, 9, 8, 7, на 12.11.2026. Привязал её к шагу включения в тираже.`); break;
@@ -2741,6 +3067,13 @@ function chatAct(a, root) {
       if (arg === 'status') { meSay('/статус стиль 14'); botSay(statusCard(EX.style14)); }
       if (arg === 'status2') { meSay('/статус реакции'); botSay(statusCard(EX.reactions2), [{ l: 'Запланировать следующий шаг', a: 'plan2', primary: true }]); }
       if (arg === 'feat') { const f = FEATURES['f-activ-price']; meSay('/статус лендинги'); botSay(`<div style="font-weight:650">${esc(f.name)}</div><div class="small muted" style="margin-bottom:6px">${f.tests.length} АБ-теста · ${featureKind(f)}</div>${f.tests.map((t) => `<div style="margin:6px 0"><a href="#" data-open="${t.id}">${esc(t.label)}</a>${readinessBar(t)}</div>`).join('')}<div class="small ink2">Сегмент 99 ₽ маленький: выборка набирается медленнее, к плановой дате 03.12 не успеет.</div>`, [{ l: 'Продлить 99 ₽ до 07.12', a: 'extend', primary: true }, { l: 'Напомнить, когда будет готов 59 ₽', a: 'remind59' }]); }
+      if (arg === 'hist') {
+        const f = FEATURES['f-activ']; const past = pastOf(f); const c = (k) => past.filter((h) => h.kind === k).length;
+        meSay('/история активация');
+        botSay(`<div style="font-weight:650">${esc(f.name)}</div><div class="small ink2" style="margin:2px 0 8px">${past.length} тестов с ${esc(past[0].when)}: побед ${c('win')}, без эффекта ${c('none')}, остановлено ${c('stop')}. Сейчас идёт №34.</div>
+          <div class="hstrip sm" style="margin-bottom:8px">${past.map((h) => `<i style="background:${HCOLOR[h.kind]}" data-tip="<b>${esc(h.it)} · ${esc(h.theme)}</b><br>${esc(h.what)}<br>${esc(h.out)}"></i>`).join('')}<i class="now"></i></div>
+          <div class="small"><b>По теме №34 «Иллюстрация»:</b> ${past.filter((h) => h.theme === 'Иллюстрация').map((h) => `${esc(h.it)} — ${esc(h.out.toLowerCase())}`).join(', ')}. Маскот уже был в №19, тогда без эффекта.</div>`, [{ l: 'Открыть историю', a: 'open:activ34' }]);
+      }
       if (arg === 'duty') { meSay('/дежурный'); botSay(`На этой неделе включает <b>${dutyNow()}</b> (вы). Дальше: ${DUTY.filter((d) => !d.now).map((d) => `${d.who} — ${d.week}`).join('; ')}.`); }
       if (arg === 'digest') { meSay('/сводка'); botSay(digestHTML()); }
       break;
@@ -2799,7 +3132,7 @@ function renderAssistant(root, keepScroll) {
             <div class="bub">${m.html}${m.btns ? `<div class="cm-btns">${m.btns.map((b) => `<button class="btn sm ${b.primary ? 'primary' : ''}" data-chat="${b.a}">${esc(b.l)}</button>`).join('')}</div>` : ''}<div class="t">${m.time}</div></div></div>`).join('')}
         </div>
         <div class="msgr-f">
-          <div class="cmds"><button data-chat="cmd:digest">/сводка</button><button data-chat="cmd:status">/статус стиль 14</button><button data-chat="cmd:status2">/статус реакции</button><button data-chat="cmd:feat">/статус лендинги</button><button data-chat="cmd:duty">/дежурный</button></div>
+          <div class="cmds"><button data-chat="cmd:digest">/сводка</button><button data-chat="cmd:status">/статус стиль 14</button><button data-chat="cmd:status2">/статус реакции</button><button data-chat="cmd:feat">/статус лендинги</button><button data-chat="cmd:hist">/история активация</button><button data-chat="cmd:duty">/дежурный</button></div>
           <div class="inp">Напишите команду или вопрос: «что можно смотреть на этой неделе?»</div>
         </div>
       </div>

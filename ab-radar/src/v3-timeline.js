@@ -14,6 +14,7 @@ const PHASE = {
   ready: { name: 'Анализ и решение', css: 'background:var(--st-ready)' },
   rollout: { name: 'Раскатка решения', css: 'background:var(--st-rollout)' },
   cleanup: { name: 'Чистка тоглов', css: 'background:var(--st-cleanup)' },
+  pilot: { name: 'Пилот (без АБ)', css: 'background:repeating-linear-gradient(45deg,#6250d6 0 3px,#d9d4f6 3px 6px)' },
   plan: { name: 'План', css: 'background:rgba(42,120,214,.12);box-shadow:inset 0 0 0 1px rgba(42,120,214,.55)' },
   planroll: { name: 'План раскатки', css: 'background:rgba(27,175,122,.14);box-shadow:inset 0 0 0 1px rgba(27,175,122,.7)' },
 };
@@ -21,7 +22,14 @@ const PHASE = {
 function phasesOf(e) {
   const P = []; const T = TODAY;
   const push = (k, from, to) => { if (from && to && to > from) P.push({ k, from, to }); };
-  if (e.type === 'rollout') { push('rollout', e.d.rolloutStart, e.d.rolloutDoneAt); push('cleanup', e.d.rolloutDoneAt, e.d.cleanupDoneAt || T); return P; }
+  if (e.type === 'rollout') {
+    if (e.stage === 'prep' || e.pilot) push('prep', e.d.created, e.pilot ? D(e.pilot.since) : T);
+    if (e.pilot) push('pilot', D(e.pilot.since), e.d.rolloutStart || T);
+    push('rollout', e.d.rolloutStart, e.d.rolloutDoneAt || T);
+    if (!e.d.rolloutDoneAt && e.nextPlan) { const last = Object.values(e.plan).reduce((m, p) => (p.d > m ? p.d : m), T); push('planroll', T, last); }
+    push('cleanup', e.d.rolloutDoneAt, e.d.cleanupDoneAt || T);
+    return P;
+  }
   if (e.stage === 'prep') { push('prep', e.d.created, T); return P; }
   if (e.stage === 'release') { push('prep', e.d.created, T); push('plan', e.d.plannedStart, addDays(e.d.plannedStart, e.planDays)); return P; }
   push('enabling', e.d.enableStart, e.d.fullAt || T);
@@ -94,7 +102,7 @@ function renderTimeline(root) {
     const sev = e.alerts.find((a) => ['crit', 'serious', 'warn'].includes(a.sev));
     return `<div class="tl-row">
       <div class="tl-lab" ${byF ? 'style="padding-left:28px"' : ''}><a href="#" data-open="${e.id}" class="tl-name" title="${esc(e.short)}">${esc(name)}</a>
-        <div class="row small muted" style="gap:6px">${sev ? sevIcon(sev.sev) : ''}<span>${e.tag}</span>${S.group !== 'stage' ? stageDot(e.stage) + `<span>${STAGE[e.stage].name}</span>` : `<span>· ${e.release}</span>`}${!byF && featureOf(e).history.length ? `<span title="Прошлые итерации фичи">· +${featureOf(e).history.length} в истории</span>` : ''}</div></div>
+        <div class="row small muted" style="gap:6px">${sev ? sevIcon(sev.sev) : ''}<span>${e.tag}</span>${S.group !== 'stage' ? stageDot(e.stage) + `<span>${STAGE[e.stage].name}</span>` : `<span>· ${e.release}</span>`}${e.type === 'rollout' ? '<span>· без АБ</span>' : ''}${!byF && pastOf(featureOf(e)).length ? `<span title="Прошлые итерации фичи">· +${pastOf(featureOf(e)).length} в истории</span>` : ''}</div></div>
       <div class="tl-plot">${bars}${flag}</div>
     </div>`;
   };
@@ -155,7 +163,7 @@ function renderTimeline(root) {
       <div class="seg"><button class="${S.group === 'feature' ? 'on' : ''}" data-group="feature">По фичам</button><button class="${S.group === 'stage' ? 'on' : ''}" data-group="stage">По стадиям</button><button class="${S.group === 'release' ? 'on' : ''}" data-group="release">По релизам</button></div>
       <span class="toggle ${S.hideDone ? 'on' : ''}" id="tl-hide"><i></i>Скрыть архив</span>
       <span class="sp"></span>
-      <div class="tl-legend">${['enabling', 'collecting', 'overdue', 'ready', 'rollout', 'cleanup', 'plan'].map((k) => `<span><i style="${PHASE[k].css};height:10px;top:0"></i>${PHASE[k].name}</span>`).join('')}<span>${ICON.flag} Можно смотреть</span></div>
+      <div class="tl-legend">${['enabling', 'collecting', 'overdue', 'ready', 'rollout', 'cleanup', 'pilot', 'plan'].map((k) => `<span><i style="${PHASE[k].css};height:10px;top:0"></i>${PHASE[k].name}</span>`).join('')}<span>${ICON.flag} Можно смотреть</span></div>
     </div>
 
     <div class="tl">
@@ -172,7 +180,7 @@ function renderTimeline(root) {
           <span class="vt" style="left:${x(TODAY)}%"></span>
         </div>
         ${groups.map((g) => g.feature
-          ? `<div class="tl-grp"><div style="grid-column:1/-1;flex-wrap:wrap"><span class="dot" style="background:#141413"></span>${esc(g.title)}<span class="chip" style="height:18px;font-weight:500">${g.items.length} ${plural(g.items.length, 'тест', 'теста', 'тестов')} · ${featureKind(g.feature)}</span>${g.feature.history.length ? `<span class="muted" style="font-weight:500">ещё ${g.feature.history.length} в истории</span>` : ''}</div></div>${g.items.map(row).join('')}`
+          ? `<div class="tl-grp"><div style="grid-column:1/-1;flex-wrap:wrap"><span class="dot" style="background:#141413"></span>${esc(g.title)}<span class="chip" style="height:18px;font-weight:500">${g.items.length} ${plural(g.items.length, 'тест', 'теста', 'тестов')} · ${featureKind(g.feature)}</span>${g.feature.history.length ? `<span class="muted" style="font-weight:500">и ещё ${g.feature.history.length} ${plural(g.feature.history.length, 'итерация', 'итерации', 'итераций')} раньше</span>` : ''}</div></div>${g.items.map(row).join('')}`
           : `<div class="tl-grp"><div style="grid-column:1/-1">${g.color ? `<span class="dot" style="background:${g.color}"></span>` : ''}${esc(g.title)}<span class="muted" style="font-weight:500">${g.items.length}</span></div></div>${g.items.map(row).join('')}`).join('')}
       </div>
       <div class="tl-chart">

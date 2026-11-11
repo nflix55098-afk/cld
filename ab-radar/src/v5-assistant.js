@@ -30,6 +30,7 @@ function initChat() {
     { from: 'bot', time: '10:00', html: digestHTML(), btns: [{ l: 'Открыть Пульт', a: 'goto:pult' }, { l: 'Только мои', a: 'mine' }] },
     { from: 'bot', time: '10:00', html: `<div class="cm-ev">${sevIcon('crit')}<b>Решение не записано уже 7 дней</b></div>Тест <a href="#" data-open="style14">${esc(s14.short)} №14</a> завершился на АБ-платформе 04.11. Результаты посчитаны: у трёх вариантов значимое снижение конверсии в «Стандарт», как и предполагала гипотеза.<div class="muted small" style="margin-top:4px">Владелец: ${s14.owner}. Если решения не будет до 13.11, напишу руководителю.</div>`, btns: [{ l: 'Записать решение', a: 'decide', primary: true }, { l: 'Показать результаты', a: 'open:style14' }, { l: 'Напомнить через 2 дня', a: 'snooze2' }] },
     { from: 'bot', time: '10:01', html: `<div class="cm-ev">${sevIcon('warn')}<b>Завтра включение без SD-заявки</b></div><a href="#" data-open="pay-spasibo">${esc(pay.short)}</a>: 12.11 по плану блоки 12, 9, 8, 7. Вы дежурная по включению на этой неделе. Значение в бете совпадает с веткой _beta, можно заводить.`, btns: [{ l: 'Создать SD', a: 'sd', primary: true }, { l: 'Перенести на день', a: 'move' }] },
+    { from: 'bot', time: '10:01', html: `<div class="cm-ev">${sevIcon('warn')}<b>Пилот идёт 13 дней, решения о раскатке нет</b></div><a href="#" data-open="dep-switch">${esc(EX['dep-switch'].feature)}</a>. АБ по этой фиче не планируется: технический переезд. На пилотной группе 2 замечания, оба исправлены.`, btns: [{ l: 'Раскатать на всех по плану', a: 'pilotgo', primary: true }, { l: 'Продлить пилот на неделю', a: 'pilotext' }] },
     { from: 'bot', time: '10:01', html: `<div class="cm-ev">${sevIcon('crit')}<b>3 теста фичи идут на 71 день дольше плана</b></div><a href="#" data-open="rp-99">${esc(rp.feature)}</a>: результаты готовы с 25.08, трафик всё ещё делится 50/50. Результаты по сегментам разные:<div class="cm-plan">${['rp-99', 'rp-59', 'rp-0'].map((id) => `<div><a href="#" data-open="${id}">${esc(EX[id].label)}</a> · ${esc(testBrief(EX[id]))}</div>`).join('')}</div>`, btns: [{ l: 'Раскатать 2.0 в 99 ₽ и 0 ₽, в 59 ₽ оставить контроль', a: 'rpdecide', primary: true }, { l: 'Решать по каждому отдельно', a: 'open:rp-99' }, { l: 'Это не мой тест', a: 'reassign' }] },
   ];
 }
@@ -71,6 +72,16 @@ function chatAct(a, root) {
       meSay('Раскатать 2.0 в 99 ₽ и 0 ₽, в 59 ₽ оставить контроль');
       if (!EX['rp-99'].decision) ['rp-99', 'rp-59', 'rp-0'].forEach((id) => decideOne(EX[id]));
       botSay(`<div class="cm-ev">${sevIcon('good')}<b>Записал 3 решения</b></div><div class="cm-plan">${['rp-99', 'rp-59', 'rp-0'].map((id) => `<div>${esc(EX[id].label)} · ${esc(outcome(EX[id]))}</div>`).join('')}</div>Остановил АБ, создал план раскатки 2.0 для двух сегментов и задачу на удаление <span class="mono">returnNotificationsPrice2Ab</span>. Тесты 59 ₽ и 99/0 ₽ дальше живут каждый своей стадией.`, [{ l: 'Открыть паспорт', a: 'open:rp-59' }]); break;
+    case 'pilotgo': {
+      meSay('Раскатать на всех по плану');
+      const d = EX['dep-switch'];
+      if (d.stage === 'release') {
+        rolloutPlan(addDays(TODAY, 1)).forEach((p, i) => d.events.push({ d: fmt(p.d, true), t: 'plan', b: p.b, v: '2.0', txt: 'План: включить 2.0', sd: i === 0 ? 'SD0002462411' : undefined }));
+        d.stage = 'enabling'; d.dates.rolloutStart = fmt(addDays(TODAY, 1), true); prepare(d);
+      }
+      botSay(`<div class="cm-ev">${sevIcon('good')}<b>План раскатки создан</b></div><div class="cm-plan">${rolloutPlan(addDays(TODAY, 1)).map((p) => `<div><span class="tnum muted">${fmt(p.d)}</span> ${blockList(p.b)}</div>`).join('')}</div>Через 7 дней после 100 % напомню проверить расхождения настроек и обращения: это контрольная точка вместо АБ.`); break;
+    }
+    case 'pilotext': meSay('Продлить пилот на неделю'); botSay('Продлил пилот до 18.11. Напомню в этот день.'); break;
     case 'later': meSay('Пока не раскатываем'); botSay('Хорошо, победитель записан, раскатку не планирую. Напомню через неделю.'); break;
     case 'snooze2': meSay('Напомнить через 2 дня'); botSay('Напомню 13.11 в 10:00. Если решения не будет, напишу руководителю.'); break;
     case 'sd': meSay('Создать SD'); botSay(`<div class="cm-ev">${sevIcon('good')}<b>Заявка создана</b></div><span class="mono">SD0002461337</span>: <span class="mono">payNotificationsBonusAb</span>, АБ 50/50, ПРОМ, блоки 12, 9, 8, 7, на 12.11.2026. Привязал её к шагу включения в тираже.`); break;
@@ -81,6 +92,13 @@ function chatAct(a, root) {
       if (arg === 'status') { meSay('/статус стиль 14'); botSay(statusCard(EX.style14)); }
       if (arg === 'status2') { meSay('/статус реакции'); botSay(statusCard(EX.reactions2), [{ l: 'Запланировать следующий шаг', a: 'plan2', primary: true }]); }
       if (arg === 'feat') { const f = FEATURES['f-activ-price']; meSay('/статус лендинги'); botSay(`<div style="font-weight:650">${esc(f.name)}</div><div class="small muted" style="margin-bottom:6px">${f.tests.length} АБ-теста · ${featureKind(f)}</div>${f.tests.map((t) => `<div style="margin:6px 0"><a href="#" data-open="${t.id}">${esc(t.label)}</a>${readinessBar(t)}</div>`).join('')}<div class="small ink2">Сегмент 99 ₽ маленький: выборка набирается медленнее, к плановой дате 03.12 не успеет.</div>`, [{ l: 'Продлить 99 ₽ до 07.12', a: 'extend', primary: true }, { l: 'Напомнить, когда будет готов 59 ₽', a: 'remind59' }]); }
+      if (arg === 'hist') {
+        const f = FEATURES['f-activ']; const past = pastOf(f); const c = (k) => past.filter((h) => h.kind === k).length;
+        meSay('/история активация');
+        botSay(`<div style="font-weight:650">${esc(f.name)}</div><div class="small ink2" style="margin:2px 0 8px">${past.length} тестов с ${esc(past[0].when)}: побед ${c('win')}, без эффекта ${c('none')}, остановлено ${c('stop')}. Сейчас идёт №34.</div>
+          <div class="hstrip sm" style="margin-bottom:8px">${past.map((h) => `<i style="background:${HCOLOR[h.kind]}" data-tip="<b>${esc(h.it)} · ${esc(h.theme)}</b><br>${esc(h.what)}<br>${esc(h.out)}"></i>`).join('')}<i class="now"></i></div>
+          <div class="small"><b>По теме №34 «Иллюстрация»:</b> ${past.filter((h) => h.theme === 'Иллюстрация').map((h) => `${esc(h.it)} — ${esc(h.out.toLowerCase())}`).join(', ')}. Маскот уже был в №19, тогда без эффекта.</div>`, [{ l: 'Открыть историю', a: 'open:activ34' }]);
+      }
       if (arg === 'duty') { meSay('/дежурный'); botSay(`На этой неделе включает <b>${dutyNow()}</b> (вы). Дальше: ${DUTY.filter((d) => !d.now).map((d) => `${d.who} — ${d.week}`).join('; ')}.`); }
       if (arg === 'digest') { meSay('/сводка'); botSay(digestHTML()); }
       break;
@@ -139,7 +157,7 @@ function renderAssistant(root, keepScroll) {
             <div class="bub">${m.html}${m.btns ? `<div class="cm-btns">${m.btns.map((b) => `<button class="btn sm ${b.primary ? 'primary' : ''}" data-chat="${b.a}">${esc(b.l)}</button>`).join('')}</div>` : ''}<div class="t">${m.time}</div></div></div>`).join('')}
         </div>
         <div class="msgr-f">
-          <div class="cmds"><button data-chat="cmd:digest">/сводка</button><button data-chat="cmd:status">/статус стиль 14</button><button data-chat="cmd:status2">/статус реакции</button><button data-chat="cmd:feat">/статус лендинги</button><button data-chat="cmd:duty">/дежурный</button></div>
+          <div class="cmds"><button data-chat="cmd:digest">/сводка</button><button data-chat="cmd:status">/статус стиль 14</button><button data-chat="cmd:status2">/статус реакции</button><button data-chat="cmd:feat">/статус лендинги</button><button data-chat="cmd:hist">/история активация</button><button data-chat="cmd:duty">/дежурный</button></div>
           <div class="inp">Напишите команду или вопрос: «что можно смотреть на этой неделе?»</div>
         </div>
       </div>

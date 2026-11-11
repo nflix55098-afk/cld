@@ -17,6 +17,7 @@ function cardBody(e) {
       return `<div class="small ink2">Создан ${fmt(e.d.created)} · ${e.blockers ? `<span class="sev-label warn">${esc(e.blockers)}</span>` : 'без блокеров'}</div>`;
     case 'release': {
       const r = RELEASES.find((x) => x.v === e.release);
+      if (e.pilot) return `<div class="small ink2">Пилот с ${e.pilot.since.slice(0, 5)}: ${esc(e.pilot.group)}</div><div class="small muted">АБ не планируется</div>`;
       return `<div class="small ink2">Релиз ${e.release} · ${r ? r.d.slice(0, 5) : ''} → старт АБ ${fmt(e.d.plannedStart)}</div>${e.beta ? '<div class="small muted">Пилот на бете включён</div>' : ''}`;
     }
     case 'enabling':
@@ -29,6 +30,7 @@ function cardBody(e) {
       return `${readinessBar(e, true)}<div class="small ink2">${e.d.platformEnd ? `Завершён ${fmt(e.d.platformEnd)}` : `Платформа: ${e.platform}`} · решения нет</div>`;
     case 'cleanup': {
       const done = e.toggles.filter((x) => x.st === 'done').length;
+      if (!e.toggles.length) return '<div class="small ink2">Тоглов нет</div>';
       return `<div class="row small ink2"><span class="grow">Тоглы удалены: ${done} из ${e.toggles.length}</span></div>
         <div class="meter" style="background:#d9ecd9"><b style="width:${(done / Math.max(1, e.toggles.length)) * 100}%;background:var(--st-cleanup)"></b></div>`;
     }
@@ -51,7 +53,7 @@ function boardCard(e) {
   const edge = top.length ? `box-shadow: inset 3px 0 0 var(--${top[0].sev}), var(--shadow)` : '';
   return `<div class="kcard" draggable="true" data-id="${e.id}" style="${edge}">
     <div class="row" style="align-items:flex-start"><a href="#" data-open="${e.id}" class="grow ktitle">${esc(e.short)}</a></div>
-    <div class="row small muted" style="gap:6px"><span>${e.tag}</span>·<span>${e.release}</span>${featureOf(e).tests.length > 1 ? `· <span title="Тестов в фиче">${featureOf(e).tests.indexOf(e) + 1}/${featureOf(e).tests.length} в фиче</span>` : ''}${e.type === 'holdout' ? '· <span>холдаут</span>' : ''}${e.type === 'rollout' ? '· <span>без АБ</span>' : ''}</div>
+    <div class="row small muted" style="gap:6px"><span>${e.tag}</span>·<span>${e.release}</span>${featureOf(e).tests.length > 1 ? `· <span title="Тестов в фиче">${featureOf(e).tests.indexOf(e) + 1}/${featureOf(e).tests.length} в фиче</span>` : ''}${e.type === 'holdout' ? '· <span>холдаут</span>' : ''}${pastOf(featureOf(e)).length > 8 ? `· <span title="Прошлых итераций">${pastOf(featureOf(e)).length} в истории</span>` : ''}${e.type === 'rollout' ? '· <span class="chip" style="height:18px">без АБ</span>' : ''}</div>
     ${cardBody(e)}
     ${top.length ? `<div class="stack" style="gap:4px">${top.slice(0, 2).map((a) => `<div class="row small" style="gap:6px;align-items:flex-start">${sevIcon(a.sev)}<span>${esc(a.title)}</span></div>`).join('')}</div>` : ''}
     <div class="row" style="margin-top:2px">${avatar(e.owner)}<span class="small muted grow nowrap" style="overflow:hidden;text-overflow:ellipsis">${esc(e.owner)}</span>${age != null ? `<span class="small nowrap ${age > 14 && !['done', 'collecting'].includes(e.stage) ? '' : 'muted'}" title="Дней на текущей стадии">${age} дн. на стадии</span>` : ''}</div>

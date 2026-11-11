@@ -3,11 +3,12 @@
 const regState = { view: 'active', tab: 'features', byRelease: true, open: new Set(['style14']) };
 const REG_VIEWS = [
   { k: 'all', name: 'Все', f: () => true },
-  { k: 'active', name: 'Активные АБ', f: (e) => ['enabling', 'collecting', 'ready', 'rollout'].includes(e.stage) },
+  { k: 'active', name: 'Активные АБ', f: (e) => e.type !== 'rollout' && ['enabling', 'collecting', 'ready', 'rollout'].includes(e.stage) },
   { k: 'enabling', name: 'Включаются', f: (e) => ['enabling', 'rollout'].includes(e.stage) },
   { k: 'ready', name: 'Готовы к анализу', f: (e) => e.stage === 'ready' || e.alerts.some((a) => a.rule === 'canlook') },
   { k: 'prep', name: 'В подготовке', f: (e) => ['prep', 'release'].includes(e.stage) },
   { k: 'cleanup', name: 'Ждут чистки', f: (e) => e.stage === 'cleanup' },
+  { k: 'noab', name: 'Без АБ', f: (e) => e.type === 'rollout' },
   { k: 'done', name: 'Архив', f: (e) => e.stage === 'done' },
 ];
 
@@ -17,7 +18,11 @@ function lastEvent(e) {
 }
 
 function abCell(e) {
-  if (e.type === 'rollout') return '<span class="small muted">Без АБ</span>' + (e.alerts.some((a) => a.rule === 'draft') ? '<div class="small"><span class="sev-label warn">Висит черновик</span></div>' : '');
+  if (e.type === 'rollout') {
+    const c = e.check || {};
+    const st = c.done ? `<span class="sev-label good">${esc(c.done.split(':')[0])}</span>` : e.d.rolloutDoneAt && c.days ? `<span class="small ink2">проверка ${fmt(addDays(e.d.rolloutDoneAt, c.days))}</span>` : e.pilot ? `<span class="small ink2">пилот с ${e.pilot.since.slice(0, 5)}</span>` : `<span class="small ink2">проверка через ${c.days || 7} дн. после 100 %</span>`;
+    return `<span class="chip">Без АБ</span><div style="margin-top:4px">${st}</div>` + (e.alerts.some((a) => a.rule === 'draft') ? '<div class="small"><span class="sev-label warn">Висит черновик</span></div>' : '');
+  }
   if (['prep', 'release'].includes(e.stage)) return `<span class="small ink2">${e.platform === 'Новый' ? 'Создан на платформе' : ''}${e.d.plannedStart ? `<br>старт ${fmt(e.d.plannedStart)}` : ''}</span>`;
   if (['collecting', 'enabling'].includes(e.stage) && e.d.fullAt) return readinessBar(e, true);
   if (e.stage === 'enabling') return '<span class="small ink2">Отсчёт начнётся после включения на всех блоках</span>';
@@ -46,8 +51,8 @@ function regRow(e, S, nested = false) {
     <td style="width:28px;padding-right:0"><button class="btn ghost sm" data-expand="${e.id}" style="padding:0 4px;transform:rotate(${isOpen ? 0 : -90}deg)">${ICON.chev}</button></td>
     <td style="min-width:240px;max-width:300px;${nested ? 'padding-left:28px;border-left:3px solid var(--line-2)' : ''}">
       ${nested ? `<a href="#" data-open="${e.id}" style="font-weight:600;color:var(--ink)">АБ-тест: ${esc(e.label)}</a>` : `<a href="#" data-open="${e.id}" style="font-weight:600;color:var(--ink)">${esc(e.feature)}</a>`}
-      <div class="row wrap small muted" style="gap:2px 6px;margin-top:2px"><span class="nowrap">${e.tag}</span><span class="mono" style="font-size:11px">${e.key}</span></div>
-      <div class="row wrap" style="gap:6px;margin-top:6px">${stageChip(e.stage)}<span class="small muted">платформа: ${e.platform}</span>${e.blockers ? `<span class="chip" style="background:#fef4dc;color:#8a5d00" data-tip="${esc(e.blockers)}">Есть блокер</span>` : ''}</div>
+      <div class="row wrap small muted" style="gap:2px 6px;margin-top:2px"><span class="nowrap">${e.tag}</span><span class="mono" style="font-size:11px">${e.key}</span>${!nested && pastOf(featureOf(e)).length ? `<span class="nowrap" title="Прошлые итерации фичи">· ${pastOf(featureOf(e)).length} в истории</span>` : ''}</div>
+      <div class="row wrap" style="gap:6px;margin-top:6px">${stageChip(e.stage)}${e.type === 'rollout' ? '<span class="small muted">без АБ</span>' : `<span class="small muted">платформа: ${e.platform}</span>`}${e.blockers ? `<span class="chip" style="background:#fef4dc;color:#8a5d00" data-tip="${esc(e.blockers)}">Есть блокер</span>` : ''}</div>
       ${sev ? `<div class="row small" style="gap:6px;margin-top:6px;align-items:flex-start">${sevIcon(sev.sev)}<span>${esc(sev.title)}</span></div>` : ''}
     </td>
     <td>${blockMatrix(e, { head: false, fixed: '33px' })}</td>
@@ -80,7 +85,7 @@ function featureRows(f, items, S) {
       <div class="row wrap" style="gap:8px"><a href="#" data-open="${items[0].id}" style="font-weight:650;color:var(--ink);font-size:14px">${esc(f.name)}</a>
       <span class="chip">${f.tests.length} ${plural(f.tests.length, 'АБ-тест', 'АБ-теста', 'АБ-тестов')} · ${featureKind(f)}</span>
       ${stages.map((k) => stageChip(k)).join('')}
-      ${f.history.length ? `<span class="small muted">ещё ${f.history.length} в истории</span>` : ''}
+      ${f.history.length ? `<span class="small muted">и ещё ${f.history.length} ${plural(f.history.length, 'итерация', 'итерации', 'итераций')} раньше</span>` : ''}
       ${hidden ? `<span class="small muted">${hidden} не попадают в фильтр</span>` : ''}
       ${worst ? `<span class="row small" style="gap:6px">${sevIcon(worst.sev)}${esc(worst.title)}</span>` : ''}</div>
       <div class="small muted" style="margin-top:4px">Одна строка тиража и одна аналитика. Ниже — тесты, у каждого свои блоки, сроки, результат и решение</div>
