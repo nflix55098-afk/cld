@@ -1,6 +1,6 @@
 /* ===================== 2. Конвейер (канбан) ===================== */
 
-const boardState = { release: 'all', owner: 'all', problems: false, showDone: true };
+const boardState = { release: 'all', owner: 'all', problems: false, showDone: true, groupF: true };
 
 const TRANSITION_RULES = {
   enabling: ['Целевая метрика и минимальный срок заполнены', 'Сплит и версии рубильника совпадают с АБ-платформой', 'Значение в бете совпадает с конфигом в ветке _beta', 'Есть план включения по блокам и SD на первый шаг'],
@@ -51,11 +51,41 @@ function boardCard(e) {
   const edge = top.length ? `box-shadow: inset 3px 0 0 var(--${top[0].sev}), var(--shadow)` : '';
   return `<div class="kcard" draggable="true" data-id="${e.id}" style="${edge}">
     <div class="row" style="align-items:flex-start"><a href="#" data-open="${e.id}" class="grow ktitle">${esc(e.short)}</a></div>
-    <div class="row small muted" style="gap:6px"><span>${e.tag}</span>·<span>${e.release}</span>${e.type === 'holdout' ? '· <span>холдаут</span>' : ''}${e.type === 'rollout' ? '· <span>без АБ</span>' : ''}</div>
+    <div class="row small muted" style="gap:6px"><span>${e.tag}</span>·<span>${e.release}</span>${featureOf(e).tests.length > 1 ? `· <span title="Тестов в фиче">${featureOf(e).tests.indexOf(e) + 1}/${featureOf(e).tests.length} в фиче</span>` : ''}${e.type === 'holdout' ? '· <span>холдаут</span>' : ''}${e.type === 'rollout' ? '· <span>без АБ</span>' : ''}</div>
     ${cardBody(e)}
     ${top.length ? `<div class="stack" style="gap:4px">${top.slice(0, 2).map((a) => `<div class="row small" style="gap:6px;align-items:flex-start">${sevIcon(a.sev)}<span>${esc(a.title)}</span></div>`).join('')}</div>` : ''}
     <div class="row" style="margin-top:2px">${avatar(e.owner)}<span class="small muted grow nowrap" style="overflow:hidden;text-overflow:ellipsis">${esc(e.owner)}</span>${age != null ? `<span class="small nowrap ${age > 14 && !['done', 'collecting'].includes(e.stage) ? '' : 'muted'}" title="Дней на текущей стадии">${age} дн. на стадии</span>` : ''}</div>
   </div>`;
+}
+
+function featureCard(list) {
+  const f = featureOf(list[0]);
+  const all = list.flatMap((e) => e.alerts.filter((a) => ['crit', 'serious', 'warn'].includes(a.sev)));
+  const worst = all.sort((a, b) => SEV_ORDER[a.sev] - SEV_ORDER[b.sev])[0];
+  const edge = worst ? `box-shadow: inset 3px 0 0 var(--${worst.sev}), var(--shadow)` : '';
+  const titles = [...new Set(all.map((a) => a.title))];
+  return `<div class="kcard" data-fid="${f.id}" style="${edge};cursor:default">
+    <div class="row" style="align-items:flex-start"><a href="#" data-open="${list[0].id}" class="grow ktitle">${esc(f.name)}</a></div>
+    <div class="row small muted" style="gap:6px"><span class="chip" style="height:18px">${list.length} из ${f.tests.length} ${plural(f.tests.length, 'теста', 'тестов', 'тестов')} фичи</span><span>${list[0].release}</span></div>
+    <div class="stack" style="gap:6px">${list.map((e) => `<div class="kmini" draggable="true" data-id="${e.id}">
+      <div class="row small" style="gap:6px"><a href="#" data-open="${e.id}" style="color:var(--ink);font-weight:600" class="grow">${esc(e.label)}</a>${e.alerts.find((a) => ['crit', 'serious', 'warn'].includes(a.sev)) ? sevIcon(e.alerts.find((a) => ['crit', 'serious', 'warn'].includes(a.sev)).sev) : ''}</div>
+      ${e.stage === 'collecting' || e.stage === 'ready' ? readinessBar(e, true) : `<div class="small ink2">${esc(testBrief(e))}</div>`}
+    </div>`).join('')}</div>
+    ${titles.length ? `<div class="stack" style="gap:4px">${titles.slice(0, 2).map((t) => `<div class="row small" style="gap:6px;align-items:flex-start">${sevIcon(all.find((a) => a.title === t).sev)}<span>${esc(t)}${all.filter((a) => a.title === t).length > 1 ? ` <span class="muted">×${all.filter((a) => a.title === t).length}</span>` : ''}</span></div>`).join('')}</div>` : ''}
+    <div class="row" style="margin-top:2px">${avatar(list[0].owner)}<span class="small muted grow nowrap" style="overflow:hidden;text-overflow:ellipsis">${esc(list[0].owner)}</span></div>
+  </div>`;
+}
+
+function columnItems(items, S) {
+  if (!S.groupF) return items.map(boardCard).join('');
+  const seen = new Set(); const out = [];
+  items.forEach((e) => {
+    if (seen.has(e.fid)) return;
+    const same = items.filter((x) => x.fid === e.fid);
+    seen.add(e.fid);
+    out.push(same.length > 1 ? featureCard(same) : boardCard(e));
+  });
+  return out.join('');
 }
 
 function renderBoard(root) {
@@ -78,20 +108,23 @@ function renderBoard(root) {
     .kcol-sub { font-size: 11.5px; color: var(--ink-2); padding: 0 4px 4px; min-height: 32px; }
     .kcard { background: var(--surface); border-radius: 10px; box-shadow: var(--shadow); padding: 10px 12px; display:flex; flex-direction:column; gap: 7px; cursor: grab; }
     .kcard:hover { box-shadow: 0 0 0 1px var(--line-2), 0 3px 10px rgba(0,0,0,.07); }
-    .kcard.dragging { opacity: .4; }
+    .kcard.dragging, .kmini.dragging { opacity: .4; }
+    .kmini .meter-row { flex-wrap: wrap; row-gap: 2px; } .kmini .meter-row .nowrap { white-space: normal; } .kmini .meter-row .meter { flex: 1 1 100%; }
+    .kmini { padding: 7px 8px; border-radius: 8px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); display:flex; flex-direction:column; gap: 5px; cursor: grab; }
     .ktitle { color: var(--ink); font-weight: 600; font-size: 13px; line-height: 1.3; }
     .kcard .mini-bm { gap: 1px; } .kcard .mini-bm i { width: 7px; height: 7px; } .kcard .mini-bm i.sep { width: 3px; }
     .kwarn { font-size: 11.5px; padding: 6px 8px; border-radius: 8px; background: #fdeee7; color: #8a3a16; }
   </style>
   <div class="page" style="max-width:none">
     <div class="page-title">
-      <div class="grow"><h1>Конвейер АБ-тестов</h1><div class="sub">Перетащите карточку в следующую колонку: сервис покажет чек-лист перехода</div></div>
+      <div class="grow"><h1>Конвейер АБ-тестов</h1><div class="sub">Перетащите карточку в следующую колонку: сервис покажет чек-лист перехода. Тесты одной фичи на одной стадии собраны в общую карточку, каждый из них можно перетащить отдельно</div></div>
     </div>
     <div class="row wrap" style="margin-bottom:16px;gap:10px">
       <select class="sel" id="f-rel"><option value="all">Все релизы</option>${rels.map((r) => `<option ${S.release === r ? 'selected' : ''} value="${r}">Релиз ${r}</option>`).join('')}</select>
       <select class="sel" id="f-own"><option value="all">Все владельцы</option>${PEOPLE.map((p) => `<option ${S.owner === p ? 'selected' : ''}>${p}</option>`).join('')}</select>
       <span class="toggle ${S.problems ? 'on' : ''}" id="f-prob"><i></i>Только с проблемами</span>
       <span class="toggle ${S.showDone ? 'on' : ''}" id="f-done"><i></i>Показывать архив</span>
+      <span class="toggle ${S.groupF ? 'on' : ''}" id="f-grp"><i></i>Тесты одной фичи — одной карточкой</span>
       <span class="sp"></span>
       <span class="small muted">Левая цветная полоса на карточке — самое серьёзное предупреждение</span>
     </div>
@@ -101,7 +134,7 @@ function renderBoard(root) {
           <div class="kcol-h"><span class="bar" style="background:${s.color}"></span>${s.name}<span class="cnt">${items.length}</span></div>
           <div class="kcol-sub">${s.hint}</div>
           ${bottleneck ? `<div class="kwarn">Узкое место: ${items.length} теста ждут разбора. Новые тесты лучше не запускать, пока эти не разобраны</div>` : ''}
-          ${items.map(boardCard).join('') || '<div class="empty" style="text-align:center">Пусто</div>'}
+          ${columnItems(items, S) || '<div class="empty" style="text-align:center">Пусто</div>'}
         </div>`; }).join('')}
     </div>
   </div>`;
@@ -110,10 +143,11 @@ function renderBoard(root) {
   $('#f-own').onchange = (ev) => { S.owner = ev.target.value; renderBoard(root); };
   $('#f-prob').onclick = () => { S.problems = !S.problems; renderBoard(root); };
   $('#f-done').onclick = () => { S.showDone = !S.showDone; renderBoard(root); };
+  $('#f-grp').onclick = () => { S.groupF = !S.groupF; renderBoard(root); };
 
   let dragId = null;
-  $$('.kcard', root).forEach((c) => {
-    c.addEventListener('dragstart', (ev) => { dragId = c.dataset.id; c.classList.add('dragging'); ev.dataTransfer.effectAllowed = 'move'; });
+  $$('.kcard[draggable], .kmini', root).forEach((c) => {
+    c.addEventListener('dragstart', (ev) => { ev.stopPropagation(); dragId = c.dataset.id; c.classList.add('dragging'); ev.dataTransfer.effectAllowed = 'move'; });
     c.addEventListener('dragend', () => c.classList.remove('dragging'));
   });
   $$('.kcol', root).forEach((col) => {
@@ -131,7 +165,7 @@ function transitionModal(e, to, root) {
     'Целевая метрика и минимальный срок заполнены': !!e.metric,
     'Записано решение и победивший вариант': !!e.decision,
     'Победитель включён на всех блоках': e.onCount === ALL_BLOCKS.length,
-    'Набран минимальный срок или тест завершён на платформе': (e.minAt && e.minAt <= TODAY) || e.platform === 'Завершён',
+    'Набран минимальный срок или тест завершён на платформе': (e.lookAt && e.lookAt <= TODAY) || e.platform === 'Завершён',
   };
   const items = rules.map((r) => ({ r, ok: auto[r] !== undefined ? auto[r] : null }));
   const blocked = items.some((i) => i.ok === false);

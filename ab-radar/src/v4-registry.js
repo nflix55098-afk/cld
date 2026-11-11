@@ -20,7 +20,7 @@ function abCell(e) {
   if (e.type === 'rollout') return '<span class="small muted">Без АБ</span>' + (e.alerts.some((a) => a.rule === 'draft') ? '<div class="small"><span class="sev-label warn">Висит черновик</span></div>' : '');
   if (['prep', 'release'].includes(e.stage)) return `<span class="small ink2">${e.platform === 'Новый' ? 'Создан на платформе' : ''}${e.d.plannedStart ? `<br>старт ${fmt(e.d.plannedStart)}` : ''}</span>`;
   if (['collecting', 'enabling'].includes(e.stage) && e.d.fullAt) return readinessBar(e, true);
-  if (e.stage === 'enabling') return '<span class="small ink2">Ещё не на всех блоках, отсчёт не начат</span>';
+  if (e.stage === 'enabling') return '<span class="small ink2">Отсчёт начнётся после включения на всех блоках</span>';
   if (e.stage === 'ready') return `${readinessBar(e, true)}<div class="small" style="margin-top:4px"><span class="sev-label serious">Нет решения</span></div>`;
   if (e.decision) {
     return `<span class="chip">${outcome(e)}</span><div class="small muted" style="margin-top:4px">решение ${e.decision.d.slice(0, 5)}</div>`;
@@ -38,15 +38,15 @@ function togglesCell(e) {
   return `<div class="small">${done ? `<div class="sev-label good">${done} удалено</div>` : ''}${pl ? `<div class="sev-label info">${pl} в плане</div>` : ''}${todo ? `<div class="sev-label ${late ? 'serious' : 'warn'}">${todo} не удалено${late ? ' > 30 дн.' : ''}</div>` : ''}</div>`;
 }
 
-function regRow(e, S) {
+function regRow(e, S, nested = false) {
   const le = lastEvent(e);
   const isOpen = S.open.has(e.id);
   const sev = e.alerts.find((a) => ['crit', 'serious', 'warn'].includes(a.sev));
   return `<tr class="clickable" data-row="${e.id}">
     <td style="width:28px;padding-right:0"><button class="btn ghost sm" data-expand="${e.id}" style="padding:0 4px;transform:rotate(${isOpen ? 0 : -90}deg)">${ICON.chev}</button></td>
-    <td style="min-width:240px;max-width:300px">
-      <a href="#" data-open="${e.id}" style="font-weight:600;color:var(--ink)">${esc(e.feature)}</a>
-      <div class="row small muted" style="gap:6px;margin-top:2px">${e.tag}<span class="mono" style="font-size:11px">${e.key}</span></div>
+    <td style="min-width:240px;max-width:300px;${nested ? 'padding-left:28px;border-left:3px solid var(--line-2)' : ''}">
+      ${nested ? `<a href="#" data-open="${e.id}" style="font-weight:600;color:var(--ink)">АБ-тест: ${esc(e.label)}</a>` : `<a href="#" data-open="${e.id}" style="font-weight:600;color:var(--ink)">${esc(e.feature)}</a>`}
+      <div class="row wrap small muted" style="gap:2px 6px;margin-top:2px"><span class="nowrap">${e.tag}</span><span class="mono" style="font-size:11px">${e.key}</span></div>
       <div class="row wrap" style="gap:6px;margin-top:6px">${stageChip(e.stage)}<span class="small muted">платформа: ${e.platform}</span>${e.blockers ? `<span class="chip" style="background:#fef4dc;color:#8a5d00" data-tip="${esc(e.blockers)}">Есть блокер</span>` : ''}</div>
       ${sev ? `<div class="row small" style="gap:6px;margin-top:6px;align-items:flex-start">${sevIcon(sev.sev)}<span>${esc(sev.title)}</span></div>` : ''}
     </td>
@@ -55,7 +55,7 @@ function regRow(e, S) {
       ${le ? `<div class="small"><span class="muted tnum">${fmt(le._d)}</span> ${esc(le.txt)}${le.sd ? ` <span class="mono" style="color:var(--accent)">${le.sd}</span>` : ''}</div>` : ''}
       ${e.nextPlan ? `<div class="small" style="margin-top:4px"><span class="muted">Дальше ${fmt(e.nextPlan.d)}:</span> ${blockList(e.nextPlan.blocks)}${e.nextPlan.sd ? '' : ' <span class="sev-label warn">нет SD</span>'}</div>` : ''}
     </td>
-    <td style="min-width:150px">${abCell(e)}</td>
+    <td style="min-width:150px;max-width:180px">${abCell(e)}</td>
     <td>${togglesCell(e)}</td>
   </tr>
   ${isOpen ? `<tr><td></td><td colspan="5" style="background:var(--surface-2)">
@@ -69,6 +69,27 @@ function regRow(e, S) {
       </div>
     </div>
   </td></tr>` : ''}`;
+}
+
+function featureRows(f, items, S) {
+  if (f.tests.length === 1) return items.map((e) => regRow(e, S)).join('');
+  const hidden = f.tests.length - items.length;
+  const worst = f.tests.flatMap((t) => t.alerts).filter((a) => ['crit', 'serious', 'warn'].includes(a.sev)).sort((a, b) => SEV_ORDER[a.sev] - SEV_ORDER[b.sev])[0];
+  const stages = [...new Set(f.tests.map((t) => t.stage))];
+  return `<tr><td></td><td colspan="5" style="padding-top:14px">
+      <div class="row wrap" style="gap:8px"><a href="#" data-open="${items[0].id}" style="font-weight:650;color:var(--ink);font-size:14px">${esc(f.name)}</a>
+      <span class="chip">${f.tests.length} ${plural(f.tests.length, 'АБ-тест', 'АБ-теста', 'АБ-тестов')} · ${featureKind(f)}</span>
+      ${stages.map((k) => stageChip(k)).join('')}
+      ${f.history.length ? `<span class="small muted">ещё ${f.history.length} в истории</span>` : ''}
+      ${hidden ? `<span class="small muted">${hidden} не попадают в фильтр</span>` : ''}
+      ${worst ? `<span class="row small" style="gap:6px">${sevIcon(worst.sev)}${esc(worst.title)}</span>` : ''}</div>
+      <div class="small muted" style="margin-top:4px">Одна строка тиража и одна аналитика. Ниже — тесты, у каждого свои блоки, сроки, результат и решение</div>
+    </td></tr>${items.map((e) => regRow(e, S, true)).join('')}`;
+}
+
+function rowsFor(list, S) {
+  const fids = [...new Set(list.map((e) => e.fid))];
+  return fids.map((fid) => featureRows(FEATURES[fid], list.filter((e) => e.fid === fid), S)).join('');
 }
 
 function renderRegistry(root) {
@@ -90,7 +111,7 @@ function renderRegistry(root) {
   const head = `<tr><th></th><th>Фича · стадия · блокеры</th><th style="padding-bottom:6px"><div style="margin-bottom:4px">Где сейчас включено</div>${bmHeader('33px')}</th><th>Последнее событие · дальше</th><th>АБ</th><th>Тоглы</th></tr>`;
 
   root.innerHTML = `${appHead()}
-  <style>.reg td .bm, .reg td .bm .c { width: 100%; min-width: 0; } .reg td .bm .c { font-size: 9.5px; padding: 0 1px; } .reg th .bm-grid .hd { font-size: 10px; } .reg table.t td, .reg table.t th { padding-left: 10px; padding-right: 10px; }</style>
+  <style>.reg td .bm, .reg td .bm .c { width: 100%; min-width: 0; } .reg td .bm .c { font-size: 9.5px; padding: 0 1px; } .reg th .bm-grid .hd { font-size: 10px; } .reg table.t td, .reg table.t th { padding-left: 10px; padding-right: 10px; } .reg .meter-row { flex-wrap: wrap; row-gap: 2px; } .reg .meter-row .nowrap { white-space: normal; } .reg .meter-row .meter { flex: 1 1 100%; }</style>
   <div class="page" style="max-width:none">
     <div class="page-title">
       <div class="grow"><h1>Тиражирование фич · Android</h1><div class="sub">Та же структура, что в Confluence, только вместо цвета ячейки — стадия, а вместо текста с датами — матрица блоков и журнал</div></div>
@@ -105,8 +126,8 @@ function renderRegistry(root) {
     </div>
     <div class="card reg" style="overflow-x:auto">
       <table class="t"><thead>${head}</thead><tbody>
-      ${S.byRelease ? rels.map((r) => { const items = list.filter((e) => e.release === r); const rr = relOf(r); return `<tr><td colspan="6" style="background:var(--surface-3);padding:8px 12px;font-weight:650">Релиз ${r}${rr ? ` <span class="muted" style="font-weight:500">· ${rr.d}${D(rr.d) > TODAY ? ' · ещё не вышел' : ''}</span>` : ''} <span class="muted" style="font-weight:500">· ${items.length}</span></td></tr>${items.map((e) => regRow(e, S)).join('')}`; }).join('')
-        : list.map((e) => regRow(e, S)).join('')}
+      ${S.byRelease ? rels.map((r) => { const items = list.filter((e) => e.release === r); const rr = relOf(r); return `<tr><td colspan="6" style="background:var(--surface-3);padding:8px 12px;font-weight:650">Релиз ${r}${rr ? ` <span class="muted" style="font-weight:500">· ${rr.d}${D(rr.d) > TODAY ? ' · ещё не вышел' : ''}</span>` : ''} <span class="muted" style="font-weight:500">· ${new Set(items.map((e) => e.fid)).size} ${plural(new Set(items.map((e) => e.fid)).size, 'фича', 'фичи', 'фич')}, ${items.length} ${plural(items.length, 'тест', 'теста', 'тестов')}</span></td></tr>${rowsFor(items, S)}`; }).join('')
+        : rowsFor(list, S)}
       </tbody></table>
       ${list.length ? '' : '<div class="empty" style="padding:24px">В этом представлении пусто</div>'}
     </div>

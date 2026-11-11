@@ -1,6 +1,6 @@
 /* ===================== 3. Таймлайн ===================== */
 
-const tlState = { range: 'aug', group: 'stage', hideDone: false };
+const tlState = { range: 'aug', group: 'feature', hideDone: false };
 const TL_RANGES = {
   jun: { label: 'Июн – дек', from: '01.06.2026', to: '31.12.2026' },
   aug: { label: 'Авг – дек', from: '01.08.2026', to: '31.12.2026' },
@@ -56,11 +56,19 @@ function renderTimeline(root) {
 
   let groups;
   if (S.group === 'stage') groups = STAGES.map((s) => ({ key: s.k, title: s.name, color: s.color, items: list.filter((e) => e.stage === s.k) })).filter((g) => g.items.length);
-  else {
+  else if (S.group === 'feature') {
+    const fids = [...new Set(list.map((e) => e.fid))];
+    const urgency = (fid) => Math.min(...list.filter((e) => e.fid === fid).map((e) => (e.stage === 'done' ? 99 : STAGE[e.stage].i)));
+    fids.sort((a, b) => urgency(a) - urgency(b));
+    const multi = fids.filter((fid) => list.filter((e) => e.fid === fid).length > 1);
+    const single = fids.filter((fid) => !multi.includes(fid));
+    groups = multi.map((fid) => { const f = FEATURES[fid]; return { key: fid, feature: f, title: f.name, items: list.filter((e) => e.fid === fid) }; });
+    if (single.length) groups.push({ key: 'single', title: 'Фичи с одним тестом в работе', items: single.flatMap((fid) => list.filter((e) => e.fid === fid)), keepOrder: true });
+  } else {
     const rels = [...new Set(list.map((e) => e.release))].sort();
     groups = rels.map((r) => ({ key: r, title: `Релиз ${r}`, items: list.filter((e) => e.release === r) }));
   }
-  groups.forEach((g) => g.items.sort((a, b) => (a.d.enableStart || a.d.created || a.d.plannedStart) - (b.d.enableStart || b.d.created || b.d.plannedStart)));
+  groups.forEach((g) => !g.keepOrder && g.items.sort((a, b) => (a.d.enableStart || a.d.created || a.d.plannedStart) - (b.d.enableStart || b.d.created || b.d.plannedStart)));
 
   // месяцы и недели
   const months = []; let m = new Date(R0.getFullYear(), R0.getMonth(), 1);
@@ -79,12 +87,14 @@ function renderTimeline(root) {
       const tip = `<b>${PHASE[p.k].name}</b><br>${fmt(p.from, true)} – ${fmt(p.to, true)} · ${dn(days(p.from, p.to))}`;
       return `<span class="ph" style="left:calc(${l}% + 1px);width:calc(${Math.max(r - l, 0.3)}% - 2px);${PHASE[p.k].css};${clipL ? 'border-top-left-radius:0;border-bottom-left-radius:0' : ''}" data-tip="${tip}"></span>`;
     }).join('');
-    const flag = e.minAt && e.type === 'ab' && e.minAt >= R0 && e.minAt <= R1 && !['done'].includes(e.stage)
-      ? `<span class="flag" style="left:${x(e.minAt)}%" data-tip="<b>Можно смотреть результаты</b><br>с ${fmt(e.minAt, true)} (минимум ${dn(e.minDays)})">${ICON.flag}</span>` : '';
+    const flag = e.lookAt && e.type === 'ab' && e.lookAt >= R0 && e.lookAt <= R1 && !['done'].includes(e.stage)
+      ? `<span class="flag" style="left:${x(e.lookAt)}%" data-tip="<b>Можно смотреть результаты</b><br>с ${fmt(e.lookAt, true)}<br><span class='tmuted'>минимум ${dn(e.minDays)} и 100% выборки</span>">${ICON.flag}</span>` : '';
+    const byF = S.group === 'feature' && featureOf(e).tests.length > 1;
+    const name = byF ? e.label : e.short;
     const sev = e.alerts.find((a) => ['crit', 'serious', 'warn'].includes(a.sev));
     return `<div class="tl-row">
-      <div class="tl-lab"><a href="#" data-open="${e.id}" class="tl-name" title="${esc(e.short)}">${esc(e.short)}</a>
-        <div class="row small muted" style="gap:6px">${sev ? sevIcon(sev.sev) : ''}<span>${e.tag}</span>${S.group === 'release' ? stageDot(e.stage) + `<span>${STAGE[e.stage].name}</span>` : `<span>· ${e.release}</span>`}</div></div>
+      <div class="tl-lab" ${byF ? 'style="padding-left:28px"' : ''}><a href="#" data-open="${e.id}" class="tl-name" title="${esc(e.short)}">${esc(name)}</a>
+        <div class="row small muted" style="gap:6px">${sev ? sevIcon(sev.sev) : ''}<span>${e.tag}</span>${S.group !== 'stage' ? stageDot(e.stage) + `<span>${STAGE[e.stage].name}</span>` : `<span>· ${e.release}</span>`}${!byF && featureOf(e).history.length ? `<span title="Прошлые итерации фичи">· +${featureOf(e).history.length} в истории</span>` : ''}</div></div>
       <div class="tl-plot">${bars}${flag}</div>
     </div>`;
   };
@@ -118,10 +128,11 @@ function renderTimeline(root) {
     .tl-grid .vr { position: absolute; top: 0; bottom: 0; width: 1px; background: #c9c8c0; }
     .tl-grid .vt { position: absolute; top: 0; bottom: 0; width: 2px; background: #141413; margin-left: -1px; z-index: 3; }
     .tl-grp { background: var(--surface-2); border-bottom: 1px solid var(--line); border-top: 1px solid var(--line); }
-    .tl-grp > div:first-child { padding: 7px 16px; font-size: 12px; font-weight: 650; display: flex; align-items: center; gap: 8px; }
+    .tl-grp > div:first-child { padding: 8px 16px; font-size: 12.5px; font-weight: 650; display: flex; align-items: center; gap: 8px; }
     .tl-row { border-bottom: 1px solid var(--line); min-height: 46px; }
     .tl-row:hover { background: #fbfbf9; }
     .tl-lab { padding: 6px 16px; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+    .tl-lab .row { flex-wrap: wrap; row-gap: 0; } .tl-lab .row span { white-space: nowrap; }
     .tl-name { color: var(--ink); font-weight: 550; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tl-plot { position: relative; height: 46px; }
     .ph { position: absolute; top: 12px; height: 14px; border-radius: 4px; cursor: default; z-index: 4; }
@@ -141,7 +152,7 @@ function renderTimeline(root) {
     </div>
     <div class="row wrap" style="margin-bottom:14px;gap:10px">
       <div class="seg">${Object.entries(TL_RANGES).map(([k, r]) => `<button class="${S.range === k ? 'on' : ''}" data-range="${k}">${r.label}</button>`).join('')}</div>
-      <div class="seg"><button class="${S.group === 'stage' ? 'on' : ''}" data-group="stage">По стадиям</button><button class="${S.group === 'release' ? 'on' : ''}" data-group="release">По релизам</button></div>
+      <div class="seg"><button class="${S.group === 'feature' ? 'on' : ''}" data-group="feature">По фичам</button><button class="${S.group === 'stage' ? 'on' : ''}" data-group="stage">По стадиям</button><button class="${S.group === 'release' ? 'on' : ''}" data-group="release">По релизам</button></div>
       <span class="toggle ${S.hideDone ? 'on' : ''}" id="tl-hide"><i></i>Скрыть архив</span>
       <span class="sp"></span>
       <div class="tl-legend">${['enabling', 'collecting', 'overdue', 'ready', 'rollout', 'cleanup', 'plan'].map((k) => `<span><i style="${PHASE[k].css};height:10px;top:0"></i>${PHASE[k].name}</span>`).join('')}<span>${ICON.flag} Можно смотреть</span></div>
@@ -160,7 +171,9 @@ function renderTimeline(root) {
           ${releases.map((r) => `<span class="vr" style="left:${x(r._d)}%"></span>`).join('')}
           <span class="vt" style="left:${x(TODAY)}%"></span>
         </div>
-        ${groups.map((g) => `<div class="tl-grp"><div>${g.color ? `<span class="dot" style="background:${g.color}"></span>` : ''}${g.title}<span class="muted" style="font-weight:500">${g.items.length}</span></div><div></div></div>${g.items.map(row).join('')}`).join('')}
+        ${groups.map((g) => g.feature
+          ? `<div class="tl-grp"><div style="grid-column:1/-1;flex-wrap:wrap"><span class="dot" style="background:#141413"></span>${esc(g.title)}<span class="chip" style="height:18px;font-weight:500">${g.items.length} ${plural(g.items.length, 'тест', 'теста', 'тестов')} · ${featureKind(g.feature)}</span>${g.feature.history.length ? `<span class="muted" style="font-weight:500">ещё ${g.feature.history.length} в истории</span>` : ''}</div></div>${g.items.map(row).join('')}`
+          : `<div class="tl-grp"><div style="grid-column:1/-1">${g.color ? `<span class="dot" style="background:${g.color}"></span>` : ''}${esc(g.title)}<span class="muted" style="font-weight:500">${g.items.length}</span></div></div>${g.items.map(row).join('')}`).join('')}
       </div>
       <div class="tl-chart">
         <div class="tl-lab" style="padding:14px 16px"><div style="font-weight:650;font-size:13px">АБ-тестов в эфире одновременно</div><div class="small muted">по неделям; светлые столбцы — по текущим планам. Чем выше, тем больше смешанной выборки</div></div>

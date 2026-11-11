@@ -85,10 +85,14 @@ function prepare(e) {
   e.events.forEach((ev) => { ev._d = D(ev.d); });
   e.d = Object.fromEntries(Object.entries(e.dates).map(([k, v]) => [k, D(v)]));
   e.name = convName(e);
-  e.short = `${e.feature}`;
+  e.short = e.seg ? `${e.feature} · ${e.seg}` : e.feature;
   e.tag = `№${e.iter} · ${e.ver}`;
+  e.label = e.seg ? e.seg[0].toUpperCase() + e.seg.slice(1) : `№${e.iter} ${e.ver} · ${e.branch}`;
   const fa = e.d.fullAt;
   e.minAt = fa && e.minDays ? addDays(fa, e.minDays) : null;
+  /* «Можно смотреть» = набран минимальный срок И 100 % расчётной выборки (по текущему темпу) */
+  e.sampleAt = fa && e.minAt ? (e.sample >= 100 ? e.minAt : addDays(fa, Math.ceil((Math.max(1, days(fa, TODAY)) * 100) / Math.max(1, e.sample)))) : null;
+  e.lookAt = e.minAt ? (e.sampleAt > e.minAt ? e.sampleAt : e.minAt) : null;
   e.planEnd = e.d.planEnd || (fa && e.planDays ? addDays(fa, e.planDays) : null);
   const endAt = e.d.platformEnd && e.d.platformEnd < TODAY ? e.d.platformEnd : TODAY;
   e.dayN = fa ? days(fa, endAt) : null;
@@ -135,10 +139,11 @@ function alertsFor(e) {
     }
   }
 
-  if (e.stage === 'collecting' && e.type !== 'holdout' && e.minAt) {
-    const n = days(t, e.minAt);
-    if (n <= 0) add('good', 'Можно смотреть результаты', `Набран минимальный срок (${dn(e.minDays)}) и выборка`, e.minAt, { k: 'results', label: 'Смотреть результаты' }, 'canlook');
-    else add('info', `Результаты можно смотреть с ${fmtH(e.minAt)}`, `День ${e.dayN} из ${e.planDays}, выборка ${e.sample}%. Если смотреть раньше, выводы будут ненадёжными`, e.minAt, { k: 'remind', label: 'Напомнить мне' }, 'upcoming');
+  if (e.stage === 'collecting' && e.type !== 'holdout' && e.lookAt) {
+    const n = days(t, e.lookAt);
+    if (n <= 0) add('good', 'Можно смотреть результаты', `Набран минимальный срок (${dn(e.minDays)}) и выборка`, e.lookAt, { k: 'results', label: 'Смотреть результаты' }, 'canlook');
+    else add('info', `Результаты можно смотреть с ${fmtH(e.lookAt)}`, `День ${e.dayN} из ${e.planDays}, выборка ${e.sample}%. Если смотреть раньше, выводы будут ненадёжными`, e.lookAt, { k: 'remind', label: 'Напомнить мне' }, 'upcoming');
+    if (e.planEnd && e.lookAt > e.planEnd) add('warn', 'Выборка не успевает к плановой дате', `При текущем темпе 100 % выборки будет только ${fmt(e.lookAt)}, а план окончания — ${fmt(e.planEnd)}. Продлите тест или пересмотрите минимальный эффект`, e.planEnd, { k: 'open', label: 'Открыть' }, 'slow');
   }
 
   if (e.type === 'holdout' && e.holdout) {
@@ -186,6 +191,37 @@ const EX = Object.fromEntries(EXPERIMENTS.map((e) => [e.id, e]));
 function prepareAll() { EXPERIMENTS.forEach(prepare); }
 prepareAll();
 const allAlerts = () => EXPERIMENTS.flatMap((e) => e.alerts).sort((a, b) => SEV_ORDER[a.sev] - SEV_ORDER[b.sev] || ((a.due || TODAY) - (b.due || TODAY)));
+
+/* ---------- фича → несколько АБ-тестов ---------- */
+const startOf = (e) => e.d.enableStart || e.d.plannedStart || e.d.created || TODAY;
+const FEATURES = {};
+EXPERIMENTS.forEach((e) => { (FEATURES[e.fid] = FEATURES[e.fid] || { id: e.fid, name: e.feature, tests: [], history: (FEATURE_META[e.fid] || {}).history || [] }).tests.push(e); });
+Object.values(FEATURES).forEach((f) => f.tests.sort((a, b) => a.iter - b.iter || startOf(a) - startOf(b) || (a.seg || '').localeCompare(b.seg || '', 'ru', { numeric: true })));
+const featureOf = (e) => FEATURES[e.fid];
+const siblings = (e) => featureOf(e).tests;
+const isParallel = (f) => f.tests.length > 1 && new Set(f.tests.map((t) => t.iter)).size < f.tests.length;
+function featureKind(f) {
+  if (f.tests.length < 2) return '';
+  return isParallel(f) ? 'параллельные тесты по сегментам' : 'последовательные итерации';
+}
+const GROUP_TITLE = {
+  upcoming: 'Результаты по тестам фичи будут готовы в разные дни',
+  canlook: 'Можно смотреть результаты',
+};
+/* Напоминания по тестам одной фичи с одинаковым правилом склеиваются в одну строку */
+function mergedAlerts() {
+  const groups = new Map();
+  allAlerts().forEach((a) => { const k = a.e.fid + '|' + a.rule; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(a); });
+  const out = [];
+  groups.forEach((arr) => {
+    if (arr.length === 1) { out.push(arr[0]); return; }
+    const worst = arr.reduce((m, a) => (SEV_ORDER[a.sev] < SEV_ORDER[m.sev] ? a : m));
+    const same = arr.every((a) => a.title === arr[0].title);
+    const due = arr.map((a) => a.due).filter(Boolean).sort((x, y) => x - y)[0] || null;
+    out.push({ ...worst, group: arr, same, due, title: same ? arr[0].title : (GROUP_TITLE[worst.rule] || worst.title) });
+  });
+  return out.sort((a, b) => SEV_ORDER[a.sev] - SEV_ORDER[b.sev] || ((a.due || TODAY) - (b.due || TODAY)));
+}
 
 function outcome(e) {
   if (e.flags.includes('stopped')) return 'Остановлен досрочно';
@@ -261,10 +297,11 @@ const bmLegend = () => `<div class="bm-legend">
 /* Готовность результатов: можно ли уже смотреть */
 function readiness(e) {
   if (!e.d.fullAt || !e.minAt) return null;
-  const total = e.planDays; const n = Math.min(e.dayN, total);
+  const lookDays = days(e.d.fullAt, e.lookAt);
+  const total = Math.max(e.planDays, lookDays); const n = Math.min(e.dayN, total);
   const over = e.planEnd && TODAY > e.planEnd && !e.decision && e.platform === 'Запущен';
-  const canLook = TODAY >= e.minAt;
-  return { n, total, pct: Math.min(100, (e.dayN / total) * 100), minPct: (e.minDays / total) * 100, canLook, over };
+  const canLook = TODAY >= e.lookAt;
+  return { n, total, pct: Math.min(100, (e.dayN / total) * 100), minPct: Math.min(100, (lookDays / total) * 100), canLook, over, slow: e.lookAt > e.planEnd };
 }
 function readinessBar(e, compact) {
   const r = readiness(e);
@@ -274,20 +311,23 @@ function readinessBar(e, compact) {
   const label = r.over ? `<b style="color:var(--crit)">+${dn(days(e.planEnd, TODAY))} сверх плана</b>`
     : e.d.platformEnd ? `<b style="color:#b4501f">завершён ${fmt(e.d.platformEnd)}</b>`
     : r.canLook ? '<b style="color:#b4501f">можно смотреть</b>'
-    : `смотреть ${rel(e.minAt)}`;
-  return `<div class="meter-row" data-tip="<b>День ${e.dayN} из ${r.total}</b><br>Можно смотреть с ${fmt(e.minAt, true)} (минимум ${dn(e.minDays)})<br>План окончания: ${fmt(e.planEnd, true)}<br>Выборка: ${e.sample}% от расчётной">
+    : `смотреть ${rel(e.lookAt)}${r.slow ? ' <b style="color:#8a5d00">· позже плана</b>' : ''}`;
+  return `<div class="meter-row" data-tip="<b>День ${e.dayN} из ${e.planDays}</b><br>Можно смотреть с ${fmt(e.lookAt, true)}<br><span class='tmuted'>минимальный срок: ${fmt(e.minAt)} · 100% выборки: ${fmt(e.sampleAt)}</span><br>План окончания: ${fmt(e.planEnd, true)}<br>Выборка: ${e.sample}% от расчётной">
     <div class="meter ${cls}"><b style="width:${r.pct}%"></b><span class="tick" style="left:calc(${r.minPct}% - 1px)"></span></div>
-    <span class="nowrap">${compact ? '' : `день ${e.dayN}/${r.total} · `}${label}</span></div>`;
+    <span class="nowrap">${compact ? '' : `день ${e.dayN}/${e.planDays} · `}${label}</span></div>`;
 }
 
 function alertRow(a, { showExp = true, compact = false, meta = true } = {}) {
   const e = a.e;
+  const G = a.group;
   return `<div class="alert ${a.sev}">
     ${sevIcon(a.sev)}
     <div class="a-body">
       <div class="a-title">${esc(a.title)}</div>
-      ${showExp ? `<div class="a-sub"><a href="#" data-open="${e.id}">${esc(e.short)}</a> <span class="muted">${e.tag}</span></div>` : ''}
-      ${compact ? '' : `<div class="a-sub">${esc(a.sub)}</div>`}
+      ${showExp && G ? `<div class="a-sub"><a href="#" data-open="${e.id}">${esc(e.feature)}</a> <span class="chip" style="height:18px">${G.length} ${plural(G.length, 'АБ-тест', 'АБ-теста', 'АБ-тестов')} фичи</span></div>` : ''}
+      ${showExp && !G ? `<div class="a-sub"><a href="#" data-open="${e.id}">${esc(e.short)}</a> <span class="muted">${e.tag}</span></div>` : ''}
+      ${G ? `<div class="a-group">${G.map((x) => `<div class="row small" style="gap:8px"><span class="dot" style="background:${STAGE[x.e.stage].color}"></span><a href="#" data-open="${x.e.id}" style="color:var(--ink);font-weight:550">${esc(x.e.label)}</a><span class="ink2">${a.same ? esc(testBrief(x.e)) : esc(x.title)}</span></div>`).join('')}</div>` : ''}
+      ${compact || G ? '' : `<div class="a-sub">${esc(a.sub)}</div>`}
       ${compact || !meta ? '' : `<div class="a-meta">${stageChip(e.stage)}${avatar(e.owner)}<span class="small ink2">${esc(e.owner)}</span>${a.due ? `<span class="small muted">· ${a.sev === 'crit' || a.sev === 'serious' ? 'с' : ''} ${fmt(a.due)} (${rel(a.due)})</span>` : ''}</div>`}
     </div>
     <div class="a-act">
@@ -385,13 +425,46 @@ function decisionBlock(e) {
   return '<div class="empty">Решение принимается после сбора данных</div>';
 }
 
+function testBrief(e) {
+  const row = e.results?.rows?.find((x) => !x.control);
+  if (e.decision) return outcome(e);
+  if (row && e.results.status !== 'invalid') return `${sgn(row.delta)} п.п. · ${row.verdict || (row.sig ? 'значимо' : 'незначимо')}`;
+  if (e.stage === 'collecting' && e.lookAt && e.type !== 'holdout') return TODAY >= e.lookAt ? 'можно смотреть' : `смотреть с ${fmt(e.lookAt)} · выборка ${e.sample}%`;
+  if (['enabling', 'rollout'].includes(e.stage)) return `${e.coverage} из ${ALL_BLOCKS.length} блоков`;
+  return STAGE[e.stage].name;
+}
+
+function featureTabs(e) {
+  const f = featureOf(e);
+  if (f.tests.length < 2) return '';
+  return `<div class="ftabs">${f.tests.map((t) => `<a href="#" class="ftab ${t.id === e.id ? 'on' : ''}" data-open="${t.id}" title="${esc(STAGE[t.stage].name)}">${stageDot(t.stage)}${esc(t.seg ? t.label : '№' + t.iter + ' ' + t.ver)}</a>`).join('')}</div>`;
+}
+
+function featureSection(e) {
+  const f = featureOf(e);
+  if (f.tests.length < 2 && !f.history.length) return '';
+  const hk = { win: 'good', none: 'info', stop: 'warn' };
+  return `<div class="sec"><h3>Фича: ${f.tests.length} ${plural(f.tests.length, 'АБ-тест', 'АБ-теста', 'АБ-тестов')} в работе${f.history.length ? ` и ${f.history.length} в истории` : ''}<span class="sp"></span><span class="small muted" style="font-weight:400">${featureKind(f)}</span></h3>
+    ${f.tests.length > 1 ? `<div>${f.tests.map((t) => `<div class="ftest ${t.id === e.id ? 'cur' : ''}">
+      <div class="row" style="gap:8px;min-width:0">${stageDot(t.stage)}<a href="#" data-open="${t.id}" style="color:var(--ink);font-weight:600">${esc(t.label)}</a><span class="small muted nowrap">${t.tag} · <span class="mono">${t.key}</span></span></div>
+      <span class="small ink2 nowrap" style="text-align:right">${STAGE[t.stage].name}</span>
+      <div class="small ink2">${esc(testBrief(t))}${t.alerts.find((a) => ['crit', 'serious', 'warn'].includes(a.sev)) ? ` · <span class="sev-label ${t.alerts[0].sev}">${esc(t.alerts[0].title)}</span>` : ''}</div>
+      <span class="small muted" style="text-align:right">${t.id === e.id ? 'открыт' : ''}</span>
+    </div>`).join('')}</div>
+    <div class="small muted" style="margin-top:8px">${isParallel(f) ? 'У каждого сегмента свой рубильник, своя выборка, срок готовности, результат и решение. Общими остаются строка тиража, аналитика и задача на удаление тоглов.' : 'Итерации идут друг за другом. Новая итерация получает следующий номер, а при перезапуске с той же гипотезой поднимается версия сути теста.'}</div>` : ''}
+    ${f.history.length ? `<div style="margin-top:${f.tests.length > 1 ? 14 : 0}px"><div class="small" style="font-weight:650;margin-bottom:4px">Что уже пробовали</div>${f.history.slice().reverse().map((h) => `<div class="fhist"><span class="muted tnum">${esc(h.it)}</span><span>${esc(h.what)} <span class="muted small">· ${esc(h.when)}</span></span><span class="sev-label ${hk[h.kind]}">${esc(h.out)}</span></div>`).join('')}</div>` : ''}
+  </div>`;
+}
+
 function passportHTML(e) {
   const r = RELEASES.find((x) => x.v === e.release);
+  const f = featureOf(e);
   return `
   <div class="drawer-head">
     <button class="btn ghost sm x" data-close>${ICON.x}</button>
     <div class="row wrap" style="margin-bottom:8px">${stageChip(e.stage)}${platChip(e.platform)}${typeChip(e)}${e.flags.includes('stopped') ? '<span class="chip">Остановлен досрочно</span>' : ''}<span class="chip outline">Релиз ${e.release}${r ? ' · ' + r.d.slice(0, 5) : ''}</span></div>
-    <h2>${esc(e.feature)} <span class="muted" style="font-weight:500">№${e.iter}</span></h2>
+    <h2>${esc(e.feature)} <span class="muted" style="font-weight:500">№${e.iter}${e.seg ? ' · ' + esc(e.seg) : ''}</span></h2>
+    ${f.tests.length > 1 ? `<div class="small ink2" style="margin-top:4px">В фиче ${f.tests.length} ${plural(f.tests.length, 'АБ-тест', 'АБ-теста', 'АБ-тестов')} (${featureKind(f)}). Переключайтесь между ними:</div>${featureTabs(e)}` : ''}
     <div class="row wrap small ink2" style="margin-top:6px;gap:12px">
       <span class="row" style="gap:6px">${avatar(e.owner)}${esc(e.owner)}</span>
       <span>Рубильник <span class="mono" style="color:var(--ink)">${e.key}</span></span>
@@ -408,14 +481,16 @@ function passportHTML(e) {
   <div class="drawer-body">
     ${e.alerts.length ? `<div class="stack">${e.alerts.map((a) => alertRow(a, { showExp: false, meta: false })).join('')}</div>` : ''}
     <div class="sec"><h3>Жизненный цикл</h3>${stepper(e)}</div>
+    ${featureSection(e)}
 
-    ${e.type !== 'rollout' && e.d.fullAt ? `<div class="sec"><h3>Когда смотреть результаты <span class="sp"></span>${readiness(e)?.canLook ? '<span class="sev-label good">Уже можно</span>' : `<span class="sev-label info">${e.minAt ? 'С ' + fmt(e.minAt, true) : ''}</span>`}</h3>
+    ${e.type !== 'rollout' && e.d.fullAt ? `<div class="sec"><h3>Когда смотреть результаты <span class="sp"></span>${readiness(e)?.canLook ? '<span class="sev-label good">Уже можно</span>' : `<span class="sev-label info">${e.lookAt ? 'С ' + fmt(e.lookAt, true) : ''}</span>`}</h3>
       ${readinessBar(e)}
       <div class="kv" style="margin-top:14px">
         <dt>На всех блоках с</dt><dd>${fmt(e.d.fullAt, true)} · ${e.d.platformEnd ? 'шёл' : 'идёт'} ${dn(e.dayN)}</dd>
-        <dt>Минимальный срок</dt><dd>${dn(e.minDays)} → можно смотреть с <b>${fmt(e.minAt, true)}</b></dd>
-        <dt>План окончания</dt><dd>${fmt(e.planEnd, true)}${e.d.platformEnd ? ` · фактически завершён ${fmt(e.d.platformEnd, true)}` : ''}</dd>
-        <dt>Выборка</dt><dd>${e.sample}% от расчётной${e.subtests ? '<br>' + e.subtests.map((s) => `<span class="small ink2">${esc(s.name)}: ${s.sample}%</span>`).join('<br>') : ''}</dd>
+        <dt>Минимальный срок</dt><dd>${dn(e.minDays)} → не раньше ${fmt(e.minAt, true)}</dd>
+        <dt>Выборка</dt><dd>${e.sample}% от расчётной${e.sample < 100 ? ` → 100 % при текущем темпе к ${fmt(e.sampleAt, true)}` : ''}</dd>
+        <dt>Можно смотреть</dt><dd><b>с ${fmt(e.lookAt, true)}</b> <span class="muted small">— когда выполнены оба условия</span></dd>
+        <dt>План окончания</dt><dd>${fmt(e.planEnd, true)}${e.d.platformEnd ? ` · фактически завершён ${fmt(e.d.platformEnd, true)}` : ''}${e.lookAt > e.planEnd && !e.d.platformEnd ? ' <span class="sev-label warn">выборка не успевает</span>' : ''}</dd>
       </div></div>` : ''}
 
     <div class="sec"><h3>Гипотеза и метрики</h3>
@@ -483,8 +558,9 @@ function decideModal(e) {
   const vs = e.variants;
   const best = e.results?.rows?.filter((r) => !r.control && r.sig).sort((a, b) => (e.results.direction === 'down' ? a.delta - b.delta : b.delta - a.delta))[0];
   const plan = rolloutPlan(addDays(TODAY, 1));
+  const others = siblings(e).filter((t) => t.id !== e.id && t.stage === 'ready' && !t.decision);
   openModal(`
-  <div class="modal-h"><div class="grow"><h2>Записать решение</h2><div class="small ink2" style="margin-top:4px">${esc(e.feature)} №${e.iter}</div></div><button class="btn ghost sm" data-mclose>${ICON.x}</button></div>
+  <div class="modal-h"><div class="grow"><h2>Записать решение</h2><div class="small ink2" style="margin-top:4px">${esc(e.feature)} №${e.iter}${e.seg ? ' · ' + esc(e.seg) : ''}</div></div><button class="btn ghost sm" data-mclose>${ICON.x}</button></div>
   <div class="modal-b">
     <div class="field"><label>Что делаем</label>
       <div class="opt-list" data-group="kind">
@@ -498,6 +574,9 @@ function decideModal(e) {
       ${best ? `<span class="small muted">Подсказка: лучший значимый результат у ${best.v} (${sgn(best.delta)} п.п.)</span>` : ''}
     </div>
     <div class="field"><label>Комментарий для тиража</label><textarea placeholder="Почему так решили, что смотрели"></textarea></div>
+    ${others.length ? `<div class="field"><label>Другие тесты этой фичи ждут решения</label>
+      ${others.map((t) => `<label class="check"><input type="checkbox" data-sib="${t.id}"> <span><b>${esc(t.label)}</b> · ${esc(testBrief(t))}</span></label>`).join('')}
+      <span class="small muted">У каждого теста свой результат. Отметьте тесты, по которым решаем так же: сервис возьмёт значимого победителя каждого теста, а если эффекта нет — оставит контроль. По неотмеченным тестам напоминание останется</span></div>` : ''}
     <div class="field"><label>Что сделать автоматически</label>
       <label class="check"><input type="checkbox" checked> <span>Создать план раскатки по блокам: ${plan.map((p) => `${fmt(p.d)} — ${blockList(p.b)}`).join('; ')}</span></label>
       <label class="check"><input type="checkbox" checked> <span>Через 30 дней после полной раскатки напомнить удалить <span class="mono">${e.key}</span> и лишние ветки</span></label>
@@ -579,20 +658,33 @@ function newTestModal() {
   $$('#nt [data-nt]').forEach((i) => i.addEventListener('input', upd)); upd();
 }
 
-function applyDecision(id) {
-  const e = EX[id];
+function decideOne(e) {
   const plan = rolloutPlan(addDays(TODAY, 1));
   const best = e.results?.rows?.filter((r) => !r.control && r.sig).sort((a, b) => (e.results.direction === 'down' ? a.delta - b.delta : b.delta - a.delta))[0];
+  const ctrl = e.variants.find((v) => v.control);
+  e.platform = 'Завершён';
+  if (e.results) e.results.status = 'reviewed';
+  if (!best && e.results?.rows) {
+    e.decision = { d: fmt(TODAY, true), who: ME, winner: ctrl.v, text: 'Значимого эффекта нет — оставляем контроль. Рубильник отправлен в очередь на удаление.' };
+    e.stage = 'cleanup'; e.dates.rolloutDoneAt = fmt(TODAY, true);
+    e.events.push({ d: fmt(TODAY, true), t: 'decision', txt: `Решение: оставляем контроль ${ctrl.v}` });
+    prepare(e); return `${e.label}: контроль`;
+  }
   const winner = (best && best.v) || e.variants.find((v) => !v.control).v;
   e.decision = { d: fmt(TODAY, true), who: ME, winner, text: `Раскатываем ${winner} на всех. План раскатки создан автоматически.` };
   e.stage = 'rollout';
-  e.platform = 'Завершён';
-  if (e.results) e.results.status = 'reviewed';
   e.events.push({ d: fmt(TODAY, true), t: 'decision', txt: `Решение: раскатываем ${winner}` });
   plan.forEach((p, i) => e.events.push({ d: fmt(p.d, true), t: 'plan', b: p.b, v: winner, txt: `План: включить ${winner}`, sd: i === 0 ? 'SD0002460' + (100 + Math.floor(Math.random() * 800)) : undefined }));
   prepare(e);
+  return `${e.label}: раскатка ${winner}`;
+}
+
+function applyDecision(id) {
+  const e = EX[id];
+  const sibs = [...document.querySelectorAll('#modal [data-sib]')].filter((c) => c.checked).map((c) => EX[c.dataset.sib]);
+  const res = [e, ...sibs].map(decideOne);
   closeModal();
-  toast('Решение записано. План раскатки и напоминание об удалении тоглов созданы');
+  toast(sibs.length ? `Решения записаны: ${res.join('; ')}` : 'Решение записано. План раскатки и напоминание об удалении тоглов созданы');
   rerender();
   if ($('#drawer').classList.contains('open')) openPassport(id);
 }

@@ -258,7 +258,7 @@ const EXPERIMENTS = [
     type: 'ab', platform: 'Запущен', stage: 'collecting',
     hypothesis: 'Если объяснить клиенту, почему уведомления для него бесплатны, то снизится доля отключений уведомлений об операциях.',
     metric: 'Доля отключений уведомлений за 14 дней', metric2: 'Обращения в поддержку по теме уведомлений',
-    minDays: 14, planDays: 28, sample: 24,
+    minDays: 14, planDays: 28, sample: 38,
     dates: { created: '28.10.2026', enableStart: '30.10.2026', fullAt: '05.11.2026' },
     variants: [
       { v: '1.0', name: 'Контроль', share: 50, control: true },
@@ -273,39 +273,7 @@ const EXPERIMENTS = [
       { d: '05.11.2026', t: 'ab', b: ['6', '5', '4', '3', '2', '1', 'SI1', 'SI2', 'SI3', 'SI4'], txt: 'Запущен АБ — все блоки', sd: 'SD0002417702' },
     ],
     toggles: [{ n: 'freeNotificationsReasonAb', kind: 'рубильник', st: 'todo' }],
-    cross: { clean: 22, mixed: 78, with: ['activ-price', 'banner-cms'] },
-  },
-
-  {
-    id: 'activ-price',
-    feature: 'Активация клиента с 1 продуктом. Лендинги под ценовые сегменты',
-    iter: 1, branch: 'лендинг по цене', ver: 'V1', range: '1.0-2.0', launch: '05.11.2026',
-    key: 'activationLandingPriceAb', release: '17.13', owner: 'Дмитрий П.',
-    type: 'ab', platform: 'Запущен', stage: 'collecting',
-    hypothesis: 'Если показывать лендинг, учитывающий ценовой сегмент клиента, то конверсия в подключение вырастет во всех трёх сегментах.',
-    metric: 'Конверсия лендинга в подключение', metric2: 'Отключения в первые 7 дней',
-    minDays: 14, planDays: 21, sample: 27,
-    subtests: [
-      { name: 'Сегмент 0 ₽', sample: 28 },
-      { name: 'Сегмент 59 ₽', sample: 31 },
-      { name: 'Сегмент 99 ₽', sample: 22 },
-    ],
-    dates: { created: '27.10.2026', enableStart: '31.10.2026', fullAt: '05.11.2026' },
-    variants: [
-      { v: '1.0', name: 'Контроль — общий лендинг', share: 50, control: true },
-      { v: '2.0', name: 'Лендинг под сегмент', share: 50 },
-    ],
-    results: null, decision: null,
-    events: [
-      { d: '31.10.2026', t: 'beta', b: ['Бета+'], v: '2.0', txt: 'Включено в Бета+ (3 рубильника)', sd: 'SD0002399030' },
-      { d: '05.11.2026', t: 'ab', b: 'all', txt: 'Запущены 3 АБ-теста (0 ₽, 59 ₽, 99 ₽) — все блоки', sd: 'SD0002418811' },
-    ],
-    toggles: [
-      { n: 'activationLandingPrice0Ab', kind: 'рубильник', st: 'todo' },
-      { n: 'activationLandingPrice59Ab', kind: 'рубильник', st: 'todo' },
-      { n: 'activationLandingPrice99Ab', kind: 'рубильник', st: 'todo' },
-    ],
-    cross: { clean: 22, mixed: 78, with: ['free-reason', 'banner-cms'] },
+    cross: { clean: 22, mixed: 78, with: ['ap-0', 'banner-cms'] },
   },
 
   {
@@ -340,7 +308,7 @@ const EXPERIMENTS = [
     type: 'ab', platform: 'Запущен', stage: 'collecting',
     hypothesis: 'Перенос баннера в CMS не снизит конверсию в подключение уведомлений (проверка «не хуже»).',
     metric: 'Конверсия баннера в подключение', metric2: 'CTR баннера',
-    minDays: 14, planDays: 21, sample: 41,
+    minDays: 14, planDays: 21, sample: 55,
     dates: { created: '22.10.2026', enableStart: '29.10.2026', fullAt: '03.11.2026' },
     variants: [
       { v: '1.0', name: 'Контроль — нативный баннер', share: 50, control: true },
@@ -352,51 +320,7 @@ const EXPERIMENTS = [
       { d: '03.11.2026', t: 'ab', b: 'all', txt: 'Запущен АБ 50/50 — все блоки', sd: 'SD0002405233' },
     ],
     toggles: [{ n: 'sellingBannerCmsAb', kind: 'рубильник', st: 'todo' }],
-    cross: { clean: 30, mixed: 70, with: ['free-reason', 'activ-price', 'reactions2'] },
-  },
-
-  {
-    id: 'return-push-price',
-    feature: 'Вернуть уведомления об операциях. Версия 2. Ценовые сегменты (99/59/0 ₽)',
-    iter: 1, branch: 'возврат по цене', ver: 'V1', range: '1.0-2.0', launch: '04.08.2026',
-    key: 'returnNotificationsPriceAb', release: '17.11', owner: 'Мария С.',
-    type: 'ab', platform: 'Запущен', stage: 'ready',
-    hypothesis: 'Предложение вернуть уведомления с учётом ценового сегмента увеличит долю возвратов во всех сегментах.',
-    metric: 'Доля клиентов, вернувших уведомления', metric2: 'Отток через 30 дней',
-    minDays: 21, planDays: 28, sample: 100,
-    subtests: [
-      { name: 'returnNotificationsPrice1Ab · 99 ₽', sample: 100 },
-      { name: 'returnNotificationsPrice2Ab · 59 ₽', sample: 100 },
-      { name: 'returnNotificationsPrice3Ab · 0 ₽', sample: 100 },
-    ],
-    dates: { created: '24.07.2026', enableStart: '29.07.2026', fullAt: '04.08.2026' },
-    variants: [
-      { v: '1.0', name: 'Контроль', share: 50, control: true },
-      { v: '2.0', name: 'Предложение с учётом сегмента', share: 50 },
-    ],
-    results: {
-      status: 'ready', direction: 'up',
-      note: 'Итоги на платформе готовы с 01.09 — их никто не разбирал. Тест всё ещё идёт.',
-      rows: [
-        { v: '1.0', value: 6.1, control: true, label: 'Контроль' },
-        { v: '2.0', value: 6.9, delta: 0.8, lo: 0.3, hi: 1.3, sig: true, label: '99 ₽' },
-        { v: '2.0', value: 6.6, delta: 0.5, lo: 0.1, hi: 0.9, sig: true, label: '59 ₽' },
-        { v: '2.0', value: 8.0, delta: 1.9, lo: 1.2, hi: 2.6, sig: true, label: '0 ₽' },
-      ],
-    },
-    decision: null,
-    events: [
-      { d: '29.07.2026', t: 'note', txt: 'Запускаем АБ на все блоки, рубильники 50/50' },
-      { d: '04.08.2026', t: 'ab', b: 'all', txt: 'Запущен АБ 50/50 для Price1Ab, Price2Ab, Price3Ab', sd: 'SD0001455012' },
-      { d: '25.08.2026', t: 'sys', txt: 'Набран минимальный срок (21 день) — можно смотреть результаты' },
-      { d: '01.09.2026', t: 'sys', txt: 'Плановая дата окончания (28 дней). Тест не остановлен' },
-    ],
-    toggles: [
-      { n: 'returnNotificationsPrice1Ab', kind: 'рубильник', st: 'todo' },
-      { n: 'returnNotificationsPrice2Ab', kind: 'рубильник', st: 'todo' },
-      { n: 'returnNotificationsPrice3Ab', kind: 'рубильник', st: 'todo' },
-    ],
-    cross: { clean: 2, mixed: 98, with: ['feed-off', 'style14', 'free-reason'] },
+    cross: { clean: 30, mixed: 70, with: ['free-reason', 'ap-0', 'reactions2'] },
   },
 
   {
@@ -459,7 +383,7 @@ const EXPERIMENTS = [
       { d: '01.11.2026', t: 'result', txt: 'Срез холдаута: −0,1 % MAU, незначимо' },
     ],
     toggles: [{ n: 'notificationFeedOffAb', kind: 'рубильник', st: 'todo' }],
-    cross: { clean: 2, mixed: 98, with: ['return-push-price'] },
+    cross: { clean: 2, mixed: 98, with: ['rp-99'] },
   },
 
   {
@@ -584,3 +508,104 @@ const EXPERIMENTS = [
     cross: { clean: 0, mixed: 0, with: [] },
   },
 ];
+
+/* ------------------------------------------------------------------
+   Несколько АБ-тестов на одну фичу
+   - параллельные: один запуск, разные сегменты/рубильники, у каждого свой
+     результат, срок готовности и решение;
+   - последовательные: итерации №32 → №33, перезапуски с новой версией.
+   ------------------------------------------------------------------ */
+const clone = (o) => JSON.parse(JSON.stringify(o));
+
+const AP_BASE = {
+  fid: 'f-activ-price',
+  feature: 'Активация клиента с 1 продуктом. Лендинги под ценовые сегменты',
+  iter: 1, ver: 'V1', range: '1.0-2.0', launch: '05.11.2026',
+  release: '17.13', owner: 'Дмитрий П.',
+  type: 'ab', platform: 'Запущен', stage: 'collecting',
+  hypothesis: 'Если показывать лендинг с учётом ценового сегмента клиента, то конверсия в подключение вырастет. Для каждого сегмента — отдельный АБ-тест со своим рубильником.',
+  metric: 'Конверсия лендинга в подключение', metric2: 'Отключения в первые 7 дней',
+  minDays: 14, planDays: 28,
+  dates: { created: '27.10.2026', enableStart: '31.10.2026', fullAt: '05.11.2026' },
+  variants: [
+    { v: '1.0', name: 'Контроль — общий лендинг', share: 50, control: true },
+    { v: '2.0', name: 'Лендинг под сегмент', share: 50 },
+  ],
+  results: null, decision: null,
+  cross: { clean: 22, mixed: 78, with: ['free-reason', 'banner-cms'] },
+};
+const apTest = (id, seg, key, sample, sd) => ({
+  ...clone(AP_BASE), id, seg, branch: seg, key, sample,
+  events: [
+    { d: '27.10.2026', t: 'note', txt: 'Заведены 3 теста на АБ-платформе — по одному на сегмент' },
+    { d: '31.10.2026', t: 'beta', b: ['Бета+'], v: '2.0', txt: 'Включено в Бета+', sd: 'SD0002399030' },
+    { d: '05.11.2026', t: 'ab', b: 'all', txt: 'Запущен АБ 50/50 — все блоки', sd },
+  ],
+  toggles: [{ n: key, kind: 'рубильник', st: 'todo' }],
+});
+
+const RP_BASE = {
+  fid: 'f-return2',
+  feature: 'Вернуть уведомления об операциях. Версия 2',
+  iter: 1, ver: 'V1', range: '1.0-2.0', launch: '04.08.2026',
+  release: '17.11', owner: 'Мария С.',
+  type: 'ab', platform: 'Запущен', stage: 'ready',
+  hypothesis: 'Предложение вернуть уведомления с учётом ценового сегмента (99/59/0 ₽) увеличит долю возвратов. Для каждого сегмента — свой рубильник и свой АБ-тест.',
+  metric: 'Доля клиентов, вернувших уведомления', metric2: 'Отток через 30 дней',
+  minDays: 21, planDays: 28, sample: 100,
+  dates: { created: '24.07.2026', enableStart: '29.07.2026', fullAt: '04.08.2026' },
+  variants: [
+    { v: '1.0', name: 'Контроль', share: 50, control: true },
+    { v: '2.0', name: 'Предложение с учётом сегмента', share: 50 },
+  ],
+  decision: null,
+  cross: { clean: 2, mixed: 98, with: ['feed-off', 'style14', 'free-reason'] },
+};
+const rpTest = (id, seg, key, ctrl, val, delta, lo, hi, sig, sd) => ({
+  ...clone(RP_BASE), id, seg, branch: seg, key,
+  results: {
+    status: 'ready', direction: 'up',
+    note: 'Итоги на платформе готовы с 25.08 — их никто не разбирал. Тест всё ещё идёт.',
+    rows: [{ v: '1.0', value: ctrl, control: true }, { v: '2.0', value: val, delta, lo, hi, sig }],
+  },
+  events: [
+    { d: '29.07.2026', t: 'note', txt: 'Запускаем АБ на все блоки, рубильники 50/50' },
+    { d: '04.08.2026', t: 'ab', b: 'all', txt: `Запущен АБ 50/50 (${key})`, sd },
+    { d: '25.08.2026', t: 'sys', txt: 'Набран минимальный срок (21 день) — можно смотреть результаты' },
+    { d: '01.09.2026', t: 'sys', txt: 'Плановая дата окончания (28 дней). Тест не остановлен' },
+  ],
+  toggles: [{ n: key, kind: 'рубильник', st: 'todo' }],
+});
+
+EXPERIMENTS.push(
+  apTest('ap-0', 'сегмент 0 ₽', 'activationLandingPrice0Ab', 28, 'SD0002418811'),
+  apTest('ap-59', 'сегмент 59 ₽', 'activationLandingPrice59Ab', 31, 'SD0002418812'),
+  apTest('ap-99', 'сегмент 99 ₽', 'activationLandingPrice99Ab', 19, 'SD0002418813'),
+  rpTest('rp-99', 'сегмент 99 ₽', 'returnNotificationsPrice1Ab', 6.1, 6.9, 0.8, 0.3, 1.3, true, 'SD0001455012'),
+  rpTest('rp-59', 'сегмент 59 ₽', 'returnNotificationsPrice2Ab', 6.4, 6.6, 0.2, -0.2, 0.6, false, 'SD0001455013'),
+  rpTest('rp-0', 'сегмент 0 ₽', 'returnNotificationsPrice3Ab', 6.1, 8.0, 1.9, 1.2, 2.6, true, 'SD0001455014'),
+);
+
+/* Принадлежность тестов фичам (строка тиража = фича) */
+const FID = {
+  style14: 'f-style', 'br-cms2': 'f-br-cms', cards1: 'f-cards', activ32: 'f-activ', activ33: 'f-activ',
+  reactions2: 'f-react', shtorka2: 'f-shtorka', 'return-push-v1': 'f-return1',
+};
+EXPERIMENTS.forEach((e) => { e.fid = e.fid || FID[e.id] || 'f-' + e.id; });
+
+/* История фичи: прошлые итерации, которых уже нет в работе */
+const FEATURE_META = {
+  'f-style': { history: [
+    { it: '№1–8', what: 'Описания стилей «Мини» и «Позитивный», V1–V3', when: 'янв – май 2026', out: '2 победы раскатаны, 6 без эффекта', kind: 'win' },
+    { it: '№9', what: 'Порядок стилей на экране', when: 'июн 2026', out: 'Победил 21.0', kind: 'win' },
+    { it: '№10', what: 'Превью стиля в карточке', when: 'июл 2026', out: 'Нет эффекта', kind: 'none' },
+    { it: '№11', what: 'Новый стиль из CMS', when: 'июл 2026', out: 'Остановлен: ошибка CMS', kind: 'stop' },
+    { it: '№12', what: 'Новый стиль из CMS, V2 — перезапуск №11', when: 'авг 2026', out: 'Победил 31.0', kind: 'win' },
+    { it: '№13', what: 'Описание стиля «Мультики»', when: 'сен 2026', out: 'Нет эффекта', kind: 'none' },
+  ] },
+  'f-br-cms': { history: [{ it: '№1', what: 'Текст кнопки на лендинге', when: 'авг 2026', out: 'Нет эффекта', kind: 'none' }] },
+  'f-cards': { history: [{ it: '—', what: 'Карточки с маскотом, 1.0–2.0', when: 'апр 2026', out: 'Победил 2.0, раскатано', kind: 'win' }] },
+  'f-react': { history: [{ it: 'Итерация 1', what: 'Базовый набор реакций', when: 'май 2026', out: 'Раскатано 1.0', kind: 'win' }] },
+  'f-shtorka': { history: [{ it: '№1', what: 'Шторка детализации, 1.0–2.0', when: 'авг 2026', out: 'Остановлен: некорректные тексты', kind: 'stop' }] },
+  'f-return1': { history: [{ it: 'Перезапуск', what: '1.0/2.0 → 3.0/4.0 из-за ошибки сплита', when: '17.06.2026', out: 'Данные до перезапуска не учитываются', kind: 'stop' }] },
+};

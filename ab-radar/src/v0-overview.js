@@ -46,6 +46,7 @@ const NEEDS = [
   ['Не забывать: решения, раскатки, тоглы', [2, 1, 1, 0, 2]],
   ['Связь с релизами', [0, 1, 2, 2, 0]],
   ['Пересечения тестов', [1, 0, 2, 1, 0]],
+  ['Несколько АБ-тестов в одной фиче', [2, 2, 2, 2, 1]],
   ['Порог входа для команды', [2, 2, 1, 2, 2]],
 ];
 
@@ -58,13 +59,14 @@ const RULES = [
   ['warn', 'Висит черновик', 'Тест заведён на платформе больше 14 дней назад и не запущен'],
   ['warn', 'Сильные пересечения', '90 % выборки или больше попадает в другие тесты'],
   ['warn', 'Не заполнено обязательное', 'Нет целевой метрики, гипотезы или ссылки на аналитику'],
-  ['good', 'Можно смотреть результаты', 'Набраны минимальный срок и выборка'],
+  ['warn', 'Выборка не успевает', 'При текущем темпе 100 % выборки наберётся позже плановой даты окончания (типично для маленьких сегментов)'],
+  ['good', 'Можно смотреть результаты', 'Набраны и минимальный срок, и 100 % выборки. Для каждого теста фичи считается отдельно'],
   ['info', 'Скоро', 'Результаты через N дней, срез холдаута, старт после релиза'],
 ];
 
 function renderOverview(root) {
   const counts = Object.fromEntries(STAGES.map((s) => [s.k, EXPERIMENTS.filter((e) => e.stage === s.k).length]));
-  const crit = allAlerts().filter((a) => a.sev === 'crit' || a.sev === 'serious');
+  const crit = mergedAlerts().filter((a) => a.sev === 'crit' || a.sev === 'serious');
   const mark = (v) => v === 2 ? '<span class="row" style="gap:6px"><span class="dot" style="background:#141413"></span>Сильно</span>'
     : v === 1 ? '<span class="row ink2" style="gap:6px"><span class="dot" style="background:#fff;box-shadow:inset 0 0 0 2px #52514e"></span>Частично</span>'
     : '<span class="muted">—</span>';
@@ -82,11 +84,12 @@ function renderOverview(root) {
         <div class="row" style="align-items:flex-start;gap:10px"><span class="chip">211 стр.</span><span>Страница тиража выросла до 211 страниц PDF и 440+ ссылок на аналитику. Активные тесты теряются среди архивных</span></div>
         <div class="row" style="align-items:flex-start;gap:10px"><span class="chip">цвет</span><span>Статус передаётся цветом ячейки (белый, жёлтый, зелёный, красный). Отфильтровать или посчитать по нему нельзя</span></div>
         <div class="row" style="align-items:flex-start;gap:10px"><span class="chip">текст</span><span>Ход включения записывается текстом: «29.10 — ГФ 9 12 13…», «02.11 — 6 5 4 3». По нему не понять, где тест включён сейчас</span></div>
+        <div class="row" style="align-items:flex-start;gap:10px"><span class="chip">N тестов</span><span>У одной фичи бывает несколько АБ-тестов: три ссылки в одной ячейке (0, 59 и 99 ₽), итерации №32 → №33, перезапуски «1.0 = 3.0, 2.0 = 4.0». У каждого теста свой срок, результат и решение, а в тираже это одна строка</span></div>
         <div class="row" style="align-items:flex-start;gap:10px"><span class="chip">2 места</span><span>АБ-платформа живёт отдельно и не знает о блоках, SD-заявках, тоглах и решениях. Тираж не знает, завершился ли тест</span></div>
         <div class="row" style="align-items:flex-start;gap:10px"><span class="chip">память</span><span>Когда смотреть результаты, кто дежурит, что пора удалить — всё держится в головах</span></div>
       </div></div>
       <div class="card"><div class="card-h"><h3>Что сервис нашёл бы сегодня в демо-данных</h3><span class="sp"></span><span class="sev-label crit">${crit.length} просрочено</span></div><div class="card-b stack">
-        ${crit.slice(0, 4).map((a) => `<div class="row" style="align-items:flex-start;gap:10px">${sevIcon(a.sev)}<span><b>${esc(a.title)}</b><br><a href="#" data-open="${a.e.id}">${esc(a.e.short)}</a> <span class="muted small">${a.e.tag}</span></span></div>`).join('')}
+        ${crit.slice(0, 4).map((a) => `<div class="row" style="align-items:flex-start;gap:10px">${sevIcon(a.sev)}<span><b>${esc(a.title)}</b><br><a href="#" data-open="${a.e.id}">${esc(a.group ? a.e.feature : a.e.short)}</a> <span class="muted small">${a.group ? a.group.length + ' АБ-теста фичи' : a.e.tag}</span></span></div>`).join('')}
         <div class="small muted">Эти сюжеты взяты со страницы тиража: например, АБ по ценовым сегментам с 04.08 до сих пор числится в «Запущенные и в процессе запуска».</div>
       </div></div>
     </div>
@@ -102,6 +105,16 @@ function renderOverview(root) {
         ${STAGES.map((s) => `<div class="stack" style="gap:6px"><span style="height:6px;border-radius:3px;background:${s.color}"></span><div class="row" style="gap:6px;font-weight:650;font-size:13px">${s.name}<span class="muted tnum" style="font-weight:500">${counts[s.k]}</span></div><div class="small ink2">${s.hint}</div></div>`).join('')}
       </div>
       <div class="small muted" style="margin-top:12px">Стадия заменяет цвет ячейки тиража: белый → «Подготовка», жёлтый → «Включение», зелёный → «Раскатка решения» и дальше, красный → флаг «остановлен/выключен». Цифра рядом — сколько тестов на стадии в демо.</div>
+    </div>
+
+    <div class="section-label" style="margin-top:28px">Фича и её АБ-тесты <span class="cnt">тоже общее для всех вариантов</span></div>
+    <div class="card" style="padding:16px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
+        <div><div style="font-weight:650">Фича = строка тиража</div><div class="small ink2" style="margin-top:4px">Ссылка на аналитику, релиз, блокеры, история итераций («что уже пробовали»), задача на удаление тоглов. Внутри — один или несколько АБ-тестов.</div></div>
+        <div><div style="font-weight:650">Параллельные тесты</div><div class="small ink2" style="margin-top:4px">Один запуск, разные сегменты или рубильники: лендинги 0 / 59 / 99 ₽, <span class="mono">returnNotificationsPrice1/2/3Ab</span>. У каждого своя выборка и поэтому своя дата «можно смотреть», свой результат и своё решение: где-то раскатываем, где-то оставляем контроль.</div></div>
+        <div><div style="font-weight:650">Последовательные итерации</div><div class="small ink2" style="margin-top:4px">№32 → №33, стиль уведомлений №1…№14, перезапуск с новой версией сути (V1 → V2). Сервис связывает их в историю фичи и при создании следующего теста сам предлагает номер и версию по конвенции.</div></div>
+      </div>
+      <div class="small muted" style="margin-top:12px">В Пульте и Ассистенте напоминания по тестам одной фичи склеиваются в одну строку со списком тестов. В Конвейере их можно свернуть в одну карточку, в Таймлайне — сгруппировать по фичам, в Умном тираже фича — строка, а тесты — вложенные строки. В паспорте есть переключатель между тестами фичи.</div>
     </div>
 
     <div class="section-label" style="margin-top:28px">Пять вариантов</div>

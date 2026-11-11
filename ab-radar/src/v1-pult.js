@@ -12,7 +12,7 @@ function bucketOf(a) {
 
 function renderPult(root) {
   const S = pultState;
-  let alerts = allAlerts();
+  let alerts = mergedAlerts();
   if (S.scope === 'mine') alerts = alerts.filter((a) => a.e.owner === ME || (a.rule === 'needsd' && dutyNow() === ME));
   if (S.stage) alerts = alerts.filter((a) => S.stage.includes(a.e.stage));
 
@@ -23,14 +23,16 @@ function renderPult(root) {
   const by = (ks) => EXPERIMENTS.filter((e) => ks.includes(e.stage));
   const tiles = [
     { k: ['enabling'], label: 'Включаются', foot: () => { const s = by(['enabling']).filter((e) => e.alerts.some((a) => a.rule === 'stuck')).length; return s ? `<b>${s} застряло</b>` : 'по плану'; } },
-    { k: ['collecting'], label: 'Сбор данных', foot: () => { const w = by(['collecting']).filter((e) => e.minAt && days(TODAY, e.minAt) <= 7 && e.type !== 'holdout').length; return `${w} можно смотреть на этой неделе`; } },
+    { k: ['collecting'], label: 'Сбор данных', foot: () => { const w = by(['collecting']).filter((e) => e.lookAt && days(TODAY, e.lookAt) <= 7 && e.type !== 'holdout').length; return `${w} можно смотреть на этой неделе`; } },
     { k: ['ready'], label: 'Готовы к анализу', foot: () => { const n = by(['ready']).filter((e) => !e.decision).length; return n ? `<b>${n} без решения</b>` : 'всё разобрано'; } },
     { k: ['rollout'], label: 'Раскатка решения', foot: () => { const e = by(['rollout'])[0]; return e && e.nextPlan ? `следующий шаг ${fmt(e.nextPlan.d)}` : 'нет шагов'; } },
     { k: ['cleanup'], label: 'Ждут чистки', foot: () => { const n = by(['cleanup']).filter((e) => e.alerts.some((a) => a.sev === 'serious')).length; return n ? `<b>${n} дольше 30 дней</b>` : 'в сроке'; } },
   ];
 
   const live = EXPERIMENTS.filter((e) => ['collecting', 'ready'].includes(e.stage) && e.platform === 'Запущен')
-    .sort((a, b) => (a.minAt || 0) - (b.minAt || 0));
+    .sort((a, b) => (a.lookAt || 0) - (b.lookAt || 0));
+  const liveF = [];
+  live.forEach((e) => { let g = liveF.find((x) => x.fid === e.fid); if (!g) { g = { fid: e.fid, tests: [] }; liveF.push(g); } g.tests.push(e); });
   const moving = EXPERIMENTS.filter((e) => ['enabling', 'rollout'].includes(e.stage));
   const finished = EXPERIMENTS.filter((e) => e.decision && days(D(e.decision.d), TODAY) <= 45 && e.type !== 'rollout')
     .sort((a, b) => D(b.decision.d) - D(a.decision.d));
@@ -64,7 +66,10 @@ function renderPult(root) {
       <div class="stack" style="gap:16px;position:sticky;top:64px">
         <div class="card"><div class="card-h"><h3>Сейчас в эфире</h3><span class="sp"></span><span class="small muted">${live.length} ${plural(live.length, 'тест', 'теста', 'тестов')}</span></div>
           <div class="card-b stack" style="gap:12px">
-          ${live.map((e) => `<div class="stack" style="gap:4px"><div class="row"><a href="#" data-open="${e.id}" class="grow" style="color:var(--ink);font-weight:550">${esc(e.short)}</a><span class="muted small nowrap">${e.tag}</span></div>${readinessBar(e)}</div>`).join('')}
+          ${liveF.map((g) => g.tests.length === 1
+    ? `<div class="stack" style="gap:4px"><div class="row"><a href="#" data-open="${g.tests[0].id}" class="grow" style="color:var(--ink);font-weight:550">${esc(g.tests[0].short)}</a><span class="muted small nowrap">${g.tests[0].tag}</span></div>${readinessBar(g.tests[0])}</div>`
+    : `<div class="stack" style="gap:6px"><div class="row"><a href="#" data-open="${g.tests[0].id}" class="grow" style="color:var(--ink);font-weight:550">${esc(g.tests[0].feature)}</a><span class="chip" style="height:18px">${g.tests.length} ${plural(g.tests.length, 'тест', 'теста', 'тестов')}</span></div>
+      ${g.tests.map((t) => `<div style="padding-left:12px;border-left:2px solid var(--line)"><a href="#" data-open="${t.id}" class="small" style="color:var(--ink-2)">${esc(t.label)}</a>${readinessBar(t, true)}</div>`).join('')}</div>`).join('')}
           </div></div>
 
         <div class="card"><div class="card-h"><h3>Включение по блокам</h3></div>
