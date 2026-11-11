@@ -2763,6 +2763,12 @@ const PRESETS = {
       { k: "speed", label: "Скорость падения, px/с", type: "range", min: 20, max: 600, step: 5, def: 120 },
       { k: "intensity", label: "Интенсивность (метель)", type: "range", min: 0, max: 1, step: 0.05, def: 0.3 },
       { k: "color", label: "Цвет снежинок", type: "color", def: "#A9D4FF" },
+      { k: "mode", label: "Режим", type: "select", options: [["loop", "Идёт всё время (бесшовный цикл)"], ["once", "Один снегопад: все упали — и конец"], ["empty", "С пустого экрана, идёт до конца сегмента"]], def: "loop" },
+      { k: "emit", label: "Откуда падают", type: "select", options: [["top", "Сверху, по всей ширине"], ["point", "Из точки (ставится на холсте)"]], def: "top" },
+      { k: "emitW", label: "Ширина области появления, px", type: "range", min: 0, max: 1000, step: 5, def: 40 },
+      { k: "fan", label: "Разлёт в стороны, px", type: "range", min: 0, max: 1000, step: 10, def: 220 },
+      { k: "originX", label: "Точка появления X, px", type: "range", min: -1000, max: 1000, step: 5, def: 0 },
+      { k: "originY", label: "Точка появления Y, px", type: "range", min: -1000, max: 1000, step: 5, def: 0 },
       { k: "sizeVar", label: "Разброс размера (глубина)", type: "range", min: 0, max: 0.9, step: 0.05, def: 0.5 },
       { k: "sparkle", label: "Сверкание внизу", type: "select", options: [["yes", "Да"], ["no", "Нет, просто тают"]], def: "yes" },
       { k: "glintColor", label: "Цвет блика", type: "color", def: "#7FC8FF" },
@@ -2771,10 +2777,9 @@ const PRESETS = {
       { k: "wind", label: "Ветер, px/с", type: "range", min: -300, max: 300, step: 5, def: 0 },
       { k: "sway", label: "Покачивание", type: "range", min: 0, max: 3, step: 0.1, def: 1 },
       { k: "spin", label: "Вращение", type: "range", min: 0, max: 3, step: 0.1, def: 1 },
-      { k: "prewarm", label: "Начало", type: "select", options: [["yes", "Снег уже идёт (бесшовный цикл)"], ["no", "С пустого экрана"]], def: "yes" },
       { k: "seed", label: "Сид", type: "range", min: 1, max: 999, step: 1, def: 12 },
     ],
-    cond: { color: [["source", "!image"]], glintColor: [["sparkle", "yes"]], glintSize: [["sparkle", "yes"]] },
+    cond: { color: [["source", "!image"]], glintColor: [["sparkle", "yes"]], glintSize: [["sparkle", "yes"]], emitW: [["emit", "point"]], fan: [["emit", "point"]], originX: [["emit", "point"]], originY: [["emit", "point"]] },
   },
   frost: {
     name: "Заморозка экрана", cat: "fx", tag: "В/Р", fx: true, sceneFx: true, dur: 3,
@@ -3058,7 +3063,7 @@ const PRESET_ADV = {
   splitGrid: ["gravity", "rotate", "random", "fade"], splitPath: ["gravity", "rotate", "fade"], explode: ["rotate", "hold", "random"],
   confetti: ["gravity", "flutter", "spinK", "originX", "originY", "seed"],
   frost: ["center", "crystals", "bands", "quality", "seed"],
-  snow: ["sizeVar", "sparkle", "glintColor", "glintSize", "ground", "wind", "sway", "spin", "prewarm", "seed"], ringBurst: ["dotSize"], rays: ["size", "seed"],
+  snow: ["originX", "originY", "sizeVar", "sparkle", "glintColor", "glintSize", "ground", "wind", "sway", "spin", "seed"], ringBurst: ["dotSize"], rays: ["size", "seed"],
   sparkles: ["life", "seed"], shockwave: ["gap", "opacity", "width"], satellites: ["depth", "dir"],
   orbit: ["depth", "dir"], liveHeart: ["waves", "seed"], flame: ["speed", "seed"], doubleTap: ["tilt", "hold"],
 };
@@ -3066,6 +3071,7 @@ Object.keys(PRESET_ADV).forEach((id) => { if (PRESETS[id]) PRESETS[id].params.fo
 // Ручка на холсте: точка «позиция слоя + (kx, ky)» перетаскивается мышью вместо двух ползунков
 PRESETS.flyTo.handle = { kx: "dx", ky: "dy", label: "Старт полёта" };
 PRESETS.confetti.handle = { kx: "originX", ky: "originY", label: "Точка вылета" };
+PRESETS.snow.handle = { kx: "originX", ky: "originY", label: "Точка появления", when: ["emit", "point"] }; // ручка видна только в режиме «Из точки»
 const advOpen = {}; // запоминаем, раскрыт ли блок «Тонкая настройка» у пресета
 // Образцы цветов: уже использованные в проекте + базовая палитра
 function projectSwatches() {
@@ -3868,7 +3874,9 @@ function buildFxLayers(layer, asset, base, env) {
       const rnd = seeded(Math.round(p.seed) * 53 + 17);
       const imgs = p.source === "image" ? (seg.params.images || []).map((id) => ASSETS[id]).filter((x) => x && x.dataURL) : [];
       const sparkle = p.sparkle !== "no", gy = H * p.ground, Lnd = sparkle ? 0.5 : 0.3; // Lnd — сколько длится «приземление», с
-      const loopMode = p.prewarm !== "no";
+      // режим: loop — бесшовный цикл; once — все снежинки долетают до конца сегмента; empty — с пустого экрана и до обрыва
+      const mode = seg.params.mode || (seg.params.prewarm === "no" ? "empty" : "loop"), loopMode = mode === "loop", once = mode === "once";
+      const point = p.emit === "point", ex = ctr[f0].x + p.originX, ey = ctr[f0].y + p.originY; // точка появления — от позиции слоя
       const hash = (a, b) => { const x = Math.sin(a * 127.1 + b * 311.7 + p.seed * 74.7) * 43758.5453; return x - Math.floor(x); };
       const grp = (items, x, y, rot) => ({ ty: "gr", it: items.concat([{ ty: "tr", p: { a: 0, k: [round(x, 2), round(y, 2)] }, a: { a: 0, k: [0, 0] }, s: { a: 0, k: [100, 100] }, r: { a: 0, k: rot || 0 }, o: { a: 0, k: 100 }, nm: "Трансформ" }]), nm: "Группа", np: items.length + 1, bm: 0, hd: false });
       const glints = [];
@@ -3876,25 +3884,37 @@ function buildFxLayers(layer, asset, base, env) {
         const depth = rnd(); // 0 — дальняя (мельче, медленнее, прозрачнее), 1 — ближняя
         const sz = Math.max(2, p.size * (1 - p.sizeVar * (1 - depth)));
         let v = Math.max(8, p.speed * (0.55 + 0.45 * depth) * (1 + (rnd() - 0.5) * 2 * (0.08 + 0.3 * I)));
-        const y0 = -sz * 0.7, dist = gy - y0;
-        let T = dist / v, C = T + Lnd, k = 1;
-        // бесшовный цикл: в сегмент укладывается целое число пролётов каждой снежинки
-        if (loopMode) { k = Math.max(1, Math.round(D / C)); C = D / k; T = Math.max(0.3, C - Lnd); v = dist / T; }
-        const shift = loopMode ? rnd() * C : -(rnd() * Math.min(C, D * 0.9));
+        const y0 = point ? Math.min(ey, gy - sz) : -sz * 0.7, dist = Math.max(sz, gy - y0);
+        let T = dist / v, C = T + Lnd, k = 1, passes = Infinity, shift;
+        if (loopMode) { // бесшовный цикл: в сегмент укладывается целое число пролётов каждой снежинки
+          k = Math.max(1, Math.round(D / C)); C = D / k; T = Math.max(0.3, C - Lnd); v = dist / T; shift = rnd() * C;
+        } else if (once) { // один снегопад: только полные пролёты, последний заканчивается до конца сегмента
+          if (D < C * 1.5) { C = D / 1.5; T = Math.max(0.2, C - Lnd); v = dist / T; } // сегмент короток — летим быстрее, чтобы успеть упасть
+          const delay = rnd() * Math.min(C, Math.max(0, D - C)), tail = rnd() * Math.min(C * 0.4, D * 0.12);
+          // подгоняем темп снежинки (не более чем на треть), чтобы её последний пролёт закончился у самого конца сегмента —
+          // иначе снегопад затихал бы задолго до конца
+          let ps = Math.max(1, Math.round((D - delay) / C)), C2 = (D - tail - delay) / ps;
+          if (C2 < C * 0.75 || C2 > C * 1.35) { ps = Math.max(1, Math.floor((D - delay) / C + 1e-6)); C2 = Math.max(C, Math.min(C * 1.35, (D - tail - delay) / ps)); }
+          C = C2; T = Math.max(0.2, C - Lnd); v = dist / T; passes = ps; shift = -delay;
+        } else shift = -(rnd() * Math.min(C, D * 0.9));
         const A = sz * (0.4 + 2.2 * I) * (0.5 + rnd()) * p.sway, swayT = 1.6 + rnd() * 2.2, psi = rnd() * TAU;
         const wind = (p.wind + I * I * 60 * (rnd() - 0.3)) * (0.5 + 0.5 * depth);
         const rot0 = rnd() * 360, rotV = (rnd() - 0.5) * 80 * p.spin * (0.4 + I), alpha = 0.5 + 0.5 * depth;
-        const xLand = (jj) => -W * 0.08 + hash(i + 1, jj + 1) * W * 1.16 - wind * T * 0.5;
+        // стартовая X пролёта jj и боковой уход к моменту приземления (в режиме «из точки» снежинки расходятся веером)
+        const xLand = (jj) => (point ? ex + (hash(i + 1, jj + 1) - 0.5) * p.emitW : -W * 0.08 + hash(i + 1, jj + 1) * W * 1.16 - wind * T * 0.5);
+        const fanOf = (jj) => (point ? (hash(i + 7, jj + 3) - 0.5) * 2 * p.fan : 0), sw0 = point ? Math.sin(psi) : 0;
+        const xAt = (jj, uf) => xLand(jj) + fanOf(jj) * EZ.out(uf / T) + A * (Math.sin(TAU * uf / swayT + psi) - sw0) + wind * uf;
         // состояние снежинки в момент sec: падает (с покачиванием, без ускорения) либо «приземлилась»
         const state = (sec) => {
           const tt = sec + shift; if (tt < 0) return null;
-          const j = Math.floor(tt / C), u = tt - j * C, uf = Math.min(u, T), x0 = xLand(loopMode ? j % k : j);
-          return { u, uf, x: x0 + A * Math.sin(TAU * uf / swayT + psi) + wind * uf, y: y0 + v * uf, lu: u >= T ? (u - T) / Lnd : -1 };
+          const j = Math.floor(tt / C); if (j >= passes) return null; // все свои пролёты снежинка уже сделала
+          const u = tt - j * C, uf = Math.min(u, T), jj = loopMode ? j % k : j;
+          return { u, uf, jj, x: xAt(jj, uf), y: y0 + v * uf, lu: u >= T ? (u - T) / Lnd : -1 };
         };
         const flake = (t, sec) => {
           const st = state(sec); if (!st) return { x: W / 2, y: y0, op: 0 };
           const rot = rot0 + rotV * st.uf;
-          if (st.lu < 0) return { x: st.x, y: st.y, rot, op: alpha * clamp(st.u / 0.25, 0, 1) };
+          if (st.lu < 0) { const born = point ? lerp(0.2, 1, EZ.out(clamp(st.u / 0.35, 0, 1))) : 1; return { x: st.x, y: st.y, rot, sx: born, sy: born, op: alpha * clamp(st.u / 0.25, 0, 1) }; } // из точки снежинка «вырастает»
           const sc = sparkle ? (st.lu < 0.3 ? 1 + 0.35 * Math.sin(st.lu / 0.3 * Math.PI) : 1) * (1 - EZ.in(clamp((st.lu - 0.3) / 0.7, 0, 1))) : 1 - 0.4 * st.lu;
           return { x: st.x, y: st.y, rot, sx: sc, sy: sc, op: alpha * (1 - EZ.in(st.lu)) };
         };
@@ -3922,7 +3942,7 @@ function buildFxLayers(layer, asset, base, env) {
           for (let q = 0; q < 8; q++) { const a8 = q * Math.PI / 4 - Math.PI / 2, rr = q % 2 ? rad * 0.28 : rad; pts.push([round(rr * Math.cos(a8), 2), round(rr * Math.sin(a8), 2)]); }
           glints.push(() => shape("over", "блик " + (i + 1), [fxPathItem(pts), fxFill(p.glintColor)], (t, sec) => {
             const st = state(sec); if (!st) return { x: W / 2, y: gy, op: 0 };
-            const j = Math.floor((sec + shift) / C), xl = xLand(loopMode ? j % k : j) + A * Math.sin(TAU * T / swayT + psi) + wind * T; // точка приземления постоянна весь пролёт
+            const xl = xAt(st.jj, T); // точка приземления постоянна весь пролёт
             if (st.lu < 0) return { x: xl, y: gy - sz * 0.15, sx: 0.01, sy: 0.01, op: 0 };
             const sc = Math.sin(Math.PI * clamp(st.lu / 0.75, 0, 1));
             return { x: xl, y: gy - sz * 0.15, rot: 90 * st.lu, sx: sc, sy: sc, op: st.lu < 0.75 ? 1 : 0 };
@@ -4889,7 +4909,7 @@ function renderOverlay(scale) {
   }
   // v8: ручка параметра-смещения выбранного сегмента (старт полёта, точка вылета конфетти)
   const hSeg = selectedSeg(), hDef = hSeg && PRESETS[hSeg.preset];
-  if (hDef && hDef.handle && !l.locked) {
+  if (hDef && hDef.handle && !l.locked && (!hDef.handle.when || String(hSeg.params[hDef.handle.when[0]] == null ? "" : hSeg.params[hDef.handle.when[0]]) === hDef.handle.when[1])) {
     const hd = hDef.handle, kxp = hDef.params.find((pp) => pp.k === hd.kx), kyp = hDef.params.find((pp) => pp.k === hd.ky);
     const b0 = hasKeys ? baseAt(l, hSeg.t[0] * project.scene.fps) : { x: l.transform.x, y: l.transform.y };
     const val = (k, pp) => (hSeg.params[k] == null ? pp.def : hSeg.params[k]);
@@ -5414,7 +5434,7 @@ function renderSegParams(host, layer, seg) {
     if (pp.k === "source" && cfBlock) fields += cfBlock;
   });
   if (advFields) fields += `<details class="adv-box" id="advBox" ${advOpen[seg.preset] ? "open" : ""}><summary>Тонкая настройка</summary>${advFields}</details>`;
-  if (def.handle) fields += `<p class="hint" style="margin:0 0 10px">«${def.handle.label}» можно перетащить мышью прямо на холсте — это синяя точка с пунктиром.</p>`;
+  if (def.handle && (!def.handle.when || String(pval(def.handle.when[0])) === def.handle.when[1])) fields += `<p class="hint" style="margin:0 0 10px">«${def.handle.label}» можно перетащить мышью прямо на холсте — это синяя точка с пунктиром.</p>`;
   const exp = def.experimental ? `<div class="notice">${icon("alert")} Экспериментальный пресет. ${def.id === "morph" || seg.preset === "morph" ? "Morph требует векторных shape-слоёв (вне MVP) — применена аппроксимация." : "Расщепление по path аппроксимировано сеточной нарезкой растра."}</div>` : "";
   // предупреждение: этот сложный сегмент не применится (на слое уже есть другой сложный)
   const deadSet = inactiveSegIds(layer);
@@ -5425,7 +5445,7 @@ function renderSegParams(host, layer, seg) {
   const swarmWarn = swarmBlockedSegIds(layer).has(seg.id)
     ? `<div class="notice">${icon("alert")} <b>Этот пресет не применяется к рою.</b> Это вход или выход одиночного слоя, а у роя своё появление и скрытие. <button class="btn-soft wide" id="extractSeg" style="margin-top:8px">${icon("layers")} Вынести на отдельный слой</button></div>`
     : "";
-  const fxHint = def.sceneFx ? `<p class="hint" style="margin:0 0 10px">Эффект занимает всю сцену и не зависит от положения слоя. Длительность сегмента — сколько он длится; для фона растяните сегмент на всю сцену.</p>`
+  const fxHint = def.sceneFx ? `<p class="hint" style="margin:0 0 10px">Эффект занимает всю сцену. Сколько он длится, задаёт поле «Длительность» выше: если значение больше сцены, сцена продлится сама.${seg.preset === "snow" ? " В режиме «Один снегопад» при коротком сегменте снежинки летят быстрее, чтобы успеть упасть." : ""}</p>`
     : def.fx ? `<p class="hint" style="margin:0 0 10px">Эффект добавляет под-слои рядом со слоем и сочетается с другими пресетами. Размеры считаются от размера слоя в момент старта сегмента.</p>` : "";
   const swarmHint = def.swarm && layerHasSwarm(layer) ? `<p class="hint" style="margin:0 0 10px">На слое рой: пресет применяется к каждой копии, амплитуда подстраивается под её размер. Чтобы копии шли волной, задайте «Сдвиг пресетов по копиям» в параметрах роя.</p>` : "";
   const easeOpts = `<option value="auto" ${(!seg.ease || seg.ease === "auto") ? "selected" : ""}>Авто (как в пресете)</option>` +
@@ -5510,6 +5530,7 @@ function renderSegParams(host, layer, seg) {
       // показываем/прячем зависимые поля (поля направленного ухода зависят от exit)
       (def.params || []).forEach((pp) => { if (!condOf(pp.k)) return; const row = $(`[data-prow="${pp.k}"]`, host); if (row) row.style.display = condOk(pp.k) ? "" : "none"; });
       // v9: смена источника частиц — подбираем разумный размер (картинке 12 px мало) и перерисовываем блок изображений
+      if (def.handle && def.handle.when && inp.dataset.p === def.handle.when[0]) { markDirty(); renderParams(); renderCanvas(); scheduleRebuild(); return; }
       if (def.imgParticles && inp.dataset.p === "source") {
         if (seg.preset === "confetti" && v === "image" && pval("size") === pdef.size.def) seg.params.size = 40;
         else if (seg.preset === "confetti" && v === "paper" && pval("size") === 40) seg.params.size = pdef.size.def;
@@ -5560,8 +5581,16 @@ function renderSegParams(host, layer, seg) {
     await saveTemplate({ id: uid("tpl"), name: name.slice(0, 40), preset: seg.preset, params: JSON.parse(JSON.stringify(seg.params)), ease: seg.ease || "auto", bezier: seg.bezier ? seg.bezier.slice() : undefined, spring: seg.spring ? Object.assign({}, seg.spring) : undefined, dur: round(seg.t[1] - seg.t[0], 2), createdAt: Date.now() });
     toast("Шаблон «" + name + "» сохранён", "ok");
   });
-  $("[data-time]", host).addEventListener("change", (e) => { const d = seg.t[1] - seg.t[0]; seg.t[0] = clamp(parseFloat(e.target.value) || 0, 0, project.scene.duration); seg.t[1] = clamp(seg.t[0] + d, seg.t[0] + 0.05, project.scene.duration); relayoutChains(layer); markDirty(); renderTimeline(); scheduleRebuild(); });
-  $("[data-dur]", host).addEventListener("change", (e) => { seg.t[1] = clamp(seg.t[0] + (parseFloat(e.target.value) || 0.1), seg.t[0] + 0.05, project.scene.duration); relayoutChains(layer); markDirty(); renderTimeline(); scheduleRebuild(); });
+  // v11: если сегмент выходит за конец сцены, сцена продлевается (раньше значение молча обрезалось, и «ничего не происходило»)
+  const fitScene = () => {
+    seg.t[1] = round(Math.min(seg.t[1], 30), 2); seg.t[0] = round(Math.min(seg.t[0], seg.t[1] - 0.05), 2);
+    const grew = seg.t[1] > project.scene.duration + 1e-6;
+    if (grew) { project.scene.duration = round(Math.min(30, Math.ceil(seg.t[1] * 10) / 10), 2); toast("Сцена продлена до " + project.scene.duration + " с, чтобы сегмент поместился целиком", "ok", 4500); }
+    relayoutChains(layer); markDirty();
+    if (grew) renderAll(); else { renderTimeline(); scheduleRebuild(); }
+  };
+  $("[data-time]", host).addEventListener("change", (e) => { const d = seg.t[1] - seg.t[0]; seg.t[0] = Math.max(0, parseFloat(e.target.value) || 0); seg.t[1] = seg.t[0] + d; fitScene(); });
+  $("[data-dur]", host).addEventListener("change", (e) => { seg.t[1] = seg.t[0] + Math.max(0.05, parseFloat(e.target.value) || 0.1); fitScene(); });
   $("#delSeg", host).addEventListener("click", () => { layer.segments = layer.segments.filter((s) => s.id !== seg.id); delete TILES[seg.id]; sel.segId = null; markDirty(); renderAll(); });
 }
 function addSegment(layer, presetId) {
