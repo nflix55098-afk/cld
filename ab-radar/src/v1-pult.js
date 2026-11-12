@@ -1,6 +1,6 @@
 /* ===================== 1. Пульт ===================== */
 
-const pultState = { tab: 'today', scope: 'team', stage: null, showLater: false };
+const pultState = { tab: 'ab', scope: 'team', stage: null, showLater: false };
 const journalState = { period: '30', block: 'all', kind: 'all', q: '' };
 const catState = { view: 'work', kind: 'all', q: '' };
 
@@ -20,49 +20,113 @@ function pultTaskFilter(S) {
   return (a) => (S.scope === 'team' || a.e.owner === ME || (a.rule === 'needsd' && dutyNow() === ME)) && (!S.stage || S.stage.includes(a.e.stage));
 }
 
-/* ---------- вкладка «Сегодня» ---------- */
-function renderToday(S) {
-  const { now, later } = buildTasks(pultTaskFilter(S));
-  const by = (ks) => EXPERIMENTS.filter((e) => ks.includes(e.stage));
-  const tiles = [
-    { k: ['enabling'], label: 'Включаются', foot: () => { const s = by(['enabling']).filter((e) => e.alerts.some((a) => a.rule === 'stuck')).length; return s ? `<b>${s} стоит</b>` : 'по плану'; } },
-    { k: ['collecting'], label: 'Сбор данных', foot: () => `${by(['collecting']).filter((e) => e.lookAt && e.type !== 'holdout' && days(TODAY, e.lookAt) <= 7).length} готовы на неделе` },
-    { k: ['ready'], label: 'Готовы к анализу', foot: () => { const n = by(['ready']).filter((e) => !e.decision).length; return n ? `<b>${n} без решения</b>` : 'всё разобрано'; } },
-    { k: ['rollout'], label: 'Раскатка решения', foot: () => 'по плану' },
-    { k: ['cleanup'], label: 'Чистка', foot: () => { const n = by(['cleanup']).filter((e) => e.alerts.some((a) => a.sev === 'serious')).length; return n ? `<b>${n} просрочено</b>` : 'в сроке'; } },
-  ];
+/* ---------- вкладка «А/Б-тесты» ---------- */
+const abState = { view: 'active', fin: 'all', q: '', showRemind: false };
 
-  const live = EXPERIMENTS.filter((e) => ['collecting', 'ready'].includes(e.stage) && e.platform === 'Запущен').sort((a, b) => (a.lookAt || 0) - (b.lookAt || 0));
-  const liveF = [];
-  live.forEach((e) => { let g = liveF.find((x) => x.fid === e.fid); if (!g) { g = { fid: e.fid, tests: [] }; liveF.push(g); } g.tests.push(e); });
-  const moving = EXPERIMENTS.filter((e) => ['enabling', 'rollout'].includes(e.stage));
+const isAbTest = (e) => e.type !== 'rollout';
+const isFinished = (e) => isAbTest(e) && (e.platform === 'Завершён' || !!e.decision);
+const isActive = (e) => isAbTest(e) && !isFinished(e) && ['enabling', 'collecting', 'ready'].includes(e.stage);
+const isPreparing = (e) => isAbTest(e) && !isFinished(e) && ['prep', 'release'].includes(e.stage);
+
+function splitText(e) {
+  const sh = e.variants.map((v) => v.share);
+  const parts = [];
+  sh.forEach((x) => { const last = parts[parts.length - 1]; if (last && last.v === x) last.n++; else parts.push({ v: x, n: 1 }); });
+  return parts.map((p) => (p.n > 2 ? `${p.v}×${p.n}` : Array(p.n).fill(p.v).join(' / '))).join(' / ');
+}
+
+function testCell(e) {
+  return `<a href="#" data-open="${e.id}" class="tname" title="${esc(e.feature)}">${esc(e.feature)}</a>
+    <div class="tsub"><span class="nowrap">№${e.iter}${e.seg ? ' · ' + esc(e.seg) : ''}</span> · <span>${esc(e.seg ? e.key : e.branch)}</span></div>`;
+}
+
+function finClass(e) {
+  if (!e.decision) return 'nodec';
+  if (e.flags.includes('stopped')) return 'stop';
+  const o = outcome(e);
+  return o.startsWith('Победил') || o.startsWith('Не хуже') ? 'win' : 'none';
+}
+
+function renderAB(S) {
+  const A = abState;
+  const mine = (e) => S.scope === 'team' || e.owner === ME;
+  const q = A.q.trim().toLowerCase();
+  const qOk = (e) => !q || `${e.feature} ${e.seg || ''} ${e.branch} ${e.key} №${e.iter}`.toLowerCase().includes(q);
+  const active = EXPERIMENTS.filter((e) => isActive(e) && mine(e));
+  const finished = EXPERIMENTS.filter((e) => isFinished(e) && mine(e));
+  const prep = EXPERIMENTS.filter((e) => isPreparing(e) && mine(e));
+  const { now, later } = buildTasks(pultTaskFilter(S));
+  const critN = now.filter((t) => t.main.sev === 'crit' || t.main.sev === 'serious').length;
+
+  const remind = `<div class="remind ${A.showRemind ? 'open' : ''}">
+    <button class="remind-bar" data-remind>${ICON.bell}<b>Напоминания</b><span class="chip" style="height:20px">${now.length}</span>${critN ? `<span class="sev-label crit">${critN} ${plural(critN, 'просрочено', 'просрочено', 'просрочено')}</span>` : ''}<span class="sp"></span><span class="small" style="color:var(--accent)">${A.showRemind ? 'Скрыть' : 'Показать'}</span></button>
+    ${A.showRemind ? `<div class="tasks" style="border-radius:0 0 var(--r) var(--r);box-shadow:none;border-top:1px solid var(--line)">${now.map((t) => taskRow(t)).join('')}</div>
+      ${later.length ? `<button class="later-toggle" data-later style="padding-left:14px">${S.showLater ? 'Скрыть' : `Позже и к сведению · ${later.length}`}</button>${S.showLater ? `<div class="tasks" style="box-shadow:none;border-top:1px solid var(--line);border-radius:0">${later.map((t) => taskRow(t)).join('')}</div>` : ''}` : ''}` : ''}
+  </div>`;
+
+  let table = '';
+  if (A.view === 'active') {
+    const groups = [['ready', 'Готовы к анализу'], ['collecting', 'Сбор данных'], ['enabling', 'Включаются']]
+      .map(([k, n]) => ({ k, n, items: active.filter((e) => e.stage === k && qOk(e)).sort((a, b) => (a.lookAt || TODAY) - (b.lookAt || TODAY)) }))
+      .filter((g) => g.items.length);
+    const row = (e) => {
+      const sev = e.alerts.find((a) => a.sev !== 'info');
+      return `<tr class="clickable" data-open="${e.id}">
+        <td class="ic">${sev ? `<span data-tip="${esc(sev.title)}">${sevIcon(sev.sev)}</span>` : ''}</td>
+        <td class="tcol">${testCell(e)}</td>
+        <td class="nowrap">${e.type === 'holdout' ? '<span class="chip" style="height:18px">холдаут</span>' : `<span class="small">${esc(splitText(e))}</span>`}<div class="tsub">${e.variants.length} ${plural(e.variants.length, 'вариант', 'варианта', 'вариантов')}</div></td>
+        <td class="nowrap">${miniBlocks(e)}<div class="tsub">${e.coverage} из ${ALL_BLOCKS.length}${e.nextPlan ? ` · дальше ${fmt(e.nextPlan.d)}` : e.coverage < ALL_BLOCKS.length ? ' · <span style="color:#8a5d00">стоит</span>' : ''}</div></td>
+        <td class="nowrap">${e.d.fullAt ? `день ${e.dayN} из ${e.planDays}` : '—'}<div class="tsub">${e.d.fullAt ? `с ${fmt(e.d.fullAt)}` : e.d.enableStart ? `включается с ${fmt(e.d.enableStart)}` : ''}</div></td>
+        <td class="nowrap tnum">${e.d.fullAt ? e.sample + '%' : '—'}</td>
+        <td class="rcol">${e.d.fullAt ? readinessBar(e, true) : '<span class="small muted">после 100 % блоков</span>'}</td>
+        <td class="nowrap tnum">${e.cross.mixed ? `<span class="${e.cross.mixed >= 90 ? 'sev-label warn' : ''}" data-tip="${e.cross.mixed}% выборки попадает в другие тесты">${e.cross.mixed}%</span>` : '—'}</td>
+        <td>${avatar(e.owner)}</td>
+      </tr>`;
+    };
+    table = groups.length ? `<table class="t abt"><thead><tr><th></th><th>Тест и фича</th><th>Сплит</th><th>Блоки</th><th>Срок</th><th>Выборка</th><th>Итоги</th><th>Пересечения</th><th></th></tr></thead><tbody>
+      ${groups.map((g) => `<tr class="grp"><td colspan="9">${stageDot(g.k)} ${g.n} <span class="muted">${g.items.length}</span></td></tr>${g.items.map(row).join('')}`).join('')}
+    </tbody></table>` : '<div class="empty" style="padding:16px">Активных тестов нет</div>';
+  } else if (A.view === 'finished') {
+    const filters = [['all', 'Все'], ['nodec', 'Без решения'], ['win', 'Победы'], ['none', 'Без эффекта'], ['stop', 'Остановлены']];
+    const list = finished.filter((e) => qOk(e) && (A.fin === 'all' || finClass(e) === A.fin))
+      .sort((a, b) => (b.d.platformEnd || b.d.decisionAt || TODAY) - (a.d.platformEnd || a.d.decisionAt || TODAY));
+    const stageNow = (e) => !e.decision ? '<span class="sev-label serious">Ждёт решения</span>' : `${stageDot(e.stage)} ${e.stage === 'done' ? 'Закрыт' : STAGE[e.stage].name}`;
+    const row = (e) => {
+      const best = e.results?.rows?.find((x) => !x.control);
+      const end = e.d.platformEnd || e.d.decisionAt;
+      return `<tr class="clickable" data-open="${e.id}">
+        <td class="tcol">${testCell(e)}</td>
+        <td class="nowrap">${fmt(e.d.fullAt || e.d.enableStart, true)} – ${fmt(end, true)}<div class="tsub">${e.d.fullAt && end ? dn(days(e.d.fullAt, end)) : ''}</div></td>
+        <td>${e.decision ? `<span class="chip">${esc(outcome(e))}</span>` : '<span class="sev-label serious">Нет решения</span>'}<div class="tsub">${best && e.results.status !== 'invalid' ? `${sgn(best.delta)} п.п. · ${best.verdict || (best.sig ? 'значимо' : 'незначимо')}` : e.results?.status === 'invalid' ? 'данные невалидны' : ''}</div></td>
+        <td class="small ink2" style="max-width:260px">${esc(e.metric || '—')}</td>
+        <td class="nowrap">${e.decision ? `${avatar(e.decision.who)} <span class="small">${e.decision.d.slice(0, 5)}${D(e.decision.d).getFullYear() !== TODAY.getFullYear() ? '.' + D(e.decision.d).getFullYear() : ''}</span>` : '<span class="muted">—</span>'}</td>
+        <td class="nowrap small">${stageNow(e)}</td>
+      </tr>`;
+    };
+    table = `<div class="row wrap" style="gap:10px;padding:12px 12px 0">
+        <div class="seg">${filters.map(([k, n]) => `<button class="${A.fin === k ? 'on' : ''}" data-fin="${k}">${n}<span class="cnt">${finished.filter((e) => k === 'all' || finClass(e) === k).length}</span></button>`).join('')}</div></div>
+      <table class="t abt" style="margin-top:8px"><thead><tr><th>Тест и фича</th><th>Период</th><th>Итог</th><th>Целевая метрика</th><th>Решение</th><th>Сейчас</th></tr></thead><tbody>
+      ${list.map(row).join('') || '<tr><td colspan="6" class="empty" style="padding:16px">Нет тестов</td></tr>'}</tbody></table>`;
+  } else {
+    const row = (e) => `<tr class="clickable" data-open="${e.id}">
+      <td class="tcol">${testCell(e)}</td>
+      <td class="nowrap">${stageDot(e.stage)} ${STAGE[e.stage].name}</td>
+      <td class="nowrap">${e.d.plannedStart ? `старт ${fmt(e.d.plannedStart, true)}` : '<span class="muted">дата не назначена</span>'}<div class="tsub">релиз ${e.release}</div></td>
+      <td>${e.blockers ? `<span class="sev-label warn">${esc(e.blockers)}</span>` : '<span class="muted">—</span>'}</td>
+      <td>${avatar(e.owner)}</td>
+    </tr>`;
+    table = `<table class="t abt"><thead><tr><th>Тест и фича</th><th>Стадия</th><th>Старт</th><th>Блокер</th><th></th></tr></thead><tbody>${prep.filter(qOk).map(row).join('') || '<tr><td colspan="5" class="empty" style="padding:16px">Нет тестов</td></tr>'}</tbody></table>`;
+  }
 
   return `
-    <div class="tiles compact">
-      ${tiles.map((t) => { const on = S.stage && S.stage.join() === t.k.join(); return `<button class="tile ${on ? 'on' : ''}" data-stage="${t.k.join(',')}">
-        <span class="lbl">${stageDot(t.k[0])}${t.label}</span><span class="row" style="align-items:baseline;gap:8px"><span class="val">${by(t.k).length}</span><span class="foot">${t.foot()}</span></span></button>`; }).join('')}
+    ${remind}
+    <div class="row wrap" style="gap:10px;margin:16px 0 12px">
+      <h2 style="margin-right:8px">${A.view === 'active' ? 'Активные А/Б-тесты' : A.view === 'finished' ? 'Завершённые А/Б-тесты' : 'Готовятся к запуску'}</h2>
+      <div class="seg">${[['active', 'Активные', active.length], ['finished', 'Завершённые', finished.length], ['prep', 'Готовятся', prep.length]].map(([k, n, c]) => `<button class="${A.view === k ? 'on' : ''}" data-abv="${k}">${n}<span class="cnt">${c}</span></button>`).join('')}</div>
+      <span class="sp"></span>
+      <div class="search" style="min-width:280px">${ICON.search}<input id="ab-q" value="${esc(A.q)}" placeholder="Тест, фича, рубильник, №"></div>
     </div>
-    <div class="grid-2" style="grid-template-columns:minmax(0,1fr) 380px">
-      <div>
-        <div class="section-label" style="margin-top:0">Сделать <span class="cnt">${now.length}</span>${S.stage ? `<span style="text-transform:none;letter-spacing:0" class="muted">· ${STAGE[S.stage[0]].name}</span><button class="btn sm ghost" data-stage="">Сбросить</button>` : ''}</div>
-        <div class="tasks">${now.map((t) => taskRow(t)).join('') || '<div class="empty" style="padding:14px 16px">Всё сделано</div>'}</div>
-        ${later.length ? `<button class="later-toggle" data-later>${S.showLater ? 'Скрыть' : `Позже и к сведению · ${later.length}`} <span style="display:inline-block;transform:rotate(${S.showLater ? -90 : 90}deg)">›</span></button>
-        ${S.showLater ? `<div class="tasks">${later.map((t) => taskRow(t)).join('')}</div>` : ''}` : ''}
-      </div>
-      <div class="stack" style="gap:14px;position:sticky;top:64px">
-        <div class="card"><div class="card-h"><h3>В эфире</h3><span class="sp"></span><span class="small muted">${live.length}</span></div>
-          <div class="card-b">
-          ${liveF.map((g) => g.tests.length === 1
-    ? `<div class="lrow"><a href="#" data-open="${g.tests[0].id}" class="lname" title="${esc(g.tests[0].short)}">${esc(g.tests[0].short)}</a>${readinessBar(g.tests[0], true)}</div>`
-    : `<div class="lrow"><a href="#" data-open="${g.tests[0].id}" class="lname" title="${esc(g.tests[0].feature)}">${esc(g.tests[0].feature)}</a><span class="small muted">${g.tests.length} ${plural(g.tests.length, 'тест', 'теста', 'тестов')}</span></div>
-      ${g.tests.map((t) => `<div class="lrow sub"><a href="#" data-open="${t.id}" class="lname">${esc(t.label)}</a>${readinessBar(t, true)}</div>`).join('')}`).join('')}
-          </div></div>
-        <div class="card"><div class="card-h"><h3>Включение по блокам</h3></div>
-          <div class="card-b">
-          ${moving.map((e) => `<div class="lrow"><a href="#" data-open="${e.id}" class="lname" title="${esc(e.short)}">${esc(e.short)}</a><span class="row" style="gap:8px">${miniBlocks(e)}<span class="small nowrap ${e.nextPlan ? 'muted' : ''}" style="${e.nextPlan ? '' : 'color:#8a5d00;font-weight:600'}">${e.nextPlan ? fmt(e.nextPlan.d) : 'стоит'}</span></span></div>`).join('')}
-          </div></div>
-      </div>
-    </div>`;
+    <div class="card" style="overflow-x:auto">${table}</div>`;
 }
 
 /* ---------- вкладка «Журнал включений» ---------- */
@@ -162,16 +226,15 @@ function renderFeatures() {
 /* ---------- экран ---------- */
 function renderPult(root) {
   const S = pultState;
-  const { now } = buildTasks(pultTaskFilter(S));
-  const body = S.tab === 'journal' ? renderJournal() : S.tab === 'features' ? renderFeatures() : renderToday(S);
+  const body = S.tab === 'journal' ? renderJournal() : S.tab === 'features' ? renderFeatures() : renderAB(S);
   root.innerHTML = `${appHead()}
   <div class="page">
     <div class="page-title" style="margin-bottom:6px">
       <div class="grow"><h1>Пульт</h1><div class="sub">${WD[TODAY.getDay()]}, ${TODAY.getDate()} ${MON_G[TODAY.getMonth()]} · дежурство по включению: ${dutyNow() === ME ? 'вы' : dutyNow()}, дальше ${DUTY[1].who}</div></div>
-      ${S.tab === 'today' ? `<div class="seg"><button class="${S.scope === 'team' ? 'on' : ''}" data-scope="team">Вся команда</button><button class="${S.scope === 'mine' ? 'on' : ''}" data-scope="mine">Мои</button></div>` : ''}
+      ${S.tab === 'ab' ? `<div class="seg"><button class="${S.scope === 'team' ? 'on' : ''}" data-scope="team">Вся команда</button><button class="${S.scope === 'mine' ? 'on' : ''}" data-scope="mine">Мои</button></div>` : ''}
     </div>
     <div class="utabs">
-      <button class="${S.tab === 'today' ? 'on' : ''}" data-pt="today">Сегодня <span class="cnt">${now.length}</span></button>
+      <button class="${S.tab === 'ab' ? 'on' : ''}" data-pt="ab">А/Б-тесты <span class="cnt">${EXPERIMENTS.filter(isActive).length}</span></button>
       <button class="${S.tab === 'journal' ? 'on' : ''}" data-pt="journal">Журнал включений</button>
       <button class="${S.tab === 'features' ? 'on' : ''}" data-pt="features">Все фичи <span class="cnt">${Object.keys(FEATURES).length}</span></button>
     </div>
@@ -184,6 +247,10 @@ function renderPult(root) {
   $$('[data-scope]', root).forEach((b) => b.onclick = () => { S.scope = b.dataset.scope; rr(); });
   $$('[data-stage]', root).forEach((b) => b.onclick = () => { const v = b.dataset.stage; S.stage = !v || (S.stage && S.stage.join() === v) ? null : v.split(','); rr(); });
   const lt = $('[data-later]', root); if (lt) lt.onclick = () => { S.showLater = !S.showLater; rr(); };
+  const rb = $('[data-remind]', root); if (rb) rb.onclick = () => { abState.showRemind = !abState.showRemind; rr(); };
+  $$('[data-abv]', root).forEach((b) => b.onclick = () => { abState.view = b.dataset.abv; rr(); });
+  $$('[data-fin]', root).forEach((b) => b.onclick = () => { abState.fin = b.dataset.fin; rr(); });
+  const aq = $('#ab-q'); if (aq) aq.addEventListener('input', () => { abState.q = aq.value; rr(); keepFocus('ab-q'); });
   $$('[data-jp]', root).forEach((b) => b.onclick = () => { journalState.period = b.dataset.jp; rr(); });
   $$('[data-jk]', root).forEach((b) => b.onclick = () => { journalState.kind = b.dataset.jk; rr(); });
   const jb = $('#j-block'); if (jb) jb.onchange = () => { journalState.block = jb.value; rr(); };

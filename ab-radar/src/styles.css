@@ -484,3 +484,18 @@ table.cat td { padding: 9px 12px; vertical-align: middle; }
 .lrow .meter-row { width: 200px; }
 .lrow .meter-row .meter { flex: 0 0 60px; }
 .lrow .meter-row .nowrap { white-space: nowrap; }
+
+/* вкладка «А/Б-тесты» */
+.remind { background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; }
+.remind-bar { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: none; padding: 10px 14px; cursor: pointer; font: inherit; color: var(--ink); }
+.remind-bar:hover { background: #fbfbf9; }
+table.abt th { position: static; }
+table.abt td { padding: 9px 12px; vertical-align: middle; }
+table.abt .ic { width: 28px; padding-right: 0; }
+table.abt .tcol { min-width: 300px; max-width: 420px; }
+table.abt .rcol { min-width: 230px; }
+table.abt .rcol .meter-row { flex-wrap: nowrap; }
+table.abt .rcol .meter { flex: 0 0 80px; }
+.tname { color: var(--ink); font-weight: 600; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tsub { font-size: 12px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+table.abt tr.grp td { background: var(--surface-2); font-size: 12px; font-weight: 650; color: var(--ink-2); padding: 7px 12px; }

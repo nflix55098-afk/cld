@@ -773,7 +773,7 @@ const HISTF = (o) => {
   events.push({ d: o.done, t: 'on', b: 'all', v: o.value, txt: `Включено ${o.value} на всех клиентов`, sd: o.sd });
   events.push({ d: o.cleaned, t: 'toggle', txt: `Тоглы удалены: «${o.where}»` });
   return {
-    id: o.id, fid: o.fid || 'f-' + o.id, feature: o.feature, seg: o.seg, iter: o.iter || 1, branch: o.branch || o.seg || 'раскатка', theme: o.theme,
+    id: o.id, fid: o.fid || 'f-' + o.id, feature: o.feature, seg: o.seg, iter: o.iter || 1, branch: o.branch || o.seg || (ab ? o.what : 'раскатка'), theme: o.theme,
     ver: 'V1', range: o.range || o.value, launch: o.abStart || o.done, key: o.toggles[o.toggles.length - 1], release: o.release, owner: o.owner,
     type: o.type, platform: ab ? 'Завершён' : 'Нет', stage: 'done', hist: true,
     noAb: ab ? undefined : o.noAb,
