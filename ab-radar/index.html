@@ -417,6 +417,81 @@ table.t tr.clickable:hover td { background: #fbfbf9; cursor: pointer; }
 .hstrip.sm i { width: 10px; height: 12px; border-radius: 2px; }
 details.hall summary { cursor: pointer; font-size: 13px; color: var(--accent); margin-top: 12px; }
 
+/* ===== компактный режим: вкладки, строки дел, журнал, каталог, паспорт ===== */
+.utabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+.utabs button { border: 0; background: none; padding: 10px 14px; font-size: 14px; font-weight: 550; color: var(--ink-2); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.utabs button:hover { color: var(--ink); }
+.utabs button.on { color: var(--ink); border-bottom-color: #141413; }
+.utabs .cnt, .ptabs .cnt { color: var(--muted); font-weight: 500; margin-left: 3px; }
+.tiles.compact { margin-bottom: 18px; }
+.tiles.compact .tile { padding: 10px 14px; gap: 4px; }
+.tiles.compact .val { font-size: 22px; }
+
+.tasks { background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; }
+.task { display: grid; grid-template-columns: 20px minmax(0, 1fr) 24px 58px auto auto; gap: 10px; align-items: center; padding: 9px 12px 9px 14px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.task:last-child { border-bottom: 0; }
+.task:hover { background: #fbfbf9; }
+.task.crit { box-shadow: inset 3px 0 0 var(--crit); }
+.task.serious { box-shadow: inset 3px 0 0 var(--serious); }
+.task.warn { box-shadow: inset 3px 0 0 var(--warn); }
+.task-main { min-width: 0; }
+.task-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; white-space: nowrap; overflow: hidden; }
+.task-line b { font-weight: 600; flex: 0 0 auto; }
+.task-obj { color: var(--ink); overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; }
+.task-det { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; flex: 1 1 auto; min-width: 0; }
+.task-extra { height: 18px; flex: 0 0 auto; }
+.task-more { display: none; font-size: 12.5px; color: var(--ink-2); margin-top: 6px; white-space: normal; }
+.task.open .task-more { display: block; }
+.task-sub { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
+.task-age { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; }
+.task.crit .task-age { color: var(--crit); font-weight: 600; }
+.task-snz { opacity: 0; }
+.task:hover .task-snz { opacity: 1; }
+.later-toggle { border: 0; background: none; color: var(--accent); font-size: 13px; padding: 12px 2px; cursor: pointer; }
+
+.lrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 5px 0; }
+.lrow .meter-row { width: 230px; }
+.lrow.sub { padding-left: 12px; }
+.lrow.sub .lname { color: var(--ink-2); }
+.lname { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+
+.jfeed { background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; }
+.jday { padding: 8px 14px; font-size: 12px; font-weight: 650; color: var(--ink-2); background: var(--surface-2); border-bottom: 1px solid var(--line); }
+.jday .cnt { color: var(--muted); font-weight: 500; margin-left: 4px; }
+.jl { display: grid; grid-template-columns: 40px 50px minmax(0, 1.6fr) minmax(0, 1fr) 120px 24px; gap: 10px; align-items: center; padding: 7px 14px; border-bottom: 1px solid var(--line); font-size: 13px; cursor: pointer; }
+.jl:hover { background: #fbfbf9; }
+.jl-when { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.jk { font-size: 11px; font-weight: 650; border-radius: 4px; text-align: center; padding: 2px 0; }
+.k-ab { background: var(--st-collecting); color: #fff; }
+.k-on { background: var(--st-cleanup); color: #fff; }
+.k-beta { background: #ece9fb; color: #4a3aa7; }
+.k-pause { background: var(--surface-3); color: var(--ink-2); }
+.k-plan { background: repeating-linear-gradient(45deg, #ecebe6 0 2px, #fafaf8 2px 6px); color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line-2); }
+.jl-name, .jl-blk { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jl-blk { color: var(--ink-2); }
+.jl-sd { font-family: var(--mono); font-size: 11.5px; color: var(--accent); }
+.jsum { font-size: 13px; margin: -4px 0 12px; color: var(--ink-2); }
+
+table.cat td { padding: 9px 12px; vertical-align: middle; }
+.cat .fname { max-width: 440px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cat .flast { max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12.5px; color: var(--ink-2); }
+
+.pfacts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.pfacts > div { padding: 8px 10px; border-radius: 8px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); display: flex; flex-direction: column; min-width: 0; }
+.pf-l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+.pf-v { font-weight: 650; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-s { font-size: 12px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 16px; }
+.ptabs { display: flex; gap: 2px; margin: 12px -24px -16px; padding: 0 24px; border-top: 1px solid var(--line); }
+.ptabs button { border: 0; background: none; padding: 10px 12px; font-size: 13px; font-weight: 550; color: var(--ink-2); cursor: pointer; border-bottom: 2px solid transparent; }
+.ptabs button.on { color: var(--ink); border-bottom-color: #141413; }
+.drawer .ftabs { margin-top: 10px; }
+
+.drawer-body > * { flex-shrink: 0; }
+.task-obj { max-width: 48%; }
+.lrow .meter-row { width: 200px; }
+.lrow .meter-row .meter { flex: 0 0 60px; }
+.lrow .meter-row .nowrap { white-space: nowrap; }
+
 </style>
 </head>
 <body>
@@ -1638,7 +1713,8 @@ function readinessBar(e, compact) {
   if (!r) return '';
   if (e.type === 'holdout') return `<div class="meter-row"><span class="nowrap">Холдаут · срез ${fmt(D(e.holdout.next))}</span></div>`;
   const cls = r.over ? 'over' : r.canLook ? 'ready' : '';
-  const label = r.over ? `<b style="color:var(--crit)">+${dn(days(e.planEnd, TODAY))} сверх плана</b>`
+  const label = compact ? (r.over ? `<b style="color:var(--crit)">+${days(e.planEnd, TODAY)} дн. сверх плана</b>` : e.d.platformEnd ? `<b style="color:#b4501f">завершён ${fmt(e.d.platformEnd)}</b>` : r.canLook ? '<b style="color:#b4501f">можно смотреть</b>' : `итоги с ${fmt(e.lookAt)}${r.slow ? ' <b style="color:#8a5d00">· позже</b>' : ''}`)
+    : r.over ? `<b style="color:var(--crit)">+${dn(days(e.planEnd, TODAY))} сверх плана</b>`
     : e.d.platformEnd ? `<b style="color:#b4501f">завершён ${fmt(e.d.platformEnd)}</b>`
     : r.canLook ? '<b style="color:#b4501f">можно смотреть</b>'
     : `смотреть ${rel(e.lookAt)}${r.slow ? ' <b style="color:#8a5d00">· позже плана</b>' : ''}`;
@@ -1793,13 +1869,13 @@ function histRow(h) {
 function historyBlock(f, e) {
   const past = pastOf(f, e.id);
   if (!past.length) return '';
-  if (past.length <= 8) return `<div class="small" style="font-weight:650;margin-bottom:4px">Что уже пробовали</div>${past.slice().reverse().map(histRow).join('')}`;
+  if (past.length <= 8) return `<h3 style="margin-bottom:6px">Что уже пробовали</h3>${past.slice().reverse().map(histRow).join('')}`;
   const cnt = (k) => past.filter((h) => h.kind === k).length;
   const themes = [...new Set(past.map((h) => h.theme))];
   const cur = f.tests.filter((t) => t.stage !== 'done');
   const meta = FEATURE_META[f.id] || {};
   return `
-    <div class="small" style="font-weight:650;margin-bottom:8px">История фичи: ${past.length} ${plural(past.length, 'АБ-тест', 'АБ-теста', 'АБ-тестов')} до текущего</div>
+    <h3 style="margin-bottom:10px">История: ${past.length} ${plural(past.length, 'итерация', 'итерации', 'итераций')}</h3>
     <div class="row wrap" style="gap:8px;margin-bottom:10px">
       <span class="chip"><span class="dot" style="background:${HCOLOR.win}"></span>Побед ${cnt('win')}</span>
       <span class="chip"><span class="dot" style="background:${HCOLOR.none}"></span>Без эффекта ${cnt('none')}</span>
@@ -1821,112 +1897,199 @@ function historyBlock(f, e) {
     </details>`;
 }
 
+/* ---------- задачи: одно дело — одна строка ---------- */
+const TASK = {
+  nodecision: 'Записать решение', overdue: 'Разобрать результаты', toggles: 'Удалить тоглы', stuck: 'Запланировать шаг',
+  needsd: 'Создать SD-заявку', draft: 'Архивировать черновик', cross: 'Проверить пересечения', nometric: 'Заполнить метрику',
+  blocker: 'Снять блокер', slow: 'Продлить тест', pilot: 'Решить по пилоту', postcheck: 'Проверить метрики',
+  canlook: 'Посмотреть результаты', upcoming: 'Результаты', holdout: 'Срез холдаута', nextstep: 'Шаг включения',
+  release: 'Старт АБ', similar: 'Тему уже проверяли',
+};
+
+function shortOf(a) {
+  const e = a.e;
+  switch (a.rule) {
+    case 'nodecision': return `тест завершён ${fmt(e.d.platformEnd)}`;
+    case 'overdue': return `+${dn(days(e.planEnd, TODAY))} сверх плана`;
+    case 'toggles': { const n = e.toggles.filter((x) => x.st === 'todo').length; return `${n} ${plural(n, 'тогл', 'тогла', 'тоглов')}, раскатано ${fmt(e.d.rolloutDoneAt)}`; }
+    case 'stuck': return `${e.coverage}/${ALL_BLOCKS.length} блоков, дальше не запланировано`;
+    case 'needsd': case 'nextstep': return `${blockList(e.nextPlan.blocks)} · ${rel(e.nextPlan.d)}`;
+    case 'draft': return `висит с ${fmt(e.d.created)}`;
+    case 'cross': return `${e.cross.mixed}% выборки в других тестах`;
+    case 'nometric': return 'без неё не посчитать срок';
+    case 'blocker': return e.blockers;
+    case 'slow': return `100 % выборки к ${fmt(e.lookAt)}, план ${fmt(e.planEnd)}`;
+    case 'pilot': return `пилот с ${e.pilot.since.slice(0, 5)}`;
+    case 'postcheck': return e.check.what;
+    case 'canlook': return 'срок и выборка набраны';
+    case 'upcoming': return `с ${fmt(e.lookAt)} · выборка ${e.sample}%`;
+    case 'holdout': return `${fmt(D(e.holdout.next))}`;
+    case 'release': return `${fmt(e.d.plannedStart)}, после релиза ${e.release}`;
+    case 'similar': return `«${e.theme}»`;
+    default: return '';
+  }
+}
+
+function ageOf(a) {
+  const d = a.due; if (!d) return '';
+  if (d <= TODAY) { const n = days(d, TODAY); return n === 0 ? 'сегодня' : `${n} дн.`; }
+  const n = days(TODAY, d); return n === 1 ? 'завтра' : fmt(d);
+}
+
+/* Склейка: по тестам одной фичи с одним правилом — одна строка; по одному тесту — одна строка с «+N» */
+function buildTasks(filter = () => true) {
+  const ent = new Map();
+  mergedAlerts().filter(filter).forEach((a) => { const k = a.group ? a.e.fid : a.e.id; if (!ent.has(k)) ent.set(k, []); ent.get(k).push(a); });
+  const now = []; const later = [];
+  ent.forEach((list) => {
+    list.sort((x, y) => SEV_ORDER[x.sev] - SEV_ORDER[y.sev]);
+    const act = list.filter((a) => a.sev !== 'info');
+    const inf = list.filter((a) => a.sev === 'info');
+    if (act.length) now.push({ main: act[0], extra: [...act.slice(1), ...inf] });
+    else later.push({ main: inf[0], extra: inf.slice(1) });
+  });
+  const dueKey = (t) => (t.main.due ? t.main.due.getTime() : 9e15);
+  now.sort((a, b) => SEV_ORDER[a.main.sev] - SEV_ORDER[b.main.sev] || dueKey(a) - dueKey(b));
+  later.sort((a, b) => dueKey(a) - dueKey(b));
+  return { now, later };
+}
+
+function taskRow(t, { noObj = false } = {}) {
+  const a = t.main; const e = a.e; const G = a.group;
+  const obj = G ? `${e.feature} · ${G.length} ${plural(G.length, 'тест', 'теста', 'тестов')}` : e.short;
+  const tip = t.extra.map((x) => esc(x.title)).join('<br>');
+  return `<div class="task ${a.sev}">
+    ${sevIcon(a.sev)}
+    <div class="task-main">
+      <div class="task-line"><b>${esc(TASK[a.rule] || a.title)}</b>${noObj ? '' : `<a href="#" data-open="${e.id}" class="task-obj">${esc(obj)}</a>`}<span class="task-det">${esc(shortOf(a))}</span>${t.extra.length ? `<span class="chip task-extra" data-tip="${tip}">+${t.extra.length}</span>` : ''}</div>
+      <div class="task-more">
+        <div>${esc(a.title)}. ${esc(a.sub)}</div>
+        ${G ? `<div class="task-sub">${G.map((x) => `<div><a href="#" data-open="${x.e.id}">${esc(x.e.label)}</a> — ${esc(a.same ? testBrief(x.e) : x.title)}</div>`).join('')}</div>` : ''}
+        ${t.extra.length ? `<div class="task-sub">${t.extra.map((x) => `<div class="row" style="gap:6px">${sevIcon(x.sev)}${esc(x.title)}</div>`).join('')}</div>` : ''}
+      </div>
+    </div>
+    ${noObj ? '<span></span>' : avatar(e.owner)}
+    <span class="task-age">${ageOf(a)}</span>
+    <button class="btn sm ${a.sev === 'crit' || a.sev === 'good' ? 'primary' : ''}" data-act="${a.act.k}" data-id="${e.id}">${esc(a.act.label)}</button>
+    <button class="btn sm ghost task-snz" data-act="snooze" data-id="${e.id}">Позже</button>
+  </div>`;
+}
+
+/* ---------- паспорт: шапка + вкладки ---------- */
 function featureSection(e) {
   const f = featureOf(e);
   const past = pastOf(f, e.id);
   const work = f.tests.filter((t) => t.stage !== 'done');
-  if (work.length < 2 && !past.length) return '';
-  const head = work.length ? `${work.length} в работе${past.length ? ` · ${past.length} в истории` : ''}` : `${f.tests.length} ${plural(f.tests.length, 'АБ-тест', 'АБ-теста', 'АБ-тестов')}, все завершены`;
-  return `<div class="sec"><h3>Фича: ${head}<span class="sp"></span><span class="small muted" style="font-weight:400">${featureKind(f)}</span></h3>
-    ${work.length > 1 ? `<div>${work.map((t) => `<div class="ftest ${t.id === e.id ? 'cur' : ''}">
-      <div class="row" style="gap:8px;min-width:0">${stageDot(t.stage)}<a href="#" data-open="${t.id}" style="color:var(--ink);font-weight:600">${esc(t.label)}</a><span class="small muted nowrap">${t.tag} · <span class="mono">${t.key}</span></span></div>
+  if (work.length < 2 && !past.length) return '<div class="empty">У фичи одна итерация, истории нет</div>';
+  return `${work.length > 1 ? `<div class="sec"><h3>Тесты фичи в работе<span class="sp"></span><span class="small muted" style="font-weight:400">${featureKind(f)}</span></h3>${work.map((t) => `<div class="ftest ${t.id === e.id ? 'cur' : ''}">
+      <div class="row" style="gap:8px;min-width:0">${stageDot(t.stage)}<a href="#" data-open="${t.id}" style="color:var(--ink);font-weight:600">${esc(t.label)}</a><span class="small muted nowrap mono">${t.key}</span></div>
       <span class="small ink2 nowrap" style="text-align:right">${STAGE[t.stage].name}</span>
-      <div class="small ink2">${esc(testBrief(t))}${t.alerts.find((a) => ['crit', 'serious', 'warn'].includes(a.sev)) ? ` · <span class="sev-label ${t.alerts[0].sev}">${esc(t.alerts[0].title)}</span>` : ''}</div>
+      <div class="small ink2">${esc(testBrief(t))}</div>
       <span class="small muted" style="text-align:right">${t.id === e.id ? 'открыт' : ''}</span>
-    </div>`).join('')}</div>
-    <div class="small muted" style="margin:8px 0 14px">${isParallel(f) ? 'У каждого сегмента свой рубильник, своя выборка, срок готовности, результат и решение. Общими остаются строка тиража, аналитика и задача на удаление тоглов.' : 'Итерации идут друг за другом. Новая итерация получает следующий номер, а при перезапуске с той же гипотезой поднимается версия сути теста.'}</div>` : ''}
-    ${historyBlock(f, e)}
-  </div>`;
+    </div>`).join('')}</div>` : ''}
+    ${past.length ? `<div class="sec">${historyBlock(f, e)}</div>` : ''}`;
 }
 
 function noAbSection(e) {
   const c = e.check || {};
   const due = e.d.rolloutDoneAt && c.days ? addDays(e.d.rolloutDoneAt, c.days) : null;
-  return `<div class="sec"><h3>Без АБ-теста <span class="sp"></span><span class="chip">АБ не планируется</span></h3>
+  return `<div class="sec"><h3>Без АБ-теста</h3>
     <div class="kv">
       <dt>Почему без АБ</dt><dd>${esc(e.noAb || 'Не указано')}</dd>
-      ${e.pilot ? `<dt>Пилот</dt><dd>${esc(e.pilot.group)} · с ${e.pilot.since}<br><span class="small ink2">${esc(e.pilot.feedback)}</span></dd>` : ''}
-      <dt>Включаемое значение</dt><dd><span class="mono">${esc(e.variants[0].v)}</span> — ${esc(e.variants[0].name)} · на всех клиентов</dd>
-      ${c.what ? `<dt>Что проверяем вместо АБ</dt><dd>${esc(c.what)}</dd>` : ''}
-      ${c.days ? `<dt>Контрольная точка</dt><dd>${c.done ? `<span class="sev-label good">${esc(c.done)}</span>` : due ? `${fmt(due, true)} — через ${dn(c.days)} после 100 %` : `через ${dn(c.days)} после включения на всех блоках`}</dd>` : ''}
-    </div>
-    <div class="small muted" style="margin-top:10px">Сервис не ждёт от такой фичи результатов и решения по АБ. Он следит за раскаткой по блокам, SD-заявками, контрольной точкой и удалением тоглов.</div>
-  </div>`;
+      ${e.pilot ? `<dt>Пилот</dt><dd>${esc(e.pilot.group)} · с ${e.pilot.since}. ${esc(e.pilot.feedback)}</dd>` : ''}
+      <dt>Значение</dt><dd><span class="mono">${esc(e.variants[0].v)}</span> — ${esc(e.variants[0].name)}</dd>
+      ${c.what ? `<dt>Проверяем вместо АБ</dt><dd>${esc(c.what)}</dd>` : ''}
+      ${c.days ? `<dt>Контрольная точка</dt><dd>${c.done ? `<span class="sev-label good">${esc(c.done)}</span>` : due ? `${fmt(due, true)}` : `через ${dn(c.days)} после 100 %`}</dd>` : ''}
+    </div></div>`;
 }
 
-function passportHTML(e) {
-  const r = RELEASES.find((x) => x.v === e.release);
+const PTABS = [['overview', 'Обзор'], ['results', 'Результаты'], ['blocks', 'Блоки и журнал'], ['history', 'История фичи']];
+
+function passportHTML(e, tab = 'overview') {
   const f = featureOf(e);
+  const past = pastOf(f, e.id);
+  const hasHist = f.tests.length > 1 || past.length > 0;
+  const tabs = PTABS.filter(([k]) => !(k === 'results' && e.type === 'rollout') && !(k === 'history' && !hasHist));
+  if (!tabs.find(([k]) => k === tab)) tab = 'overview';
+  const own = [...e.alerts].sort((x, y) => SEV_ORDER[x.sev] - SEV_ORDER[y.sev]);
+  const top = own.find((a) => a.sev !== 'info') || own[0];
+  const best = e.results?.rows?.find((x) => !x.control);
+  const facts = [
+    top && top.sev !== 'info' ? ['Дальше', TASK[top.rule] || top.title, shortOf(top)] : ['Дальше', e.stage === 'done' ? 'Всё завершено' : 'Ничего не требуется', top ? `${TASK[top.rule] || top.title} · ${ageOf(top)}` : ''],
+    e.type === 'rollout'
+      ? ['Проверка', e.check?.done ? 'пройдена' : e.pilot && e.stage === 'release' ? 'идёт пилот' : 'после 100 %', e.check?.done ? e.check.done.replace(/^Проверено /, '').split(':')[0] : '']
+      : ['Результаты', e.decision || e.stage === 'done' ? 'разобраны' : !e.lookAt ? 'не начат' : TODAY >= e.lookAt ? 'можно смотреть' : `с ${fmt(e.lookAt)}`, e.lookAt && !e.decision && e.stage !== 'done' ? `день ${e.dayN}/${e.planDays} · выборка ${e.sample}%` : ''],
+    ['Блоки', `${e.coverage} из ${ALL_BLOCKS.length}`, e.nextPlan ? `дальше ${fmt(e.nextPlan.d)}` : e.onCount === ALL_BLOCKS.length ? 'включено на всех' : e.stage === 'release' ? 'до раскатки' : ''],
+    ['Итог', e.decision || e.type === 'rollout' ? outcome(e) : best && e.results.status !== 'invalid' ? `${sgn(best.delta)} п.п.` : 'пока нет', e.decision ? `решение ${e.decision.d.slice(0, 5)}` : best && !e.decision ? (best.sig ? 'значимо' : 'незначимо') : ''],
+  ];
+
+  let body = '';
+  if (tab === 'overview') {
+    body = `
+      ${own.length ? `<div class="tasks">${own.map((a) => taskRow({ main: a, extra: [] }, { noObj: true })).join('')}</div>` : ''}
+      <div class="sec"><h3>Жизненный цикл</h3>${stepper(e)}</div>
+      ${e.type === 'rollout' ? noAbSection(e) : ''}
+      ${e.type !== 'rollout' && e.d.fullAt && e.stage !== 'done' ? `<div class="sec"><h3>Когда смотреть результаты</h3>
+        ${readinessBar(e)}
+        <div class="kv" style="margin-top:12px">
+          <dt>На всех блоках с</dt><dd>${fmt(e.d.fullAt, true)} · ${dn(e.dayN)}</dd>
+          <dt>Минимальный срок</dt><dd>${dn(e.minDays)}, не раньше ${fmt(e.minAt, true)}</dd>
+          <dt>Выборка</dt><dd>${e.sample}%${e.sample < 100 ? `, 100 % к ${fmt(e.sampleAt, true)}` : ''}</dd>
+          <dt>Можно смотреть</dt><dd><b>с ${fmt(e.lookAt, true)}</b></dd>
+          <dt>План окончания</dt><dd>${fmt(e.planEnd, true)}${e.d.platformEnd ? `, завершён ${fmt(e.d.platformEnd, true)}` : ''}</dd>
+        </div></div>` : ''}
+      <div class="sec"><h3>${e.type === 'rollout' ? 'Описание' : 'Гипотеза'}</h3>
+        <p>${esc(e.hypothesis)}</p>
+        <div class="kv" style="margin-top:12px">
+          ${e.type === 'rollout' ? '' : `<dt>Целевая метрика</dt><dd>${e.metric ? esc(e.metric) : '<span class="sev-label warn">Не заполнена</span>'}</dd>`}
+          ${e.metric2 ? `<dt>Доп. метрика</dt><dd>${esc(e.metric2)}</dd>` : ''}
+          ${e.blockers ? `<dt>Блокер</dt><dd><span class="sev-label warn">${esc(e.blockers)}</span></dd>` : ''}
+          ${e.type === 'rollout' ? '' : `<dt>Имя по конвенции</dt><dd class="row" style="gap:6px;align-items:flex-start"><span class="mono" style="font-size:11.5px">${esc(e.name)}</span><button class="btn ghost sm" data-copy="${esc(e.name)}" title="Скопировать">${ICON.copy}</button></dd>`}
+        </div></div>
+      ${e.type === 'rollout' ? '' : `<div class="sec"><h3>Варианты и сплит</h3>${splitBar(e)}</div>`}`;
+  } else if (tab === 'results') {
+    body = `
+      ${e.results ? `<div class="sec"><h3>Результаты <span class="sp"></span>${e.results.status === 'ready' ? '<span class="sev-label serious">Не разобраны</span>' : e.results.status === 'invalid' ? '<span class="sev-label crit">Невалидны</span>' : '<span class="sev-label good">Разобраны</span>'}</h3>
+        ${e.metric ? `<div class="small muted" style="margin-bottom:8px">${esc(e.metric)}</div>` : ''}
+        ${forest(e)}
+        <div class="small ink2" style="margin-top:10px">${esc(e.results.note)}</div></div>`
+      : `<div class="sec"><div class="empty">Результатов пока нет${e.lookAt ? `. Можно смотреть с ${fmt(e.lookAt, true)}` : ''}</div></div>`}
+      <div class="sec"><h3>Решение</h3>${decisionBlock(e)}</div>
+      <div class="sec"><h3>Пересечения с другими АБ-тестами</h3>${crossBlock(e)}</div>`;
+  } else if (tab === 'blocks') {
+    body = `
+      <div class="sec"><h3>Где включено <span class="sp"></span><span class="small muted" style="font-weight:400">${e.coverage} из ${ALL_BLOCKS.length}</span></h3>
+        <div style="overflow-x:auto">${blockMatrix(e)}</div>
+        <div style="margin-top:12px">${bmLegend()}</div></div>
+      <div class="sec"><h3>Журнал <span class="sp"></span><button class="btn sm" data-act="addevent" data-id="${e.id}">${ICON.plus} Событие</button></h3>${journal(e)}</div>
+      <div class="sec"><h3>Тоглы и рубильники</h3>${toggleList(e)}</div>`;
+  } else {
+    body = featureSection(e);
+  }
+
   return `
   <div class="drawer-head">
     <button class="btn ghost sm x" data-close>${ICON.x}</button>
-    <div class="row wrap" style="margin-bottom:8px">${stageChip(e.stage)}${e.type === 'rollout' ? '' : platChip(e.platform)}${typeChip(e)}${e.flags.includes('stopped') ? '<span class="chip">Остановлен досрочно</span>' : ''}<span class="chip outline">Релиз ${e.release}${r ? ' · ' + r.d.slice(0, 5) : ''}</span></div>
+    <div class="row wrap" style="gap:6px;margin-bottom:6px">${stageChip(e.stage)}${typeChip(e)}${e.flags.includes('stopped') ? '<span class="chip">Остановлен досрочно</span>' : ''}<span class="chip outline">Релиз ${e.release}</span></div>
     <h2>${esc(e.feature)} <span class="muted" style="font-weight:500">№${e.iter}${e.seg ? ' · ' + esc(e.seg) : ''}</span></h2>
-    ${f.tests.length > 1 ? `<div class="small ink2" style="margin-top:4px">В фиче ${f.tests.length} ${plural(f.tests.length, 'АБ-тест', 'АБ-теста', 'АБ-тестов')} (${featureKind(f)}). Переключайтесь между ними:</div>${featureTabs(e)}` : ''}
     <div class="row wrap small ink2" style="margin-top:6px;gap:12px">
       <span class="row" style="gap:6px">${avatar(e.owner)}${esc(e.owner)}</span>
-      <span>${e.type === 'rollout' ? 'Тогл' : 'Рубильник'} <span class="mono" style="color:var(--ink)">${e.key}</span></span>
-      ${e.type === 'rollout' ? '' : `<span>Ветка: ${esc(e.branch)} ${e.ver}</span>`}
-    </div>
-    ${e.type === 'rollout' ? '' : `<div class="conv-name"><span class="nowrap">Имя по конвенции</span><code>${esc(e.name)}</code><button class="btn ghost sm" data-copy="${esc(e.name)}" title="Скопировать">${ICON.copy}</button></div>`}
-    <div class="row wrap small" style="margin-top:10px;gap:14px">
-      <a href="#" data-act="link">Аналитика в Confluence ${ICON.ext}</a>
+      <span class="mono" style="color:var(--ink)">${e.key}</span>
+      <a href="#" data-act="link">Аналитика ${ICON.ext}</a>
       ${e.type === 'rollout' ? '' : `<a href="#" data-act="link">АБ-платформа ${ICON.ext}</a>`}
-      <a href="#" data-act="link">Строка в тираже ${ICON.ext}</a>
-      <a href="#" data-act="link">Дашборд метрик ${ICON.ext}</a>
+      <a href="#" data-act="link">Тираж ${ICON.ext}</a>
     </div>
+    ${featureTabs(e)}
+    <div class="pfacts">${facts.map(([l, v, s]) => `<div><span class="pf-l">${l}</span><span class="pf-v">${esc(v)}</span><span class="pf-s">${esc(s)}</span></div>`).join('')}</div>
+    <div class="ptabs">${tabs.map(([k, n]) => `<button class="${k === tab ? 'on' : ''}" data-ptab="${k}" data-id="${e.id}">${n}${k === 'history' ? ` <span class="cnt">${past.length + f.tests.filter((t) => t.stage !== 'done' && t.id !== e.id).length}</span>` : ''}</button>`).join('')}</div>
   </div>
-  <div class="drawer-body">
-    ${e.alerts.length ? `<div class="stack">${e.alerts.map((a) => alertRow(a, { showExp: false, meta: false })).join('')}</div>` : ''}
-    <div class="sec"><h3>Жизненный цикл</h3>${stepper(e)}</div>
-    ${featureSection(e)}
-    ${e.type === 'rollout' ? noAbSection(e) : ''}
-
-    ${e.type !== 'rollout' && e.d.fullAt && e.stage !== 'done' ? `<div class="sec"><h3>Когда смотреть результаты <span class="sp"></span>${readiness(e)?.canLook ? '<span class="sev-label good">Уже можно</span>' : `<span class="sev-label info">${e.lookAt ? 'С ' + fmt(e.lookAt, true) : ''}</span>`}</h3>
-      ${readinessBar(e)}
-      <div class="kv" style="margin-top:14px">
-        <dt>На всех блоках с</dt><dd>${fmt(e.d.fullAt, true)} · ${e.d.platformEnd ? 'шёл' : 'идёт'} ${dn(e.dayN)}</dd>
-        <dt>Минимальный срок</dt><dd>${dn(e.minDays)} → не раньше ${fmt(e.minAt, true)}</dd>
-        <dt>Выборка</dt><dd>${e.sample}% от расчётной${e.sample < 100 ? ` → 100 % при текущем темпе к ${fmt(e.sampleAt, true)}` : ''}</dd>
-        <dt>Можно смотреть</dt><dd><b>с ${fmt(e.lookAt, true)}</b> <span class="muted small">— когда выполнены оба условия</span></dd>
-        <dt>План окончания</dt><dd>${fmt(e.planEnd, true)}${e.d.platformEnd ? ` · фактически завершён ${fmt(e.d.platformEnd, true)}` : ''}${e.lookAt > e.planEnd && !e.d.platformEnd ? ' <span class="sev-label warn">выборка не успевает</span>' : ''}</dd>
-      </div></div>` : ''}
-
-    <div class="sec"><h3>${e.type === 'rollout' ? 'Описание' : 'Гипотеза и метрики'}</h3>
-      <p>${esc(e.hypothesis)}</p>
-      <div class="kv" style="margin-top:12px">
-        ${e.type === 'rollout' ? '' : `<dt>Целевая метрика</dt><dd>${e.metric ? esc(e.metric) : '<span class="sev-label warn">Не заполнена</span>'}</dd>`}
-        ${e.metric2 ? `<dt>Доп. метрика</dt><dd>${esc(e.metric2)}</dd>` : ''}
-        ${e.blockers ? `<dt>Блокеры</dt><dd><span class="sev-label warn">${esc(e.blockers)}</span></dd>` : '<dt>Блокеры</dt><dd class="muted">Нет</dd>'}
-      </div>
-    </div>
-
-    ${e.type === 'rollout' ? '' : `<div class="sec"><h3>Варианты и сплит</h3>${splitBar(e)}</div>`}
-
-    ${e.results ? `<div class="sec"><h3>Результаты <span class="sp"></span>${e.results.status === 'ready' ? '<span class="sev-label serious">Посчитаны, не разобраны</span>' : e.results.status === 'invalid' ? '<span class="sev-label crit">Невалидны</span>' : '<span class="sev-label good">Разобраны</span>'}</h3>
-      ${e.metric ? `<div class="small muted" style="margin-bottom:8px">${esc(e.metric)}</div>` : ''}
-      ${forest(e)}
-      <div class="small ink2" style="margin-top:10px">${esc(e.results.note)}</div></div>` : ''}
-
-    ${e.type === 'rollout' && !e.decision ? '' : `<div class="sec"><h3>Решение</h3>${decisionBlock(e)}</div>`}
-
-    <div class="sec"><h3>Где включено <span class="sp"></span><span class="small muted" style="font-weight:400">${e.coverage} из ${ALL_BLOCKS.length} блоков</span></h3>
-      <div style="overflow-x:auto">${blockMatrix(e)}</div>
-      <div style="margin-top:12px">${bmLegend()}</div>
-    </div>
-
-    <div class="sec"><h3>Журнал <span class="sp"></span><button class="btn sm" data-act="addevent" data-id="${e.id}">${ICON.plus} Событие</button></h3>${journal(e)}</div>
-
-    <div class="sec"><h3>Тоглы и рубильники</h3>${toggleList(e)}</div>
-
-    ${e.type === 'rollout' ? '' : `<div class="sec"><h3>Пересечения с другими АБ-тестами</h3>${crossBlock(e)}</div>`}
-  </div>`;
+  <div class="drawer-body">${body}</div>`;
 }
 
-function openPassport(id) {
+function openPassport(id, tab = 'overview') {
   const e = EX[id]; if (!e) return;
   const dr = $('#drawer');
-  dr.innerHTML = passportHTML(e);
+  dr.innerHTML = passportHTML(e, tab);
   dr.classList.add('open');
   $('#scrim').classList.add('open');
   dr.querySelector('.drawer-body').scrollTop = 0;
@@ -2185,8 +2348,12 @@ function appHead(extra = '') {
 function initGlobal() {
   document.addEventListener('click', (ev) => {
     const t = ev.target;
+    const pt = t.closest('[data-ptab]');
+    if (pt) { openPassport(pt.dataset.id, pt.dataset.ptab); return; }
     const open = t.closest('[data-open]');
     if (open) { ev.preventDefault(); openPassport(open.dataset.open); return; }
+    const tk = t.closest('.task');
+    if (tk && !t.closest('a,button')) { tk.classList.toggle('open'); return; }
     if (t.closest('[data-close]') || t.id === 'scrim') { closePassport(); return; }
     if (t.closest('[data-mclose]') || t.id === 'modal') { closeModal(); return; }
     const cp = t.closest('[data-copy]');
@@ -2211,7 +2378,7 @@ function initGlobal() {
       const e = EX[act.dataset.id];
       switch (act.dataset.act) {
         case 'decide': decideModal(e); break;
-        case 'results': openPassport(e.id); setTimeout(() => { const s = $$('#drawer .sec').find((x) => x.textContent.startsWith('Результаты')); s && s.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 260); break;
+        case 'results': openPassport(e.id, 'results'); break;
         case 'sd': sdModal(e); break;
         case 'plan': sdModal(e); break;
         case 'addevent': addEventModal(e); break;
@@ -2220,7 +2387,7 @@ function initGlobal() {
         case 'remind': toast(`Напомню ${e.minAt ? fmtH(e.minAt) : 'в день среза'} в 10:00`); break;
         case 'archive': toast('Черновик на АБ-платформе отправлен в архив'); break;
         case 'cleanup': toast('Добавлено в «Удаление тоглов, ч. 22» (релиз 17.16)'); break;
-        case 'cross': openPassport(e.id); setTimeout(() => { const s = $$('#drawer .sec').find((x) => x.textContent.startsWith('Пересечения')); s && s.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 260); break;
+        case 'cross': openPassport(e.id, 'results'); break;
         case 'link': toast('В рабочей версии откроется внешняя ссылка'); break;
         case 'pilot': {
           rolloutPlan(addDays(TODAY, 1)).forEach((p, i) => e.events.push({ d: fmt(p.d, true), t: 'plan', b: p.b, v: e.variants[0].v, txt: `План: включить ${e.variants[0].v}`, sd: i === 0 ? 'SD0002462' + (100 + Math.floor(Math.random() * 800)) : undefined }));
@@ -2247,10 +2414,10 @@ function initGlobal() {
 const CONCEPTS = [
   {
     id: 'pult', n: 1, name: 'Пульт', tag: 'Центр внимания: «что нужно сделать сегодня»',
-    idea: 'Главный экран — список дел, который сервис собирает сам по правилам: просрочено, сделать сегодня, на этой неделе. Сверху сводка по стадиям, справа — что сейчас в эфире.',
+    idea: 'Три вкладки. «Сегодня» — короткий список дел, по строке на дело, остальное свёрнуто. «Журнал включений» — лента по дням: что, где и с какой SD включали. «Все фичи» — каталог текущих и уже включённых на всех фич с поиском.',
     best: 'Ежедневная работа продакта и аналитика: открыл утром и сразу видишь, что горит',
-    pros: ['Напрямую решает «мы забываем»: просроченное само поднимается наверх', 'Действие в один клик: записать решение, создать SD, отложить', 'Понятен без обучения'],
-    cons: ['Плохо показывает общую картину во времени', 'Если правила настроены неточно, будет шум'],
+    pros: ['Напрямую решает «мы забываем»: просроченное само поднимается наверх', 'Действие в один клик: записать решение, создать SD, отложить', 'История включений и фич в том же месте'],
+    cons: ['Если правила настроены неточно, будет шум', 'Привычной таблицы тиража нет: её даёт «Умный тираж»'],
   },
   {
     id: 'registry', n: 2, name: 'Умный тираж', tag: 'Эволюция текущей страницы тиража',
@@ -2270,16 +2437,16 @@ const CONCEPTS = [
 
 const NEEDS = [
   ['Какие тесты активны', [2, 2, 1]],
-  ['Какие в процессе включения и на каких блоках', [1, 2, 1]],
+  ['Какие в процессе включения и на каких блоках', [2, 2, 1]],
   ['Какие закончены и с каким результатом', [1, 2, 1]],
   ['Можно ли уже смотреть результаты', [2, 1, 2]],
   ['Не забывать: решения, раскатки, тоглы', [2, 0, 2]],
-  ['Связь с релизами', [0, 2, 0]],
+  ['Связь с релизами', [1, 2, 0]],
   ['Пересечения тестов', [1, 1, 0]],
   ['Несколько АБ-тестов в одной фиче', [2, 2, 1]],
   ['Фичи без АБ-теста', [2, 2, 2]],
   ['Длинная история итераций (30+)', [1, 2, 1]],
-  ['История фич, уже включённых на всех', [0, 2, 1]],
+  ['История включений и фич, уже включённых на всех', [2, 2, 1]],
   ['Порог входа для команды', [2, 2, 2]],
 ];
 
@@ -2393,7 +2560,7 @@ function renderOverview(root) {
         <div class="card" style="padding:18px">
           <p style="font-size:15px"><b>Первая версия: «Пульт» с паспортом эксперимента и уведомлениями из «Ассистента».</b></p>
           <p class="ink2" style="margin-top:8px">Это сильнее всего бьёт в главную боль, «мы забываем»: просроченное само поднимается наверх и приходит в мессенджер, а решение записывается в один клик.</p>
-          <p class="ink2" style="margin-top:8px">«Умный тираж» — вторым шагом: он заменяет таблицу в Confluence и хранит историю всех раскатанных фич.</p>
+          <p class="ink2" style="margin-top:8px">«Умный тираж» имеет смысл, если команде важна привычная таблица Confluence. История включений и каталог фич уже есть в Пульте.</p>
           <div class="divider" style="margin:14px 0"></div>
           <div class="small muted">Что важно решить до старта: единое правило «когда можно смотреть» (минимальный срок и выборка), кто владелец решения по тесту и кто дежурит по включению.</div>
         </div>
@@ -2407,7 +2574,9 @@ VIEWS.overview = { render: renderOverview };
 
 /* ===================== 1. Пульт ===================== */
 
-const pultState = { scope: 'team', stage: null };
+const pultState = { tab: 'today', scope: 'team', stage: null, showLater: false };
+const journalState = { period: '30', block: 'all', kind: 'all', q: '' };
+const catState = { view: 'work', kind: 'all', q: '' };
 
 function bucketOf(a) {
   if (a.sev === 'crit' || a.sev === 'serious') return 'overdue';
@@ -2417,101 +2586,185 @@ function bucketOf(a) {
   return 'later';
 }
 
-function renderPult(root) {
-  const S = pultState;
-  let alerts = mergedAlerts();
-  if (S.scope === 'mine') alerts = alerts.filter((a) => a.e.owner === ME || (a.rule === 'needsd' && dutyNow() === ME));
-  if (S.stage) alerts = alerts.filter((a) => S.stage.includes(a.e.stage));
+const WD_S = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+const MON_G = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+const dayTitle = (d) => `${WD_S[d.getDay()]}, ${d.getDate()} ${MON_G[d.getMonth()]}${d.getFullYear() !== TODAY.getFullYear() ? ' ' + d.getFullYear() : ''}`;
 
-  const B = { overdue: [], today: [], week: [], later: [] };
-  alerts.forEach((a) => B[bucketOf(a)].push(a));
-  B.week.sort((a, b) => a.due - b.due); B.later.sort((a, b) => (a.due || 0) - (b.due || 0));
+function pultTaskFilter(S) {
+  return (a) => (S.scope === 'team' || a.e.owner === ME || (a.rule === 'needsd' && dutyNow() === ME)) && (!S.stage || S.stage.includes(a.e.stage));
+}
 
+/* ---------- вкладка «Сегодня» ---------- */
+function renderToday(S) {
+  const { now, later } = buildTasks(pultTaskFilter(S));
   const by = (ks) => EXPERIMENTS.filter((e) => ks.includes(e.stage));
   const tiles = [
-    { k: ['enabling'], label: 'Включаются', foot: () => { const s = by(['enabling']).filter((e) => e.alerts.some((a) => a.rule === 'stuck')).length; return s ? `<b>${s} застряло</b>` : 'по плану'; } },
-    { k: ['collecting'], label: 'Сбор данных', foot: () => { const w = by(['collecting']).filter((e) => e.lookAt && days(TODAY, e.lookAt) <= 7 && e.type !== 'holdout').length; return `${w} можно смотреть на этой неделе`; } },
+    { k: ['enabling'], label: 'Включаются', foot: () => { const s = by(['enabling']).filter((e) => e.alerts.some((a) => a.rule === 'stuck')).length; return s ? `<b>${s} стоит</b>` : 'по плану'; } },
+    { k: ['collecting'], label: 'Сбор данных', foot: () => `${by(['collecting']).filter((e) => e.lookAt && e.type !== 'holdout' && days(TODAY, e.lookAt) <= 7).length} готовы на неделе` },
     { k: ['ready'], label: 'Готовы к анализу', foot: () => { const n = by(['ready']).filter((e) => !e.decision).length; return n ? `<b>${n} без решения</b>` : 'всё разобрано'; } },
-    { k: ['rollout'], label: 'Раскатка решения', foot: () => { const e = by(['rollout'])[0]; return e && e.nextPlan ? `следующий шаг ${fmt(e.nextPlan.d)}` : 'нет шагов'; } },
-    { k: ['cleanup'], label: 'Ждут чистки', foot: () => { const n = by(['cleanup']).filter((e) => e.alerts.some((a) => a.sev === 'serious')).length; return n ? `<b>${n} дольше 30 дней</b>` : 'в сроке'; } },
+    { k: ['rollout'], label: 'Раскатка решения', foot: () => 'по плану' },
+    { k: ['cleanup'], label: 'Чистка', foot: () => { const n = by(['cleanup']).filter((e) => e.alerts.some((a) => a.sev === 'serious')).length; return n ? `<b>${n} просрочено</b>` : 'в сроке'; } },
   ];
 
-  const live = EXPERIMENTS.filter((e) => ['collecting', 'ready'].includes(e.stage) && e.platform === 'Запущен')
-    .sort((a, b) => (a.lookAt || 0) - (b.lookAt || 0));
+  const live = EXPERIMENTS.filter((e) => ['collecting', 'ready'].includes(e.stage) && e.platform === 'Запущен').sort((a, b) => (a.lookAt || 0) - (b.lookAt || 0));
   const liveF = [];
   live.forEach((e) => { let g = liveF.find((x) => x.fid === e.fid); if (!g) { g = { fid: e.fid, tests: [] }; liveF.push(g); } g.tests.push(e); });
   const moving = EXPERIMENTS.filter((e) => ['enabling', 'rollout'].includes(e.stage));
-  const onAll = EXPERIMENTS.filter((e) => e.stage === 'done' && e.d.rolloutDoneAt && (e.onCount === ALL_BLOCKS.length || e.type === 'rollout')).sort((a, b) => b.d.rolloutDoneAt - a.d.rolloutDoneAt);
-  const finished = EXPERIMENTS.filter((e) => e.decision && days(D(e.decision.d), TODAY) <= 45 && e.type !== 'rollout')
-    .sort((a, b) => D(b.decision.d) - D(a.decision.d));
 
-  const bucket = (key, title, list, hint) => `
-    <div class="section-label">${title} <span class="cnt">${list.length}</span>${hint ? `<span style="text-transform:none;letter-spacing:0;font-weight:400" class="muted">${hint}</span>` : ''}</div>
-    ${list.length ? `<div class="stack">${list.map((a) => alertRow(a)).join('')}</div>` : '<div class="empty">Ничего нет</div>'}`;
+  return `
+    <div class="tiles compact">
+      ${tiles.map((t) => { const on = S.stage && S.stage.join() === t.k.join(); return `<button class="tile ${on ? 'on' : ''}" data-stage="${t.k.join(',')}">
+        <span class="lbl">${stageDot(t.k[0])}${t.label}</span><span class="row" style="align-items:baseline;gap:8px"><span class="val">${by(t.k).length}</span><span class="foot">${t.foot()}</span></span></button>`; }).join('')}
+    </div>
+    <div class="grid-2" style="grid-template-columns:minmax(0,1fr) 380px">
+      <div>
+        <div class="section-label" style="margin-top:0">Сделать <span class="cnt">${now.length}</span>${S.stage ? `<span style="text-transform:none;letter-spacing:0" class="muted">· ${STAGE[S.stage[0]].name}</span><button class="btn sm ghost" data-stage="">Сбросить</button>` : ''}</div>
+        <div class="tasks">${now.map((t) => taskRow(t)).join('') || '<div class="empty" style="padding:14px 16px">Всё сделано</div>'}</div>
+        ${later.length ? `<button class="later-toggle" data-later>${S.showLater ? 'Скрыть' : `Позже и к сведению · ${later.length}`} <span style="display:inline-block;transform:rotate(${S.showLater ? -90 : 90}deg)">›</span></button>
+        ${S.showLater ? `<div class="tasks">${later.map((t) => taskRow(t)).join('')}</div>` : ''}` : ''}
+      </div>
+      <div class="stack" style="gap:14px;position:sticky;top:64px">
+        <div class="card"><div class="card-h"><h3>В эфире</h3><span class="sp"></span><span class="small muted">${live.length}</span></div>
+          <div class="card-b">
+          ${liveF.map((g) => g.tests.length === 1
+    ? `<div class="lrow"><a href="#" data-open="${g.tests[0].id}" class="lname" title="${esc(g.tests[0].short)}">${esc(g.tests[0].short)}</a>${readinessBar(g.tests[0], true)}</div>`
+    : `<div class="lrow"><a href="#" data-open="${g.tests[0].id}" class="lname" title="${esc(g.tests[0].feature)}">${esc(g.tests[0].feature)}</a><span class="small muted">${g.tests.length} ${plural(g.tests.length, 'тест', 'теста', 'тестов')}</span></div>
+      ${g.tests.map((t) => `<div class="lrow sub"><a href="#" data-open="${t.id}" class="lname">${esc(t.label)}</a>${readinessBar(t, true)}</div>`).join('')}`).join('')}
+          </div></div>
+        <div class="card"><div class="card-h"><h3>Включение по блокам</h3></div>
+          <div class="card-b">
+          ${moving.map((e) => `<div class="lrow"><a href="#" data-open="${e.id}" class="lname" title="${esc(e.short)}">${esc(e.short)}</a><span class="row" style="gap:8px">${miniBlocks(e)}<span class="small nowrap ${e.nextPlan ? 'muted' : ''}" style="${e.nextPlan ? '' : 'color:#8a5d00;font-weight:600'}">${e.nextPlan ? fmt(e.nextPlan.d) : 'стоит'}</span></span></div>`).join('')}
+          </div></div>
+      </div>
+    </div>`;
+}
 
-  const h = TODAY;
+/* ---------- вкладка «Журнал включений» ---------- */
+function renderJournal() {
+  const J = journalState;
+  const all = [];
+  EXPERIMENTS.forEach((e) => e.events.forEach((ev) => { if (ev.b && ['beta', 'ab', 'on', 'pause', 'plan'].includes(ev.t)) all.push({ e, ev }); }));
+  const blockOk = (ev) => J.block === 'all' || (J.block === 'Бета+' ? ev.b !== 'all' && ev.b.includes('Бета+') : ev.b === 'all' || ev.b.includes(J.block));
+  const kindOk = (e) => J.kind === 'all' || (J.kind === 'ab' ? e.type !== 'rollout' : e.type === 'rollout');
+  const q = J.q.trim().toLowerCase();
+  const qOk = (x) => !q || `${x.e.short} ${x.ev.sd || ''} ${x.e.key}`.toLowerCase().includes(q);
+  const from = J.period === 'all' ? null : addDays(TODAY, -Number(J.period));
+  const list = all.filter((x) => blockOk(x.ev) && kindOk(x.e) && qOk(x));
+  const future = list.filter((x) => x.ev.t === 'plan' && x.ev._d > TODAY).sort((a, b) => a.ev._d - b.ev._d);
+  const past = list.filter((x) => x.ev.t !== 'plan' && x.ev._d <= TODAY && (!from || x.ev._d >= from)).sort((a, b) => b.ev._d - a.ev._d);
+
+  const kind = (ev) => ev.t === 'ab' ? ['ab', 'АБ'] : ev.t === 'on' ? ['on', ev.v || 'вкл'] : ev.t === 'beta' ? ['beta', 'Бета+'] : ev.t === 'pause' ? ['pause', 'стоп'] : ['plan', ev.v || 'АБ'];
+  const row = (x) => { const [k, l] = kind(x.ev); return `<div class="jl${x.ev._d > TODAY ? ' fut' : ''}" data-open="${x.e.id}">
+    <span class="jl-when">${x.ev._d > TODAY ? fmt(x.ev._d) : ''}</span>
+    <span class="jk k-${k}" title="${k === 'ab' ? 'Включён АБ' : k === 'on' ? 'Включено значение' : k === 'beta' ? 'Бета+' : k === 'pause' ? 'АБ остановлен' : 'Запланировано'}">${esc(l.length > 6 ? 'вкл' : l)}</span>
+    <span class="jl-name">${esc(x.e.short)}${x.e.type === 'rollout' ? ' <span class="muted small">без АБ</span>' : ''}</span>
+    <span class="jl-blk">${esc(x.ev.b.includes && x.ev.b.includes('Бета+') ? 'Бета+' : blockList(x.ev.b))}</span>
+    <span class="jl-sd">${x.ev.sd || ''}</span>
+    ${avatar(x.e.owner)}
+  </div>`; };
+  const groups = [];
+  past.forEach((x) => { const k = fmt(x.ev._d, true); let g = groups.find((y) => y.k === k); if (!g) { g = { k, d: x.ev._d, items: [] }; groups.push(g); } g.items.push(x); });
+
+  let summary = '';
+  if (J.block !== 'all') {
+    const abN = J.block === 'Бета+' ? 0 : EXPERIMENTS.filter((e) => e.st[J.block]?.s === 'ab').length;
+    const onN = J.block === 'Бета+' ? EXPERIMENTS.filter((e) => e.beta && e.stage !== 'done').length : EXPERIMENTS.filter((e) => e.st[J.block]?.s === 'on').length;
+    summary = `<div class="jsum">Сейчас на ${J.block === 'Бета+' ? 'Бета+' : 'блоке ' + J.block}: ${J.block === 'Бета+' ? '' : `<b>${abN}</b> АБ · `}<b>${onN}</b> включено</div>`;
+  }
+
+  return `
+    <div class="row wrap" style="gap:10px;margin-bottom:14px">
+      <div class="seg">${[['7', '7 дней'], ['30', '30 дней'], ['365', 'Год'], ['all', 'Всё']].map(([k, n]) => `<button class="${J.period === k ? 'on' : ''}" data-jp="${k}">${n}</button>`).join('')}</div>
+      <select class="sel" id="j-block"><option value="all">Все блоки</option>${['Бета+', ...ALL_BLOCKS].map((b) => `<option ${J.block === b ? 'selected' : ''} value="${b}">${b === 'Бета+' ? b : 'Блок ' + b}</option>`).join('')}</select>
+      <div class="seg">${[['all', 'Все'], ['ab', 'С АБ'], ['noab', 'Без АБ']].map(([k, n]) => `<button class="${J.kind === k ? 'on' : ''}" data-jk="${k}">${n}</button>`).join('')}</div>
+      <span class="sp"></span>
+      <div class="search" style="min-width:260px">${ICON.search}<input id="j-q" value="${esc(J.q)}" placeholder="Фича, SD, рубильник"></div>
+    </div>
+    ${summary}
+    <div class="jfeed">
+      ${future.length ? `<div class="jday">Запланировано <span class="cnt">${future.length}</span></div>${future.map(row).join('')}` : ''}
+      ${groups.map((g) => `<div class="jday">${dayTitle(g.d)} <span class="cnt">${g.items.length}</span></div>${g.items.map(row).join('')}`).join('') || '<div class="empty" style="padding:16px">За период включений нет</div>'}
+    </div>`;
+}
+
+/* ---------- вкладка «Все фичи» ---------- */
+function featureRowsData() {
+  return Object.values(FEATURES).map((f) => {
+    const work = f.tests.filter((t) => t.stage !== 'done');
+    const sevOf = (t) => (t.alerts.some((a) => a.sev !== 'info') ? SEV_ORDER[t.alerts.find((a) => a.sev !== 'info').sev] : 9);
+    const doneAt = (t) => t.d.rolloutDoneAt || t.d.decisionAt || t.d.platformEnd || t.d.created;
+    const primary = work.slice().sort((a, b) => sevOf(a) - sevOf(b) || STAGE[a.stage].i - STAGE[b.stage].i)[0] || f.tests.slice().sort((a, b) => doneAt(b) - doneAt(a))[0];
+    const status = work.length ? 'work' : 'onall';
+    const evs = f.tests.flatMap((t) => t.events.filter((ev) => ev._d <= TODAY)).sort((a, b) => b._d - a._d);
+    return { f, work, primary, status, last: evs[0], hasAb: f.tests.some((t) => t.type !== 'rollout'), hasNoAb: f.tests.some((t) => t.type === 'rollout'), doneAt: doneAt(primary), sev: sevOf(primary) };
+  });
+}
+
+function renderFeatures() {
+  const C = catState;
+  const rows = featureRowsData();
+  const q = C.q.trim().toLowerCase();
+  const hay = (r) => [r.f.name, ...r.f.tests.flatMap((t) => [t.key, t.seg, ...t.toggles.map((x) => x.n), ...t.events.map((ev) => ev.sd || '')])].join(' ').toLowerCase();
+  const kindOk = (r) => C.kind === 'all' || (C.kind === 'ab' ? r.hasAb : r.hasNoAb);
+  const views = [['work', 'В работе'], ['onall', 'Включены на всех'], ['all', 'Все']];
+  const inView = (r, v) => v === 'all' || r.status === v;
+  let list = rows.filter((r) => kindOk(r) && (q ? hay(r).includes(q) : inView(r, C.view)));
+  list.sort((a, b) => (a.status === 'work' && b.status === 'work') ? a.sev - b.sev || STAGE[a.primary.stage].i - STAGE[b.primary.stage].i : a.status !== b.status ? (a.status === 'work' ? -1 : 1) : b.doneAt - a.doneAt);
+
+  const tr = (r) => { const e = r.primary; const sev = e.alerts.find((a) => a.sev !== 'info');
+    return `<tr class="clickable" data-open="${e.id}">
+      <td style="width:28px;padding-right:0">${sev ? sevIcon(sev.sev) : ''}</td>
+      <td class="fname"><b>${esc(r.f.name)}</b> <span class="muted small nowrap">${r.f.tests.length > 1 ? `${r.f.tests.length} ${plural(r.f.tests.length, 'тест', 'теста', 'тестов')}` : e.type === 'rollout' ? 'без АБ' : e.tag}</span></td>
+      <td class="nowrap">${r.status === 'work' ? `${stageDot(e.stage)} ${STAGE[e.stage].name}` : `<span class="muted">на всех с</span> ${fmt(r.doneAt, true)}`}</td>
+      <td>${miniBlocks(e)}</td>
+      <td class="flast">${r.last ? `<span class="muted tnum">${fmt(r.last._d)}</span> ${esc(r.last.txt)}` : ''}</td>
+      <td class="nowrap small">${esc(r.status === 'work' ? testBrief(e) : outcome(e))}</td>
+      <td>${avatar(e.owner)}</td>
+    </tr>`; };
+
+  return `
+    <div class="row wrap" style="gap:10px;margin-bottom:14px">
+      <div class="seg">${views.map(([k, n]) => `<button class="${C.view === k && !q ? 'on' : ''}" data-cv="${k}">${n}<span class="cnt">${rows.filter((r) => kindOk(r) && inView(r, k)).length}</span></button>`).join('')}</div>
+      <div class="seg">${[['all', 'Все'], ['ab', 'С АБ'], ['noab', 'Без АБ']].map(([k, n]) => `<button class="${C.kind === k ? 'on' : ''}" data-ck="${k}">${n}</button>`).join('')}</div>
+      <span class="sp"></span>
+      <div class="search" style="min-width:300px">${ICON.search}<input id="c-q" value="${esc(C.q)}" placeholder="Поиск по всем фичам: название, тогл, SD"></div>
+    </div>
+    ${q ? `<div class="small muted" style="margin:-6px 0 10px">Найдено во всех фичах: ${list.length}</div>` : ''}
+    <div class="card" style="overflow-x:auto"><table class="t cat"><tbody>${list.map(tr).join('') || '<tr><td class="empty" style="padding:16px">Ничего не найдено</td></tr>'}</tbody></table></div>`;
+}
+
+/* ---------- экран ---------- */
+function renderPult(root) {
+  const S = pultState;
+  const { now } = buildTasks(pultTaskFilter(S));
+  const body = S.tab === 'journal' ? renderJournal() : S.tab === 'features' ? renderFeatures() : renderToday(S);
   root.innerHTML = `${appHead()}
   <div class="page">
-    <div class="page-title">
-      <div class="grow"><h1>Доброе утро, ${ME.split(' ')[0]}</h1>
-        <div class="sub">${WD[h.getDay()][0].toUpperCase() + WD[h.getDay()].slice(1)}, ${h.getDate()} ${['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'][h.getMonth()]} · ${B.overdue.length + B.today.length} дел требуют внимания, из них ${B.overdue.length} просрочено · вы дежурите по включению на этой неделе</div></div>
-      <div class="seg" id="scope"><button class="${S.scope === 'team' ? 'on' : ''}" data-scope="team">Вся команда</button><button class="${S.scope === 'mine' ? 'on' : ''}" data-scope="mine">Мои</button></div>
+    <div class="page-title" style="margin-bottom:6px">
+      <div class="grow"><h1>Пульт</h1><div class="sub">${WD[TODAY.getDay()]}, ${TODAY.getDate()} ${MON_G[TODAY.getMonth()]} · дежурство по включению: ${dutyNow() === ME ? 'вы' : dutyNow()}, дальше ${DUTY[1].who}</div></div>
+      ${S.tab === 'today' ? `<div class="seg"><button class="${S.scope === 'team' ? 'on' : ''}" data-scope="team">Вся команда</button><button class="${S.scope === 'mine' ? 'on' : ''}" data-scope="mine">Мои</button></div>` : ''}
     </div>
-
-    <div class="tiles">
-      ${tiles.map((t) => { const n = by(t.k).length; const on = S.stage && S.stage.join() === t.k.join(); return `<button class="tile ${on ? 'on' : ''}" data-stage="${t.k.join(',')}">
-        <span class="lbl">${stageDot(t.k[0])}${t.label}</span><span class="val">${n}</span><span class="foot">${t.foot()}</span></button>`; }).join('')}
+    <div class="utabs">
+      <button class="${S.tab === 'today' ? 'on' : ''}" data-pt="today">Сегодня <span class="cnt">${now.length}</span></button>
+      <button class="${S.tab === 'journal' ? 'on' : ''}" data-pt="journal">Журнал включений</button>
+      <button class="${S.tab === 'features' ? 'on' : ''}" data-pt="features">Все фичи <span class="cnt">${Object.keys(FEATURES).length}</span></button>
     </div>
-    ${S.stage ? `<div class="row" style="margin:-8px 0 8px"><span class="chip">Фильтр: ${STAGE[S.stage[0]].name}</span><button class="btn sm ghost" data-stage="">Сбросить</button></div>` : ''}
-
-    <div class="grid-2">
-      <div>
-        ${bucket('overdue', 'Просрочено', B.overdue)}
-        ${bucket('today', 'Сделать сегодня', B.today)}
-        ${bucket('week', 'На этой неделе', B.week, ' до ' + fmt(addDays(TODAY, 7)))}
-        ${bucket('later', 'Позже', B.later)}
-      </div>
-      <div class="stack" style="gap:16px;position:sticky;top:64px">
-        <div class="card"><div class="card-h"><h3>Сейчас в эфире</h3><span class="sp"></span><span class="small muted">${live.length} ${plural(live.length, 'тест', 'теста', 'тестов')}</span></div>
-          <div class="card-b stack" style="gap:12px">
-          ${liveF.map((g) => g.tests.length === 1
-    ? `<div class="stack" style="gap:4px"><div class="row"><a href="#" data-open="${g.tests[0].id}" class="grow" style="color:var(--ink);font-weight:550">${esc(g.tests[0].short)}</a><span class="muted small nowrap">${g.tests[0].tag}</span></div>${readinessBar(g.tests[0])}</div>`
-    : `<div class="stack" style="gap:6px"><div class="row"><a href="#" data-open="${g.tests[0].id}" class="grow" style="color:var(--ink);font-weight:550">${esc(g.tests[0].feature)}</a><span class="chip" style="height:18px">${g.tests.length} ${plural(g.tests.length, 'тест', 'теста', 'тестов')}</span></div>
-      ${g.tests.map((t) => `<div style="padding-left:12px;border-left:2px solid var(--line)"><a href="#" data-open="${t.id}" class="small" style="color:var(--ink-2)">${esc(t.label)}</a>${readinessBar(t, true)}</div>`).join('')}</div>`).join('')}
-          </div></div>
-
-        <div class="card"><div class="card-h"><h3>Включение по блокам</h3></div>
-          <div class="card-b stack" style="gap:12px">
-          ${moving.map((e) => `<div class="stack" style="gap:6px"><div class="row">${stageDot(e.stage)}<a href="#" data-open="${e.id}" class="grow" style="color:var(--ink);font-weight:550">${esc(e.short)}</a></div>
-            <div class="row">${miniBlocks(e)}<span class="small muted nowrap">${e.coverage}/${ALL_BLOCKS.length}</span></div>
-            <div class="small ink2">${e.nextPlan ? `Дальше: ${fmt(e.nextPlan.d)} — ${blockList(e.nextPlan.blocks)} ${e.nextPlan.sd ? '<span class="mono muted">' + e.nextPlan.sd + '</span>' : '<span class="sev-label warn">нет SD</span>'}` : '<span class="sev-label warn">Следующий шаг не запланирован</span>'}</div></div>`).join('')}
-          <div style="margin-top:4px">${bmLegend()}</div>
-          </div></div>
-
-        <div class="card"><div class="card-h"><h3>Недавно завершены</h3></div>
-          <div class="card-b stack" style="gap:10px">
-          ${finished.map((e) => { const out = outcome(e); return `<div class="row"><a href="#" data-open="${e.id}" class="grow" style="color:var(--ink)">${esc(e.short)} <span class="muted small">№${e.iter}</span></a><span class="chip">${out}</span></div>`; }).join('')}
-          </div></div>
-
-        <div class="card"><div class="card-h"><h3>История</h3><span class="sp"></span><span class="small muted">${onAll.length} ${plural(onAll.length, 'фича', 'фичи', 'фич')} на всех клиентах</span></div>
-          <div class="card-b stack" style="gap:8px">
-          ${onAll.slice(0, 4).map((e) => `<div class="row" style="align-items:flex-start"><a href="#" data-open="${e.id}" class="grow small" style="color:var(--ink)">${esc(e.short)}</a><span class="small muted nowrap tnum">${fmt(e.d.rolloutDoneAt, true)}</span></div>`).join('')}
-          <a href="#registry" class="small" data-gohist>Вся история с ${onAll.length ? onAll[onAll.length - 1].d.rolloutDoneAt.getFullYear() : ''} года в Умном тираже →</a>
-          </div></div>
-
-        <div class="card"><div class="card-h"><h3>Дежурные по включению</h3></div>
-          <div class="card-b stack" style="gap:8px">
-          ${DUTY.map((d) => `<div class="row">${avatar(d.who)}<span class="grow ${d.now ? '' : 'ink2'}" style="${d.now ? 'font-weight:600' : ''}">${d.who}${d.who === ME ? ' (вы)' : ''}</span><span class="small muted tnum">${d.week}</span>${d.now ? '<span class="chip">сейчас</span>' : ''}</div>`).join('')}
-          </div></div>
-      </div>
-    </div>
+    ${body}
   </div>`;
 
-  $$('[data-gohist]', root).forEach((a) => a.addEventListener('click', () => { regState.view = 'onall'; regState.q = ''; }));
-  $$('[data-scope]', root).forEach((b) => b.addEventListener('click', () => { S.scope = b.dataset.scope; renderPult(root); }));
-  $$('[data-stage]', root).forEach((b) => b.addEventListener('click', () => {
-    const v = b.dataset.stage; S.stage = !v || (S.stage && S.stage.join() === v) ? null : v.split(','); renderPult(root);
-  }));
+  const rr = () => renderPult(root);
+  const keepFocus = (id) => { const n = $('#' + id); if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); } };
+  $$('[data-pt]', root).forEach((b) => b.onclick = () => { S.tab = b.dataset.pt; rr(); });
+  $$('[data-scope]', root).forEach((b) => b.onclick = () => { S.scope = b.dataset.scope; rr(); });
+  $$('[data-stage]', root).forEach((b) => b.onclick = () => { const v = b.dataset.stage; S.stage = !v || (S.stage && S.stage.join() === v) ? null : v.split(','); rr(); });
+  const lt = $('[data-later]', root); if (lt) lt.onclick = () => { S.showLater = !S.showLater; rr(); };
+  $$('[data-jp]', root).forEach((b) => b.onclick = () => { journalState.period = b.dataset.jp; rr(); });
+  $$('[data-jk]', root).forEach((b) => b.onclick = () => { journalState.kind = b.dataset.jk; rr(); });
+  const jb = $('#j-block'); if (jb) jb.onchange = () => { journalState.block = jb.value; rr(); };
+  const jq = $('#j-q'); if (jq) jq.addEventListener('input', () => { journalState.q = jq.value; rr(); keepFocus('j-q'); });
+  $$('[data-cv]', root).forEach((b) => b.onclick = () => { catState.view = b.dataset.cv; catState.q = ''; rr(); });
+  $$('[data-ck]', root).forEach((b) => b.onclick = () => { catState.kind = b.dataset.ck; rr(); });
+  const cq = $('#c-q'); if (cq) cq.addEventListener('input', () => { catState.q = cq.value; rr(); keepFocus('c-q'); });
 }
 
 VIEWS.pult = { render: renderPult };
@@ -2545,7 +2798,7 @@ function abCell(e) {
   }
   if (['prep', 'release'].includes(e.stage)) return `<span class="small ink2">${e.platform === 'Новый' ? 'Создан на платформе' : ''}${e.d.plannedStart ? `<br>старт ${fmt(e.d.plannedStart)}` : ''}</span>`;
   if (['collecting', 'enabling'].includes(e.stage) && e.d.fullAt) return readinessBar(e, true);
-  if (e.stage === 'enabling') return '<span class="small ink2">Отсчёт начнётся после включения на всех блоках</span>';
+  if (e.stage === 'enabling') return '<span class="small ink2">ещё включается</span>';
   if (e.stage === 'ready') return `${readinessBar(e, true)}<div class="small" style="margin-top:4px"><span class="sev-label serious">Нет решения</span></div>`;
   if (e.decision) {
     return `<span class="chip">${outcome(e)}</span><div class="small muted" style="margin-top:4px">решение ${e.decision.d.slice(0, 5)}</div>`;
@@ -2569,26 +2822,22 @@ function regRow(e, S, nested = false) {
   const sev = e.alerts.find((a) => ['crit', 'serious', 'warn'].includes(a.sev));
   return `<tr class="clickable" data-row="${e.id}">
     <td style="width:28px;padding-right:0"><button class="btn ghost sm" data-expand="${e.id}" style="padding:0 4px;transform:rotate(${isOpen ? 0 : -90}deg)">${ICON.chev}</button></td>
-    <td style="min-width:240px;max-width:300px;${nested ? 'padding-left:28px;border-left:3px solid var(--line-2)' : ''}">
-      ${nested ? `<a href="#" data-open="${e.id}" style="font-weight:600;color:var(--ink)">АБ-тест: ${esc(e.label)}</a>` : `<a href="#" data-open="${e.id}" style="font-weight:600;color:var(--ink)">${esc(e.feature)}</a>`}
-      <div class="row wrap small muted" style="gap:2px 6px;margin-top:2px"><span class="nowrap">${e.tag}</span><span class="mono" style="font-size:11px">${e.key}</span>${!nested && pastOf(featureOf(e), e.id).length ? `<span class="nowrap" title="Прошлые итерации фичи">· ещё ${pastOf(featureOf(e), e.id).length} в истории</span>` : ''}</div>
-      <div class="row wrap" style="gap:6px;margin-top:6px">${stageChip(e.stage)}${e.type === 'rollout' ? '<span class="small muted">без АБ</span>' : `<span class="small muted">платформа: ${e.platform}</span>`}${e.blockers ? `<span class="chip" style="background:#fef4dc;color:#8a5d00" data-tip="${esc(e.blockers)}">Есть блокер</span>` : ''}</div>
-      ${sev ? `<div class="row small" style="gap:6px;margin-top:6px;align-items:flex-start">${sevIcon(sev.sev)}<span>${esc(sev.title)}</span></div>` : ''}
+    <td class="rname" style="${nested ? 'padding-left:28px;border-left:3px solid var(--line-2)' : ''}">
+      <div class="row" style="gap:6px;min-width:0">${sev ? `<span data-tip="${esc(sev.title)}">${sevIcon(sev.sev)}</span>` : ''}<a href="#" data-open="${e.id}" class="rlink">${esc(nested ? e.label : e.feature)}</a></div>
+      <div class="row small muted" style="gap:6px;margin-top:3px;white-space:nowrap">${stageDot(e.stage)}<span>${STAGE[e.stage].name}</span><span>· ${e.type === 'rollout' ? 'без АБ' : e.tag}</span>${e.blockers ? `<span class="sev-label warn" data-tip="${esc(e.blockers)}">· блокер</span>` : ''}</div>
     </td>
-    <td>${blockMatrix(e, { head: false, fixed: '33px' })}</td>
-    <td style="min-width:170px;max-width:205px">
-      ${le ? `<div class="small"><span class="muted tnum">${fmt(le._d)}</span> ${esc(le.txt)}${le.sd ? ` <span class="mono" style="color:var(--accent)">${le.sd}</span>` : ''}</div>` : ''}
-      ${e.nextPlan ? `<div class="small" style="margin-top:4px"><span class="muted">Дальше ${fmt(e.nextPlan.d)}:</span> ${blockList(e.nextPlan.blocks)}${e.nextPlan.sd ? '' : ' <span class="sev-label warn">нет SD</span>'}</div>` : ''}
+    <td>${blockMatrix(e, { head: false, fixed: '31px' })}</td>
+    <td class="rlast">
+      ${le ? `<div class="ell" title="${esc(le.txt)}"><span class="muted tnum">${fmt(le._d)}</span> ${esc(le.txt)}</div>` : ''}
+      ${e.nextPlan ? `<div class="ell muted" style="margin-top:3px">дальше ${fmt(e.nextPlan.d)}: ${blockList(e.nextPlan.blocks)}${e.nextPlan.sd ? '' : ' · <span class="sev-label warn">нет SD</span>'}</div>` : ''}
     </td>
-    <td style="min-width:150px;max-width:180px">${abCell(e)}</td>
+    <td style="min-width:140px;max-width:170px">${abCell(e)}</td>
     <td style="white-space:nowrap">${togglesCell(e)}</td>
   </tr>
   ${isOpen ? `<tr><td></td><td colspan="5" style="background:var(--surface-2)">
     <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:24px">
       <div><div class="row" style="margin-bottom:6px"><b class="grow">Журнал</b><button class="btn sm" data-act="addevent" data-id="${e.id}">${ICON.plus} Событие</button></div>${journal(e)}</div>
       <div class="stack" style="gap:12px">
-        <div><b>Гипотеза</b><div class="small ink2" style="margin-top:4px">${esc(e.hypothesis)}</div></div>
-        <div class="conv-name" style="margin:0"><code>${esc(e.name)}</code><button class="btn ghost sm" data-copy="${esc(e.name)}">${ICON.copy}</button></div>
         <div><b>Тоглы</b><div style="margin-top:4px">${toggleList(e)}</div></div>
         <div class="row"><button class="btn sm primary" data-open="${e.id}">Открыть паспорт</button>${e.stage === 'ready' ? `<button class="btn sm" data-act="decide" data-id="${e.id}">Записать решение</button>` : ''}${['enabling', 'rollout'].includes(e.stage) ? `<button class="btn sm" data-act="sd" data-id="${e.id}">SD на следующий шаг</button>` : ''}</div>
       </div>
@@ -2601,14 +2850,10 @@ function featureRows(f, items, S) {
   const hidden = f.tests.length - items.length;
   const worst = f.tests.flatMap((t) => t.alerts).filter((a) => ['crit', 'serious', 'warn'].includes(a.sev)).sort((a, b) => SEV_ORDER[a.sev] - SEV_ORDER[b.sev])[0];
   const stages = [...new Set(f.tests.map((t) => t.stage))];
-  return `<tr><td></td><td colspan="5" style="padding-top:14px">
+  return `<tr><td></td><td colspan="5" style="padding:10px 12px 4px">
       <div class="row wrap" style="gap:8px"><a href="#" data-open="${items[0].id}" style="font-weight:650;color:var(--ink);font-size:14px">${esc(f.name)}</a>
-      <span class="chip">${f.tests.length} ${plural(f.tests.length, 'АБ-тест', 'АБ-теста', 'АБ-тестов')} · ${featureKind(f)}</span>
-      ${stages.map((k) => stageChip(k)).join('')}
-      ${f.history.length ? `<span class="small muted">и ещё ${f.history.length} ${plural(f.history.length, 'итерация', 'итерации', 'итераций')} раньше</span>` : ''}
-      ${hidden ? `<span class="small muted">${hidden} не попадают в фильтр</span>` : ''}
-      ${worst ? `<span class="row small" style="gap:6px">${sevIcon(worst.sev)}${esc(worst.title)}</span>` : ''}</div>
-      <div class="small muted" style="margin-top:4px">Одна строка тиража и одна аналитика. Ниже — тесты, у каждого свои блоки, сроки, результат и решение</div>
+      <span class="small muted">${f.tests.length} ${plural(f.tests.length, 'теста', 'тестов', 'тестов')}${isParallel(f) ? ' по сегментам' : ''}${f.history.length ? ` · ещё ${f.history.length} в истории` : ''}${hidden ? ` · ${hidden} скрыто фильтром` : ''}</span>
+      ${worst ? `<span data-tip="${esc(worst.title)}">${sevIcon(worst.sev)}</span>` : ''}</div>
     </td></tr>${items.map((e) => regRow(e, S, true)).join('')}`;
 }
 
@@ -2636,13 +2881,13 @@ function renderRegistry(root) {
     done: toggles.filter((t) => t.st === 'done'),
   };
 
-  const head = `<tr><th></th><th>Фича · стадия · блокеры</th><th style="padding-bottom:6px"><div style="margin-bottom:4px">Где сейчас включено</div>${bmHeader('33px')}</th><th>Последнее событие · дальше</th><th>АБ</th><th>Тоглы</th></tr>`;
+  const head = `<tr><th></th><th>Фича · стадия · блокеры</th><th style="padding-bottom:6px"><div style="margin-bottom:4px">Где сейчас включено</div>${bmHeader('31px')}</th><th>Последнее событие · дальше</th><th>АБ</th><th>Тоглы</th></tr>`;
 
   root.innerHTML = `${appHead()}
-  <style>.reg td .bm, .reg td .bm .c { width: 100%; min-width: 0; } .reg td .bm .c { font-size: 9.5px; padding: 0 1px; } .reg th .bm-grid .hd { font-size: 10px; } .reg table.t td, .reg table.t th { padding-left: 10px; padding-right: 10px; } .reg .meter-row { flex-wrap: wrap; row-gap: 2px; } .reg .meter-row .nowrap { white-space: normal; } .reg .meter-row .meter { flex: 1 1 100%; }</style>
+  <style>.reg td .bm, .reg td .bm .c { width: 100%; min-width: 0; } .reg td .bm .c { font-size: 9.5px; padding: 0 1px; } .reg th .bm-grid .hd { font-size: 10px; } .reg table.t td, .reg table.t th { padding-left: 10px; padding-right: 10px; } .reg .meter-row { flex-wrap: wrap; row-gap: 2px; } .reg .meter-row .nowrap { white-space: normal; } .reg .meter-row .meter { flex: 1 1 100%; } .reg .rname { min-width: 240px; max-width: 300px; } .reg .rlink { color: var(--ink); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .reg .rlast { min-width: 170px; max-width: 220px; font-size: 12.5px; } .reg .ell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .reg table.t td { padding-top: 9px; padding-bottom: 9px; vertical-align: middle; }</style>
   <div class="page" style="max-width:none">
     <div class="page-title">
-      <div class="grow"><h1>Тиражирование фич · Android</h1><div class="sub">Та же структура, что в Confluence, только вместо цвета ячейки — стадия, а вместо текста с датами — матрица блоков и журнал</div></div>
+      <div class="grow"><h1>Тиражирование фич · Android</h1></div>
       <div class="seg"><button class="${S.tab === 'features' ? 'on' : ''}" data-tab="features">Фичи и АБ-тесты</button><button class="${S.tab === 'toggles' ? 'on' : ''}" data-tab="toggles">Удаление тоглов <span class="cnt">${tg.late.length + tg.todo.length}</span></button></div>
     </div>
 
@@ -2653,7 +2898,7 @@ function renderRegistry(root) {
       <span class="sp"></span>
       <div class="search" style="min-width:300px">${ICON.search}<input id="rg-q" value="${esc(S.q)}" placeholder="Поиск по всем фичам: название, тогл, SD, релиз"></div>
     </div>
-    <div class="row wrap" style="margin:-4px 0 12px;gap:12px">${q ? `<span class="chip">Поиск по всем фичам, включая историю: найдено ${list.length}</span><button class="btn sm ghost" id="rg-clear">Сбросить</button>` : ''}${S.view === 'onall' && !q ? `<span class="small ink2">Фичи, уже включённые на всех клиентов: итог, даты, кто решал, какие тоглы удалены и в какой части «Удаления тоглов». Самая ранняя — ${fmt(EXPERIMENTS.filter(V.f).map((e) => e.d.rolloutDoneAt || e.d.created).sort((a, b) => a - b)[0], true)}</span>` : ''}<span class="sp"></span>${bmLegend()}</div>
+    <div class="row wrap" style="margin:-4px 0 12px;gap:12px">${q ? `<span class="chip">Поиск по всем фичам, включая историю: найдено ${list.length}</span><button class="btn sm ghost" id="rg-clear">Сбросить</button>` : ''}<span class="sp"></span>${bmLegend()}</div>
     <div class="card reg" style="overflow-x:auto">
       <table class="t"><thead>${head}</thead><tbody>
       ${S.byRelease ? rels.map((r) => { const items = list.filter((e) => e.release === r); const rr = relOf(r); return `<tr><td colspan="6" style="background:var(--surface-3);padding:8px 12px;font-weight:650">Релиз ${r}${rr ? ` <span class="muted" style="font-weight:500">· ${rr.d}${D(rr.d) > TODAY ? ' · ещё не вышел' : ''}</span>` : ''} <span class="muted" style="font-weight:500">· ${new Set(items.map((e) => e.fid)).size} ${plural(new Set(items.map((e) => e.fid)).size, 'фича', 'фичи', 'фич')}, ${items.length} ${plural(items.length, 'тест', 'теста', 'тестов')}</span></td></tr>${rowsFor(items, S)}`; }).join('')
@@ -2661,23 +2906,12 @@ function renderRegistry(root) {
       </tbody></table>
       ${list.length ? '' : '<div class="empty" style="padding:24px">В этом представлении пусто</div>'}
     </div>
-    <div class="row small muted" style="margin-top:10px;gap:16px"><span>Сохранённые представления заменяют поиск по цвету ячеек</span><span>·</span><span>Каждое событие в журнале обновляет матрицу блоков</span><span>·</span><a href="#" data-act="newtest">Создать тест с именем по конвенции</a></div>
     ` : `
-    <div class="grid-2" style="grid-template-columns:1.5fr 1fr">
+    <div style="max-width:900px">
       <div class="stack" style="gap:16px">
         ${[['Просрочено: раскатано больше 30 дней назад', tg.late, 'serious'], ['Пора планировать', tg.todo, 'warn'], ['Запланировано в «Удаление тоглов»', tg.planned, 'info'], ['Удалить после завершения теста', tg.later, null], ['Удалено', tg.done, 'good']].map(([t, arr, sv]) => `
         <div class="card"><div class="card-h">${sv ? sevIcon(sv) : ''}<h3>${t}</h3><span class="muted small">${arr.length}</span><span class="sp"></span>${sv === 'serious' || sv === 'warn' ? `<button class="btn sm" data-act="cleanup" data-id="${arr[0]?.e.id || ''}">Добавить все в ч. 22</button>` : ''}</div>
           <div class="card-b">${arr.length ? `<table class="t"><tbody>${(sv === null ? arr.slice(0, 5) : arr).map((x) => `<tr><td><span class="mono">${esc(x.n)}</span><div class="small muted">${x.kind}</div></td><td><a href="#" data-open="${x.e.id}">${esc(x.e.short)}</a> <span class="small muted">${x.e.tag}</span></td><td class="small ink2 nowrap">${x.where ? esc(x.where) : x.e.d.rolloutDoneAt ? `раскатано ${fmt(x.e.d.rolloutDoneAt)}` : STAGE[x.e.stage].name}</td></tr>`).join('')}</tbody></table>${sv === null && arr.length > 5 ? `<div class="small muted" style="padding-top:10px">и ещё ${arr.length - 5}: появятся в «Пора планировать», когда тест раскатят</div>` : ''}` : '<div class="empty">Нет</div>'}</div></div>`).join('')}
-      </div>
-      <div class="card" style="padding:16px;position:sticky;top:64px">
-        <h3>Как это работает</h3>
-        <div class="stack small ink2" style="margin-top:10px;gap:8px">
-          <div>Сервис собирает рубильники, тоглы и конфиги из паспортов тестов: всё, что может требовать удаления (тогл, рубильник в лончере или конфиге, метрики, неиспользуемые ветки АБ, фича).</div>
-          <div>Сразу после раскатки на 100 % элемент попадает в «Пора планировать», а через 30 дней — в «Просрочено» с напоминанием владельцу.</div>
-          <div>Кнопка «Добавить в ч. 22» создаёт пункт в очередной странице «[Android] Удаление тоглов, конфига, Launcher» и привязывает её к релизу.</div>
-        </div>
-        <div class="divider" style="margin:14px 0"></div>
-        <div class="kv small"><dt>Текущая часть</dt><dd>Удаление тоглов, ч. 22</dd><dt>Релиз</dt><dd>17.16 · 07.12.2026</dd><dt>В плане</dt><dd>${tg.planned.length} элемента</dd></div>
       </div>
     </div>`}
   </div>`;
@@ -2702,16 +2936,11 @@ VIEWS.registry = { render: renderRegistry };
 const chatState = { msgs: null, flow: null, settings: { daily: true, weekly: true, escalate: true, ev: [true, true, true, true, true, true, false] } };
 
 function digestHTML() {
-  const al = mergedAlerts();
-  const B = { overdue: [], today: [], week: [] };
-  al.forEach((a) => { const b = bucketOf(a); if (B[b]) B[b].push(a); });
-  B.week.sort((a, b) => a.due - b.due);
-  const line = (a) => `<div class="cm-li">${sevIcon(a.sev)}<span><a href="#" data-open="${a.e.id}">${esc(a.group ? a.e.feature : a.e.short)}</a> <span class="muted">${a.group ? a.group.length + ' теста' : a.e.tag}</span><br><span class="ink2">${esc(a.title)}</span></span></div>`;
-  return `<div style="font-weight:650;margin-bottom:6px">Сводка по АБ-тестам · [${TEAM.name}] ${TEAM.platform} · ${TODAY.getDate()} ноября</div>
-    <div class="ink2" style="margin-bottom:10px">${(() => { const a = EXPERIMENTS.filter((e) => ['collecting', 'ready'].includes(e.stage) && e.platform === 'Запущен').length; const b = EXPERIMENTS.filter((e) => ['enabling', 'rollout'].includes(e.stage)).length; const c = EXPERIMENTS.filter((e) => e.stage === 'ready' && !e.decision).length; return `В эфире ${a} ${plural(a, 'тест', 'теста', 'тестов')}, включаются ${b}, ждут решения ${c}.`; })()}</div>
-    <div class="cm-sec">Просрочено · ${B.overdue.length}</div>${B.overdue.map(line).join('')}
-    <div class="cm-sec">Сделать сегодня · ${B.today.length}</div>${B.today.slice(0, 4).map(line).join('')}${B.today.length > 4 ? `<div class="muted small" style="padding-left:28px">и ещё ${B.today.length - 4}</div>` : ''}
-    <div class="cm-sec">На этой неделе · ${B.week.length}</div>${B.week.map(line).join('')}`;
+  const { now, later } = buildTasks();
+  const line = (t) => { const a = t.main; return `<div class="cm-li">${sevIcon(a.sev)}<span><b>${esc(TASK[a.rule] || a.title)}</b> · <a href="#" data-open="${a.e.id}">${esc(a.group ? a.e.feature : a.e.short)}</a> <span class="muted">${esc(shortOf(a))}</span></span></div>`; };
+  return `<div style="font-weight:650;margin-bottom:6px">Сегодня ${now.length} ${plural(now.length, 'дело', 'дела', 'дел')} · [${TEAM.name}] ${TEAM.platform}</div>
+    ${now.map(line).join('')}
+    <div class="muted small" style="margin-top:6px">Ещё ${later.length} — позже и к сведению</div>`;
 }
 
 function statusCard(e) {
@@ -2854,7 +3083,7 @@ function renderAssistant(root, keepScroll) {
     .set-row:last-child { border-bottom: 0; }
   </style>
   <div class="page">
-    <div class="page-title"><div class="grow"><h1>Ассистент в мессенджере</h1><div class="sub">Сервис сам пишет, когда что-то произошло или пора действовать. Решение, SD-заявку и перенос шага можно оформить кнопками в чате. Нажимайте кнопки — сценарий интерактивный</div></div></div>
+    <div class="page-title"><div class="grow"><h1>Ассистент в мессенджере</h1><div class="sub">Кнопки в чате работают</div></div></div>
     <div class="asst">
       <div class="msgr">
         <div class="msgr-h"><span class="bot-ava">Р</span><div class="grow"><div style="font-weight:650">Радар АБ</div><div class="small muted">бот · команда [${TEAM.name}] ${TEAM.platform}</div></div><span class="chip">корпоративный мессенджер</span></div>
@@ -2893,12 +3122,7 @@ function renderAssistant(root, keepScroll) {
             </div>
           </div></div>
 
-        <div class="card" style="padding:16px"><h3>Почему это работает</h3>
-          <div class="stack small ink2" style="margin-top:8px;gap:6px">
-            <div>Напоминание приходит туда, где команда и так сидит, без нового сервиса во вкладке.</div>
-            <div>Каждое сообщение заканчивается действием: записать, создать, перенести, переназначить.</div>
-            <div>Ответ из чата сразу попадает в паспорт, строку тиража и аналитику, переносить вручную не нужно.</div>
-          </div></div>
+
       </div>
     </div>
   </div>`;

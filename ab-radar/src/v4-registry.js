@@ -26,7 +26,7 @@ function abCell(e) {
   }
   if (['prep', 'release'].includes(e.stage)) return `<span class="small ink2">${e.platform === 'Новый' ? 'Создан на платформе' : ''}${e.d.plannedStart ? `<br>старт ${fmt(e.d.plannedStart)}` : ''}</span>`;
   if (['collecting', 'enabling'].includes(e.stage) && e.d.fullAt) return readinessBar(e, true);
-  if (e.stage === 'enabling') return '<span class="small ink2">Отсчёт начнётся после включения на всех блоках</span>';
+  if (e.stage === 'enabling') return '<span class="small ink2">ещё включается</span>';
   if (e.stage === 'ready') return `${readinessBar(e, true)}<div class="small" style="margin-top:4px"><span class="sev-label serious">Нет решения</span></div>`;
   if (e.decision) {
     return `<span class="chip">${outcome(e)}</span><div class="small muted" style="margin-top:4px">решение ${e.decision.d.slice(0, 5)}</div>`;
@@ -50,26 +50,22 @@ function regRow(e, S, nested = false) {
   const sev = e.alerts.find((a) => ['crit', 'serious', 'warn'].includes(a.sev));
   return `<tr class="clickable" data-row="${e.id}">
     <td style="width:28px;padding-right:0"><button class="btn ghost sm" data-expand="${e.id}" style="padding:0 4px;transform:rotate(${isOpen ? 0 : -90}deg)">${ICON.chev}</button></td>
-    <td style="min-width:240px;max-width:300px;${nested ? 'padding-left:28px;border-left:3px solid var(--line-2)' : ''}">
-      ${nested ? `<a href="#" data-open="${e.id}" style="font-weight:600;color:var(--ink)">АБ-тест: ${esc(e.label)}</a>` : `<a href="#" data-open="${e.id}" style="font-weight:600;color:var(--ink)">${esc(e.feature)}</a>`}
-      <div class="row wrap small muted" style="gap:2px 6px;margin-top:2px"><span class="nowrap">${e.tag}</span><span class="mono" style="font-size:11px">${e.key}</span>${!nested && pastOf(featureOf(e), e.id).length ? `<span class="nowrap" title="Прошлые итерации фичи">· ещё ${pastOf(featureOf(e), e.id).length} в истории</span>` : ''}</div>
-      <div class="row wrap" style="gap:6px;margin-top:6px">${stageChip(e.stage)}${e.type === 'rollout' ? '<span class="small muted">без АБ</span>' : `<span class="small muted">платформа: ${e.platform}</span>`}${e.blockers ? `<span class="chip" style="background:#fef4dc;color:#8a5d00" data-tip="${esc(e.blockers)}">Есть блокер</span>` : ''}</div>
-      ${sev ? `<div class="row small" style="gap:6px;margin-top:6px;align-items:flex-start">${sevIcon(sev.sev)}<span>${esc(sev.title)}</span></div>` : ''}
+    <td class="rname" style="${nested ? 'padding-left:28px;border-left:3px solid var(--line-2)' : ''}">
+      <div class="row" style="gap:6px;min-width:0">${sev ? `<span data-tip="${esc(sev.title)}">${sevIcon(sev.sev)}</span>` : ''}<a href="#" data-open="${e.id}" class="rlink">${esc(nested ? e.label : e.feature)}</a></div>
+      <div class="row small muted" style="gap:6px;margin-top:3px;white-space:nowrap">${stageDot(e.stage)}<span>${STAGE[e.stage].name}</span><span>· ${e.type === 'rollout' ? 'без АБ' : e.tag}</span>${e.blockers ? `<span class="sev-label warn" data-tip="${esc(e.blockers)}">· блокер</span>` : ''}</div>
     </td>
-    <td>${blockMatrix(e, { head: false, fixed: '33px' })}</td>
-    <td style="min-width:170px;max-width:205px">
-      ${le ? `<div class="small"><span class="muted tnum">${fmt(le._d)}</span> ${esc(le.txt)}${le.sd ? ` <span class="mono" style="color:var(--accent)">${le.sd}</span>` : ''}</div>` : ''}
-      ${e.nextPlan ? `<div class="small" style="margin-top:4px"><span class="muted">Дальше ${fmt(e.nextPlan.d)}:</span> ${blockList(e.nextPlan.blocks)}${e.nextPlan.sd ? '' : ' <span class="sev-label warn">нет SD</span>'}</div>` : ''}
+    <td>${blockMatrix(e, { head: false, fixed: '31px' })}</td>
+    <td class="rlast">
+      ${le ? `<div class="ell" title="${esc(le.txt)}"><span class="muted tnum">${fmt(le._d)}</span> ${esc(le.txt)}</div>` : ''}
+      ${e.nextPlan ? `<div class="ell muted" style="margin-top:3px">дальше ${fmt(e.nextPlan.d)}: ${blockList(e.nextPlan.blocks)}${e.nextPlan.sd ? '' : ' · <span class="sev-label warn">нет SD</span>'}</div>` : ''}
     </td>
-    <td style="min-width:150px;max-width:180px">${abCell(e)}</td>
+    <td style="min-width:140px;max-width:170px">${abCell(e)}</td>
     <td style="white-space:nowrap">${togglesCell(e)}</td>
   </tr>
   ${isOpen ? `<tr><td></td><td colspan="5" style="background:var(--surface-2)">
     <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:24px">
       <div><div class="row" style="margin-bottom:6px"><b class="grow">Журнал</b><button class="btn sm" data-act="addevent" data-id="${e.id}">${ICON.plus} Событие</button></div>${journal(e)}</div>
       <div class="stack" style="gap:12px">
-        <div><b>Гипотеза</b><div class="small ink2" style="margin-top:4px">${esc(e.hypothesis)}</div></div>
-        <div class="conv-name" style="margin:0"><code>${esc(e.name)}</code><button class="btn ghost sm" data-copy="${esc(e.name)}">${ICON.copy}</button></div>
         <div><b>Тоглы</b><div style="margin-top:4px">${toggleList(e)}</div></div>
         <div class="row"><button class="btn sm primary" data-open="${e.id}">Открыть паспорт</button>${e.stage === 'ready' ? `<button class="btn sm" data-act="decide" data-id="${e.id}">Записать решение</button>` : ''}${['enabling', 'rollout'].includes(e.stage) ? `<button class="btn sm" data-act="sd" data-id="${e.id}">SD на следующий шаг</button>` : ''}</div>
       </div>
@@ -82,14 +78,10 @@ function featureRows(f, items, S) {
   const hidden = f.tests.length - items.length;
   const worst = f.tests.flatMap((t) => t.alerts).filter((a) => ['crit', 'serious', 'warn'].includes(a.sev)).sort((a, b) => SEV_ORDER[a.sev] - SEV_ORDER[b.sev])[0];
   const stages = [...new Set(f.tests.map((t) => t.stage))];
-  return `<tr><td></td><td colspan="5" style="padding-top:14px">
+  return `<tr><td></td><td colspan="5" style="padding:10px 12px 4px">
       <div class="row wrap" style="gap:8px"><a href="#" data-open="${items[0].id}" style="font-weight:650;color:var(--ink);font-size:14px">${esc(f.name)}</a>
-      <span class="chip">${f.tests.length} ${plural(f.tests.length, 'АБ-тест', 'АБ-теста', 'АБ-тестов')} · ${featureKind(f)}</span>
-      ${stages.map((k) => stageChip(k)).join('')}
-      ${f.history.length ? `<span class="small muted">и ещё ${f.history.length} ${plural(f.history.length, 'итерация', 'итерации', 'итераций')} раньше</span>` : ''}
-      ${hidden ? `<span class="small muted">${hidden} не попадают в фильтр</span>` : ''}
-      ${worst ? `<span class="row small" style="gap:6px">${sevIcon(worst.sev)}${esc(worst.title)}</span>` : ''}</div>
-      <div class="small muted" style="margin-top:4px">Одна строка тиража и одна аналитика. Ниже — тесты, у каждого свои блоки, сроки, результат и решение</div>
+      <span class="small muted">${f.tests.length} ${plural(f.tests.length, 'теста', 'тестов', 'тестов')}${isParallel(f) ? ' по сегментам' : ''}${f.history.length ? ` · ещё ${f.history.length} в истории` : ''}${hidden ? ` · ${hidden} скрыто фильтром` : ''}</span>
+      ${worst ? `<span data-tip="${esc(worst.title)}">${sevIcon(worst.sev)}</span>` : ''}</div>
     </td></tr>${items.map((e) => regRow(e, S, true)).join('')}`;
 }
 
@@ -117,13 +109,13 @@ function renderRegistry(root) {
     done: toggles.filter((t) => t.st === 'done'),
   };
 
-  const head = `<tr><th></th><th>Фича · стадия · блокеры</th><th style="padding-bottom:6px"><div style="margin-bottom:4px">Где сейчас включено</div>${bmHeader('33px')}</th><th>Последнее событие · дальше</th><th>АБ</th><th>Тоглы</th></tr>`;
+  const head = `<tr><th></th><th>Фича · стадия · блокеры</th><th style="padding-bottom:6px"><div style="margin-bottom:4px">Где сейчас включено</div>${bmHeader('31px')}</th><th>Последнее событие · дальше</th><th>АБ</th><th>Тоглы</th></tr>`;
 
   root.innerHTML = `${appHead()}
-  <style>.reg td .bm, .reg td .bm .c { width: 100%; min-width: 0; } .reg td .bm .c { font-size: 9.5px; padding: 0 1px; } .reg th .bm-grid .hd { font-size: 10px; } .reg table.t td, .reg table.t th { padding-left: 10px; padding-right: 10px; } .reg .meter-row { flex-wrap: wrap; row-gap: 2px; } .reg .meter-row .nowrap { white-space: normal; } .reg .meter-row .meter { flex: 1 1 100%; }</style>
+  <style>.reg td .bm, .reg td .bm .c { width: 100%; min-width: 0; } .reg td .bm .c { font-size: 9.5px; padding: 0 1px; } .reg th .bm-grid .hd { font-size: 10px; } .reg table.t td, .reg table.t th { padding-left: 10px; padding-right: 10px; } .reg .meter-row { flex-wrap: wrap; row-gap: 2px; } .reg .meter-row .nowrap { white-space: normal; } .reg .meter-row .meter { flex: 1 1 100%; } .reg .rname { min-width: 240px; max-width: 300px; } .reg .rlink { color: var(--ink); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .reg .rlast { min-width: 170px; max-width: 220px; font-size: 12.5px; } .reg .ell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .reg table.t td { padding-top: 9px; padding-bottom: 9px; vertical-align: middle; }</style>
   <div class="page" style="max-width:none">
     <div class="page-title">
-      <div class="grow"><h1>Тиражирование фич · Android</h1><div class="sub">Та же структура, что в Confluence, только вместо цвета ячейки — стадия, а вместо текста с датами — матрица блоков и журнал</div></div>
+      <div class="grow"><h1>Тиражирование фич · Android</h1></div>
       <div class="seg"><button class="${S.tab === 'features' ? 'on' : ''}" data-tab="features">Фичи и АБ-тесты</button><button class="${S.tab === 'toggles' ? 'on' : ''}" data-tab="toggles">Удаление тоглов <span class="cnt">${tg.late.length + tg.todo.length}</span></button></div>
     </div>
 
@@ -134,7 +126,7 @@ function renderRegistry(root) {
       <span class="sp"></span>
       <div class="search" style="min-width:300px">${ICON.search}<input id="rg-q" value="${esc(S.q)}" placeholder="Поиск по всем фичам: название, тогл, SD, релиз"></div>
     </div>
-    <div class="row wrap" style="margin:-4px 0 12px;gap:12px">${q ? `<span class="chip">Поиск по всем фичам, включая историю: найдено ${list.length}</span><button class="btn sm ghost" id="rg-clear">Сбросить</button>` : ''}${S.view === 'onall' && !q ? `<span class="small ink2">Фичи, уже включённые на всех клиентов: итог, даты, кто решал, какие тоглы удалены и в какой части «Удаления тоглов». Самая ранняя — ${fmt(EXPERIMENTS.filter(V.f).map((e) => e.d.rolloutDoneAt || e.d.created).sort((a, b) => a - b)[0], true)}</span>` : ''}<span class="sp"></span>${bmLegend()}</div>
+    <div class="row wrap" style="margin:-4px 0 12px;gap:12px">${q ? `<span class="chip">Поиск по всем фичам, включая историю: найдено ${list.length}</span><button class="btn sm ghost" id="rg-clear">Сбросить</button>` : ''}<span class="sp"></span>${bmLegend()}</div>
     <div class="card reg" style="overflow-x:auto">
       <table class="t"><thead>${head}</thead><tbody>
       ${S.byRelease ? rels.map((r) => { const items = list.filter((e) => e.release === r); const rr = relOf(r); return `<tr><td colspan="6" style="background:var(--surface-3);padding:8px 12px;font-weight:650">Релиз ${r}${rr ? ` <span class="muted" style="font-weight:500">· ${rr.d}${D(rr.d) > TODAY ? ' · ещё не вышел' : ''}</span>` : ''} <span class="muted" style="font-weight:500">· ${new Set(items.map((e) => e.fid)).size} ${plural(new Set(items.map((e) => e.fid)).size, 'фича', 'фичи', 'фич')}, ${items.length} ${plural(items.length, 'тест', 'теста', 'тестов')}</span></td></tr>${rowsFor(items, S)}`; }).join('')
@@ -142,23 +134,12 @@ function renderRegistry(root) {
       </tbody></table>
       ${list.length ? '' : '<div class="empty" style="padding:24px">В этом представлении пусто</div>'}
     </div>
-    <div class="row small muted" style="margin-top:10px;gap:16px"><span>Сохранённые представления заменяют поиск по цвету ячеек</span><span>·</span><span>Каждое событие в журнале обновляет матрицу блоков</span><span>·</span><a href="#" data-act="newtest">Создать тест с именем по конвенции</a></div>
     ` : `
-    <div class="grid-2" style="grid-template-columns:1.5fr 1fr">
+    <div style="max-width:900px">
       <div class="stack" style="gap:16px">
         ${[['Просрочено: раскатано больше 30 дней назад', tg.late, 'serious'], ['Пора планировать', tg.todo, 'warn'], ['Запланировано в «Удаление тоглов»', tg.planned, 'info'], ['Удалить после завершения теста', tg.later, null], ['Удалено', tg.done, 'good']].map(([t, arr, sv]) => `
         <div class="card"><div class="card-h">${sv ? sevIcon(sv) : ''}<h3>${t}</h3><span class="muted small">${arr.length}</span><span class="sp"></span>${sv === 'serious' || sv === 'warn' ? `<button class="btn sm" data-act="cleanup" data-id="${arr[0]?.e.id || ''}">Добавить все в ч. 22</button>` : ''}</div>
           <div class="card-b">${arr.length ? `<table class="t"><tbody>${(sv === null ? arr.slice(0, 5) : arr).map((x) => `<tr><td><span class="mono">${esc(x.n)}</span><div class="small muted">${x.kind}</div></td><td><a href="#" data-open="${x.e.id}">${esc(x.e.short)}</a> <span class="small muted">${x.e.tag}</span></td><td class="small ink2 nowrap">${x.where ? esc(x.where) : x.e.d.rolloutDoneAt ? `раскатано ${fmt(x.e.d.rolloutDoneAt)}` : STAGE[x.e.stage].name}</td></tr>`).join('')}</tbody></table>${sv === null && arr.length > 5 ? `<div class="small muted" style="padding-top:10px">и ещё ${arr.length - 5}: появятся в «Пора планировать», когда тест раскатят</div>` : ''}` : '<div class="empty">Нет</div>'}</div></div>`).join('')}
-      </div>
-      <div class="card" style="padding:16px;position:sticky;top:64px">
-        <h3>Как это работает</h3>
-        <div class="stack small ink2" style="margin-top:10px;gap:8px">
-          <div>Сервис собирает рубильники, тоглы и конфиги из паспортов тестов: всё, что может требовать удаления (тогл, рубильник в лончере или конфиге, метрики, неиспользуемые ветки АБ, фича).</div>
-          <div>Сразу после раскатки на 100 % элемент попадает в «Пора планировать», а через 30 дней — в «Просрочено» с напоминанием владельцу.</div>
-          <div>Кнопка «Добавить в ч. 22» создаёт пункт в очередной странице «[Android] Удаление тоглов, конфига, Launcher» и привязывает её к релизу.</div>
-        </div>
-        <div class="divider" style="margin:14px 0"></div>
-        <div class="kv small"><dt>Текущая часть</dt><dd>Удаление тоглов, ч. 22</dd><dt>Релиз</dt><dd>17.16 · 07.12.2026</dd><dt>В плане</dt><dd>${tg.planned.length} элемента</dd></div>
       </div>
     </div>`}
   </div>`;

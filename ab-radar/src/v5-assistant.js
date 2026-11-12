@@ -3,16 +3,11 @@
 const chatState = { msgs: null, flow: null, settings: { daily: true, weekly: true, escalate: true, ev: [true, true, true, true, true, true, false] } };
 
 function digestHTML() {
-  const al = mergedAlerts();
-  const B = { overdue: [], today: [], week: [] };
-  al.forEach((a) => { const b = bucketOf(a); if (B[b]) B[b].push(a); });
-  B.week.sort((a, b) => a.due - b.due);
-  const line = (a) => `<div class="cm-li">${sevIcon(a.sev)}<span><a href="#" data-open="${a.e.id}">${esc(a.group ? a.e.feature : a.e.short)}</a> <span class="muted">${a.group ? a.group.length + ' теста' : a.e.tag}</span><br><span class="ink2">${esc(a.title)}</span></span></div>`;
-  return `<div style="font-weight:650;margin-bottom:6px">Сводка по АБ-тестам · [${TEAM.name}] ${TEAM.platform} · ${TODAY.getDate()} ноября</div>
-    <div class="ink2" style="margin-bottom:10px">${(() => { const a = EXPERIMENTS.filter((e) => ['collecting', 'ready'].includes(e.stage) && e.platform === 'Запущен').length; const b = EXPERIMENTS.filter((e) => ['enabling', 'rollout'].includes(e.stage)).length; const c = EXPERIMENTS.filter((e) => e.stage === 'ready' && !e.decision).length; return `В эфире ${a} ${plural(a, 'тест', 'теста', 'тестов')}, включаются ${b}, ждут решения ${c}.`; })()}</div>
-    <div class="cm-sec">Просрочено · ${B.overdue.length}</div>${B.overdue.map(line).join('')}
-    <div class="cm-sec">Сделать сегодня · ${B.today.length}</div>${B.today.slice(0, 4).map(line).join('')}${B.today.length > 4 ? `<div class="muted small" style="padding-left:28px">и ещё ${B.today.length - 4}</div>` : ''}
-    <div class="cm-sec">На этой неделе · ${B.week.length}</div>${B.week.map(line).join('')}`;
+  const { now, later } = buildTasks();
+  const line = (t) => { const a = t.main; return `<div class="cm-li">${sevIcon(a.sev)}<span><b>${esc(TASK[a.rule] || a.title)}</b> · <a href="#" data-open="${a.e.id}">${esc(a.group ? a.e.feature : a.e.short)}</a> <span class="muted">${esc(shortOf(a))}</span></span></div>`; };
+  return `<div style="font-weight:650;margin-bottom:6px">Сегодня ${now.length} ${plural(now.length, 'дело', 'дела', 'дел')} · [${TEAM.name}] ${TEAM.platform}</div>
+    ${now.map(line).join('')}
+    <div class="muted small" style="margin-top:6px">Ещё ${later.length} — позже и к сведению</div>`;
 }
 
 function statusCard(e) {
@@ -155,7 +150,7 @@ function renderAssistant(root, keepScroll) {
     .set-row:last-child { border-bottom: 0; }
   </style>
   <div class="page">
-    <div class="page-title"><div class="grow"><h1>Ассистент в мессенджере</h1><div class="sub">Сервис сам пишет, когда что-то произошло или пора действовать. Решение, SD-заявку и перенос шага можно оформить кнопками в чате. Нажимайте кнопки — сценарий интерактивный</div></div></div>
+    <div class="page-title"><div class="grow"><h1>Ассистент в мессенджере</h1><div class="sub">Кнопки в чате работают</div></div></div>
     <div class="asst">
       <div class="msgr">
         <div class="msgr-h"><span class="bot-ava">Р</span><div class="grow"><div style="font-weight:650">Радар АБ</div><div class="small muted">бот · команда [${TEAM.name}] ${TEAM.platform}</div></div><span class="chip">корпоративный мессенджер</span></div>
@@ -194,12 +189,7 @@ function renderAssistant(root, keepScroll) {
             </div>
           </div></div>
 
-        <div class="card" style="padding:16px"><h3>Почему это работает</h3>
-          <div class="stack small ink2" style="margin-top:8px;gap:6px">
-            <div>Напоминание приходит туда, где команда и так сидит, без нового сервиса во вкладке.</div>
-            <div>Каждое сообщение заканчивается действием: записать, создать, перенести, переназначить.</div>
-            <div>Ответ из чата сразу попадает в паспорт, строку тиража и аналитику, переносить вручную не нужно.</div>
-          </div></div>
+
       </div>
     </div>
   </div>`;
