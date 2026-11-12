@@ -28,53 +28,53 @@
 :root {
   color-scheme: light;
 
-  /* бумага и чернила */
-  --paper: #eeede7;
-  --paper-2: #e5e3da;
-  --paper-3: #dcd9ce;
-  --sheet: #f9f8f4;
+  /* бумага и чернила: светлая чистая бумага, нейтральные (не коричневые) серые */
+  --paper: #f5f4f0;
+  --paper-2: #ebe9e3;
+  --paper-3: #e1dfd7;
+  --sheet: #fbfbf8;
   --white: #ffffff;
-  --hover: rgba(255, 255, 255, .55);
-  --ink: #141412;
-  --ink-2: #46443c;
-  --muted: #636057;
-  --faint: #8c887c;
-  --rule: #d8d5ca;
-  --rule-2: #c3bfb2;
-  --ring: rgba(20, 20, 18, .1);
+  --hover: rgba(255, 255, 255, .7);
+  --ink: #121211;
+  --ink-2: #3f3e39;
+  --muted: #5c5b55;
+  --faint: #8a8880;
+  --rule: #dedcd4;
+  --rule-2: #c9c6bc;
+  --ring: rgba(18, 18, 17, .1);
 
   /* сигнальные */
-  --cobalt: #2d55d2;
-  --cobalt-ink: #1f40a6;
-  --cobalt-wash: #dfe5f7;
-  --cobalt-line: #bccaef;
-  --signal: #e4512b;       /* крупный текст, отметки, полосы */
-  --signal-ink: #bf3d1b;   /* мелкий текст и плашки: контраст ≥ 4,5 */
+  --cobalt: #2457f5;
+  --cobalt-ink: #1a40c8;
+  --cobalt-wash: #e4ebfe;
+  --cobalt-line: #bccdfc;
+  --signal: #ff5a1f;       /* крупный текст, отметки, полосы */
+  --signal-ink: #cc3a0a;   /* мелкий текст и плашки: контраст ≥ 4,5 */
   --accent: var(--cobalt);
-  --focus-ring: 0 0 0 3px rgba(45, 85, 210, .3);
+  --focus-ring: 0 0 0 3px rgba(36, 87, 245, .3);
 
-  /* стадии жизненного цикла: 4 фазы, внутри фазы — тоновая рампа */
-  --st-prep: #b3ae9f;
-  --st-release: #7a7567;
-  --st-enabling: #8ea6e6;
-  --st-collecting: #2d55d2;
-  --st-ready: #e4512b;
-  --st-rollout: #52ae7f;
-  --st-cleanup: #1e7249;
-  --st-done: #d2cec1;
+  /* стадии жизненного цикла: 4 фазы, внутри фазы — тоновая рампа одного цвета */
+  --st-prep: #c3b5ff;
+  --st-release: #7b5cf5;
+  --st-enabling: #8fb0ff;
+  --st-collecting: #2457f5;
+  --st-ready: #ff5a1f;
+  --st-rollout: #33c27a;
+  --st-cleanup: #0f8a52;
+  --st-done: #d3d1c9;
 
   /* важность */
-  --crit: #cf2d1e;       --crit-text: #ae2519;    --crit-wash: #f6dfda;
-  --serious: #de6a22;    --serious-text: #a2470f; --serious-wash: #f8e5d7;
-  --warn: #d4a010;       --warn-text: #775500;    --warn-wash: #f3eacb;
-  --info: #6a675d;       --info-text: #46443c;    --info-wash: #e2e0d7;
-  --good: #23895a;       --good-text: #146239;    --good-wash: #d9ece0;
+  --crit: #e5281a;       --crit-text: #c0200f;    --crit-wash: #fde2dc;
+  --serious: #f5711f;    --serious-text: #ad4508; --serious-wash: #ffe9d8;
+  --warn: #f2b300;       --warn-text: #7a5800;    --warn-wash: #fff0c2;
+  --info: #5c5b55;       --info-text: #3f3e39;    --info-wash: #e6e4dd;
+  --good: #12a35d;       --good-text: #0b7040;    --good-wash: #d6f3e2;
 
   /* ячейки блоков */
   --c-ab: var(--cobalt-wash);  --c-ab-ink: var(--cobalt-ink);  --c-ab-line: var(--cobalt-line);
-  --c-on: #1f7d52;             --c-on-ink: #ffffff;
-  --hatch: repeating-linear-gradient(135deg, #cdc9bc 0 1px, transparent 1px 4px);
-  --hatch-soft: repeating-linear-gradient(135deg, rgba(20, 20, 18, .07) 0 1px, transparent 1px 4px);
+  --c-on: #0d8550;             --c-on-ink: #ffffff;
+  --hatch: repeating-linear-gradient(135deg, #cbc8be 0 1px, transparent 1px 4px);
+  --hatch-soft: repeating-linear-gradient(135deg, rgba(18, 18, 17, .08) 0 1px, transparent 1px 4px);
 
   /* типографика */
   --sans: "Onest", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -218,7 +218,7 @@ button.readout:hover .v { text-decoration: underline; text-decoration-thickness:
 .demo-tabs a.active b { color: var(--signal-ink); }
 .demo-bar .today { margin-left: auto; display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: #8e8b80; white-space: nowrap; }
 .demo-bar .today b { color: #e9e8e2; font-weight: 500; }
-.demo-bar .today i { width: 6px; height: 6px; border-radius: 50%; background: var(--signal); box-shadow: 0 0 0 3px rgba(228, 81, 43, .22); }
+.demo-bar .today i { width: 6px; height: 6px; border-radius: 50%; background: var(--signal); box-shadow: 0 0 0 3px rgba(255, 90, 31, .3); }
 
 /* ---------- шапка продукта ---------- */
 .app-head { border-bottom: 1px solid var(--rule-2); }
@@ -366,7 +366,7 @@ select.sel:focus-visible { outline: none; border-color: var(--cobalt); box-shado
 .card-note { padding: 12px var(--pad); border-top: 1px solid var(--rule); font-size: var(--fs-sm); color: var(--muted); }
 .divider { height: 1px; background: var(--rule); margin: 16px 0; }
 .note { padding: 10px 12px; border-radius: var(--r-sm); background: var(--paper-2); font-size: var(--fs-base); }
-.note.good { background: var(--good-wash); color: #0f3d22; }
+.note.good { background: var(--good-wash); color: #073d22; }
 
 /* ---------- таблицы ---------- */
 table.t { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--fs-base); }
@@ -428,7 +428,7 @@ a.tname:hover { text-decoration: underline; text-decoration-color: var(--rule-2)
 
 .mini-bm { display: inline-flex; align-items: center; gap: 2px; vertical-align: middle; }
 .mini-bm i { display: block; width: 7px; height: 12px; border-radius: 1px; background: transparent; box-shadow: inset 0 0 0 1px var(--rule-2); }
-.mini-bm i.ab { background: #6f8ce0; box-shadow: none; }
+.mini-bm i.ab { background: #5d86fa; box-shadow: none; }
 .mini-bm i.on { background: var(--c-on); box-shadow: none; }
 .mini-bm i.pause { background: var(--rule-2); box-shadow: none; }
 .mini-bm i.plan { background: var(--hatch); }
@@ -556,7 +556,7 @@ a.tname:hover { text-decoration: underline; text-decoration-color: var(--rule-2)
 .alert .a-act { display: flex; flex-shrink: 0; align-items: center; gap: 6px; }
 .alert.crit { box-shadow: inset 3px 0 0 var(--crit), inset 0 0 0 1px var(--rule); }
 .alert.serious { box-shadow: inset 3px 0 0 var(--serious), inset 0 0 0 1px var(--rule); }
-.alert.warn { background: #fbf6e6; box-shadow: inset 3px 0 0 var(--warn), inset 0 0 0 1px #ecdfb6; }
+.alert.warn { background: #fff9e6; box-shadow: inset 3px 0 0 var(--warn), inset 0 0 0 1px #f6e3a6; }
 .a-group { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; padding: 8px 10px; border-radius: var(--r-sm); background: var(--paper-2); }
 
 /* forest plot */
@@ -800,7 +800,7 @@ table.abt .rcol .meter { flex: 0 0 96px; }
 .asst { display: grid; grid-template-columns: minmax(0, 640px) minmax(320px, 1fr); gap: 48px; align-items: start; }
 .msgr { display: flex; flex-direction: column; height: clamp(560px, calc(100vh - 220px), 860px); overflow: hidden; background: var(--white); border-radius: var(--r-xl); box-shadow: 0 0 0 1px var(--rule-2), 0 30px 60px -40px rgba(20, 20, 18, .35); }
 .msgr-h { display: flex; align-items: center; gap: 12px; flex: none; padding: 12px 16px; border-bottom: 1px solid var(--rule); }
-.msgr-b { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 16px; background: #f4f3ee; }
+.msgr-b { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 16px; background: #f3f2ee; }
 .msgr-day { align-self: center; padding: 3px 10px; border-radius: 10px; background: rgba(20, 20, 18, .06); font-family: var(--mono); font-size: var(--m-xs); font-weight: 500; letter-spacing: .04em; color: var(--muted); }
 .cm { display: flex; align-items: flex-end; gap: 8px; max-width: 92%; }
 .cm:nth-last-child(-n + 2) { animation: cm-in .28s var(--ease) both; }
@@ -867,7 +867,7 @@ table.abt .rcol .meter { flex: 0 0 96px; }
 .radar { display: block; width: 100%; height: auto; overflow: visible; }
 .radar .ring { fill: none; stroke: var(--rule-2); stroke-width: 1; }
 .radar .ring.core { fill: var(--white); stroke: var(--ink); }
-.radar .band-0 { fill: rgba(207, 45, 30, .045); }
+.radar .band-0 { fill: rgba(229, 40, 26, .055); }
 .radar .spoke { stroke: var(--rule-2); stroke-width: 1; }
 .radar .arc { fill: none; stroke-width: 5; }
 .radar .slab { font-family: var(--sans); font-size: 12px; font-weight: 600; fill: var(--ink); letter-spacing: -.01em; }
@@ -1316,7 +1316,7 @@ table.t.rules td.ic { padding-top: 12px; }
 <body>
 <nav class="demo-bar" aria-label="Варианты концепта">
   <div class="container demo-in">
-    <div class="brand"><svg class="logo-mark" width="22" height="22" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="13.25" fill="none" stroke="#eeede7" stroke-width="1.5"/><circle cx="14" cy="14" r="7.5" fill="none" stroke="#eeede7" stroke-opacity=".35"/><path d="M14 14V.75A13.25 13.25 0 0 1 25.47 7.38Z" fill="#eeede7" fill-opacity=".22"/><path d="M14 14 25.47 7.38" stroke="#eeede7" stroke-width="1.5" stroke-linecap="round"/><circle cx="18.2" cy="7" r="2.2" fill="#e4512b"/></svg><span class="bn">Радар АБ</span><small>концепт-демо</small></div>
+    <div class="brand"><svg class="logo-mark" width="22" height="22" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="13.25" fill="none" stroke="#f5f4f0" stroke-width="1.5"/><circle cx="14" cy="14" r="7.5" fill="none" stroke="#f5f4f0" stroke-opacity=".35"/><path d="M14 14V.75A13.25 13.25 0 0 1 25.47 7.38Z" fill="#f5f4f0" fill-opacity=".22"/><path d="M14 14 25.47 7.38" stroke="#f5f4f0" stroke-width="1.5" stroke-linecap="round"/><circle cx="18.2" cy="7" r="2.2" fill="#ff5a1f"/></svg><span class="bn">Радар АБ</span><small>концепт-демо</small></div>
     <div class="demo-tabs">
       <a href="#overview"><b>00</b>Обзор</a>
       <a href="#pult"><b>01</b>Статус по А/Б-тестам</a>
@@ -1381,14 +1381,14 @@ const RELEASES = [
 
 /* Единый жизненный цикл АБ-теста — общий для всех вариантов сервиса */
 const STAGES = [
-  { k: 'prep',       name: 'Подготовка',       color: '#b3ae9f', hint: 'Аналитика, гипотеза, метрики, варианты рубильника, тест заведён на платформе' },
-  { k: 'release',    name: 'Релиз и пилот',    color: '#7a7567', hint: 'Код в релизе, пилот на бете или на пилотной группе; старт АБ или раскатки — после' },
-  { k: 'enabling',   name: 'Включение',        color: '#8ea6e6', hint: 'SD-заявки и поблочное включение: ГФ → 12, 9, 8, 7 → … → SI1–SI4' },
-  { k: 'collecting', name: 'Сбор данных',      color: '#2d55d2', hint: 'АБ на всех блоках, копим выборку. Смотреть результаты пока рано' },
-  { k: 'ready',      name: 'Готов к анализу',  color: '#e4512b', hint: 'Минимальный срок и выборка набраны: смотрим результаты, записываем решение' },
-  { k: 'rollout',    name: 'Раскатка решения', color: '#52ae7f', hint: 'Победивший вариант включаем на все блоки' },
-  { k: 'cleanup',    name: 'Чистка',           color: '#1e7249', hint: 'Удаляем тоглы, рубильники и неиспользуемые ветки АБ' },
-  { k: 'done',       name: 'Архив',            color: '#d2cec1', hint: 'Результат и решение зафиксированы, всё убрано' },
+  { k: 'prep',       name: 'Подготовка',       color: '#c3b5ff', hint: 'Аналитика, гипотеза, метрики, варианты рубильника, тест заведён на платформе' },
+  { k: 'release',    name: 'Релиз и пилот',    color: '#7b5cf5', hint: 'Код в релизе, пилот на бете или на пилотной группе; старт АБ или раскатки — после' },
+  { k: 'enabling',   name: 'Включение',        color: '#8fb0ff', hint: 'SD-заявки и поблочное включение: ГФ → 12, 9, 8, 7 → … → SI1–SI4' },
+  { k: 'collecting', name: 'Сбор данных',      color: '#2457f5', hint: 'АБ на всех блоках, копим выборку. Смотреть результаты пока рано' },
+  { k: 'ready',      name: 'Готов к анализу',  color: '#ff5a1f', hint: 'Минимальный срок и выборка набраны: смотрим результаты, записываем решение' },
+  { k: 'rollout',    name: 'Раскатка решения', color: '#33c27a', hint: 'Победивший вариант включаем на все блоки' },
+  { k: 'cleanup',    name: 'Чистка',           color: '#0f8a52', hint: 'Удаляем тоглы, рубильники и неиспользуемые ветки АБ' },
+  { k: 'done',       name: 'Архив',            color: '#d3d1c9', hint: 'Результат и решение зафиксированы, всё убрано' },
 ];
 
 /* ------------------------------------------------------------------
@@ -2258,7 +2258,7 @@ const ICON = {
   flag: '<svg viewBox="0 0 16 16" width="12" height="12" fill="none"><path d="M4 14V2.5M4 3h7l-1.5 2.5L11 8H4" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
 };
 /* Знак «Радар»: кольца дальности, сектор обзора и отметка цели */
-const MARK = (size = 28, ink = '#141412', paper = '#eeede7') => `<svg class="logo-mark" width="${size}" height="${size}" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="14" fill="${ink}"/><circle cx="14" cy="14" r="8" fill="none" stroke="${paper}" stroke-opacity=".3"/><circle cx="14" cy="14" r="3.5" fill="none" stroke="${paper}" stroke-opacity=".3"/><path d="M14 14V1.5A12.5 12.5 0 0 1 24.83 7.75Z" fill="${paper}" fill-opacity=".2"/><path d="M14 14 24.83 7.75" stroke="${paper}" stroke-width="1.5" stroke-linecap="round"/><circle cx="18.2" cy="7.4" r="2.2" fill="#e4512b"/></svg>`;
+const MARK = (size = 28, ink = '#121211', paper = '#f5f4f0') => `<svg class="logo-mark" width="${size}" height="${size}" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="14" fill="${ink}"/><circle cx="14" cy="14" r="8" fill="none" stroke="${paper}" stroke-opacity=".3"/><circle cx="14" cy="14" r="3.5" fill="none" stroke="${paper}" stroke-opacity=".3"/><path d="M14 14V1.5A12.5 12.5 0 0 1 24.83 7.75Z" fill="${paper}" fill-opacity=".2"/><path d="M14 14 24.83 7.75" stroke="${paper}" stroke-width="1.5" stroke-linecap="round"/><circle cx="18.2" cy="7.4" r="2.2" fill="#ff5a1f"/></svg>`;
 const sevIcon = (sev) => `<span class="sev ${sev}" title="${SEV_NAME[sev]}">${ICON[sev]}</span>`;
 
 /* ---------- производные поля ---------- */
@@ -2570,12 +2570,12 @@ function alertRow(a, { showExp = true, compact = false, meta = true } = {}) {
 }
 
 /* ---------- паспорт эксперимента (общий для всех вариантов) ---------- */
-const VAR_COLORS = ['#2d55d2', '#e4512b', '#23895a', '#d4a010', '#8e5bb5', '#1f8f95', '#c84f78', '#46443c'];
-const DARK_TEXT = ['#d4a010'];
+const VAR_COLORS = ['#2457f5', '#ff5a1f', '#12a35d', '#f2b300', '#8b5cf6', '#0aa3a3', '#e8457c', '#3f3e39'];
+const DARK_TEXT = ['#f2b300', '#0aa3a3'];
 
 function splitBar(e) {
   let i = 0;
-  const vs = e.variants.map((v) => ({ ...v, color: v.control ? '#a29e92' : VAR_COLORS[i++] }));
+  const vs = e.variants.map((v) => ({ ...v, color: v.control ? '#a8a69e' : VAR_COLORS[i++] }));
   return `<div class="split">${vs.map((v) => `<div class="${DARK_TEXT.includes(v.color) ? 'dk' : ''}" style="flex:${v.share};background:${v.color}" data-tip="<b>${v.v}</b> · ${v.share}%<br>${esc(v.name)}">${v.share >= 5 ? v.share + '%' : ''}</div>`).join('')}</div>
   <div class="var-list">${vs.map((v) => `<div class="row"><span class="dot sq" style="background:${v.color}"></span><span class="mono var-v">${v.v}</span><span class="ink2 grow">${esc(v.name)}${v.control ? ' <span class="chip xs">контроль</span>' : ''}</span><span class="tnum muted">${v.share}%</span></div>`).join('')}</div>`;
 }
@@ -2685,7 +2685,7 @@ function pastOf(f, exceptId) {
   return [...f.history, ...fromTests].sort((a, b) => a.n - b.n);
 }
 const HK = { win: 'good', none: 'info', stop: 'warn' };
-const HCOLOR = { win: '#23895a', none: '#c3bfb2', stop: '#d4a010' };
+const HCOLOR = { win: '#12a35d', none: '#cfccc3', stop: '#f2b300' };
 const HNAME = { win: 'Победа', none: 'Нет эффекта', stop: 'Остановлен' };
 
 function histRow(h) {
