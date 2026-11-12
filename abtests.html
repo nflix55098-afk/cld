@@ -1032,7 +1032,7 @@ table.t.rules .rn { width: 34%; font-weight: 600; }
     <div class="brand">Радар АБ <small>концепт-демо</small></div>
     <div class="demo-tabs">
       <a href="#overview">Обзор</a>
-      <a href="#pult"><b>1</b>Пульт</a>
+      <a href="#pult"><b>1</b>Статус по А/Б-тестам</a>
       <a href="#registry"><b>2</b>Умный тираж</a>
       <a href="#assistant"><b>3</b>Ассистент</a>
     </div>
@@ -2951,7 +2951,7 @@ function initGlobal() {
 
 const CONCEPTS = [
   {
-    id: 'pult', n: 1, name: 'Пульт', tag: 'Центр внимания: «что нужно сделать сегодня»',
+    id: 'pult', n: 1, name: 'Статус по А/Б-тестам', tag: 'Центр внимания: «что нужно сделать сегодня»',
     idea: 'Три вкладки. «А/Б-тесты» — активные (сплит, блоки, день из плана, выборка, когда итоги, пересечения), завершённые с итогом и решением, готовящиеся. «Журнал включений» — лента по дням: что, где и с какой SD включали. «Все фичи» — каталог с историей. Напоминания свёрнуты в одну строку.',
     best: 'Ежедневная работа продакта и аналитика: открыл утром и сразу видишь, что горит',
     pros: ['Напрямую решает «мы забываем»: просроченное само поднимается наверх', 'Действие в один клик: записать решение, создать SD, отложить', 'История включений и фич в том же месте'],
@@ -3066,7 +3066,7 @@ function renderOverview(root) {
           <div class="ft-item"><b>Последовательные итерации и длинная история</b><div class="small">«Активация клиента с 1 продуктом»: 33 прошлых теста и сейчас №34. В паспорте — сводка (побед / без эффекта / остановлено), лента всех итераций, разбивка по темам и что из этого сейчас в проде. Если тему нового теста уже проверяли, сервис покажет, чем это кончилось. Номер и версию при создании итерации подставит сам. <a href="#" data-open="activ34">Открыть пример</a></div></div>
           <div class="ft-item"><b>Фича без АБ-теста</b><div class="small">Регуляторное требование, технический переезд, обновление SDK. Причину «почему без АБ» указывают при создании. Цикл короче: релиз и пилот → раскатка по блокам → проверка и чистка. Вместо результатов — контрольная точка по метрикам через N дней после 100 %. Сервис не ждёт итогов АБ, но следит за раскаткой, пилотом и тоглами. Примеры: <a href="#" data-open="kps">КПС</a>, <a href="#" data-open="dep-switch">вклады в свитчер</a>, <a href="#" data-open="rustore">RuStore SDK</a></div></div>
         </div>
-        <div class="card-foot">В Пульте и Ассистенте напоминания по тестам одной фичи склеиваются в одну строку со списком тестов. В Умном тираже фича — строка, а тесты — вложенные строки. В паспорте есть переключатель между тестами фичи. Фичи, уже включённые на всех клиентов, остаются в истории: их можно найти и открыть паспорт с итогом, датами и удалёнными тоглами.</div>
+        <div class="card-foot">В «Статус по А/Б-тестам» и Ассистенте напоминания по тестам одной фичи склеиваются в одну строку со списком тестов. В Умном тираже фича — строка, а тесты — вложенные строки. В паспорте есть переключатель между тестами фичи. Фичи, уже включённые на всех клиентов, остаются в истории: их можно найти и открыть паспорт с итогом, датами и удалёнными тоглами.</div>
       </div>
     </section>
 
@@ -3111,9 +3111,9 @@ function renderOverview(root) {
       <section>
         ${secTitle('Рекомендация')}
         <div class="card pad reco">
-          <p class="lead-p">Первая версия: «Пульт» с паспортом эксперимента и уведомлениями из «Ассистента».</p>
+          <p class="lead-p">Первая версия: «Статус по А/Б-тестам» с паспортом эксперимента и уведомлениями из «Ассистента».</p>
           <p class="ink2">Это сильнее всего бьёт в главную боль, «мы забываем»: просроченное само поднимается наверх и приходит в мессенджер, а решение записывается в один клик.</p>
-          <p class="ink2">«Умный тираж» имеет смысл, если команде важна привычная таблица Confluence. История включений и каталог фич уже есть в Пульте.</p>
+          <p class="ink2">«Умный тираж» имеет смысл, если команде важна привычная таблица Confluence. История включений и каталог фич уже есть в «Статус по А/Б-тестам».</p>
           <div class="card-foot">Что важно решить до старта: единое правило «когда можно смотреть» (минимальный срок и выборка), кто владелец решения по тесту и кто дежурит по включению.</div>
         </div>
       </section>
@@ -3124,7 +3124,7 @@ function renderOverview(root) {
 VIEWS.overview = { render: renderOverview };
 
 
-/* ===================== 1. Пульт ===================== */
+/* ===================== 1. Статус по А/Б-тестам (бывш. «Пульт») ===================== */
 
 const pultState = { tab: 'ab', scope: 'team', stage: null, showLater: false };
 const journalState = { period: '30', block: 'all', kind: 'all', q: '' };
@@ -3163,7 +3163,7 @@ function splitText(e) {
 
 function testCell(e) {
   return `<a href="#" data-open="${e.id}" class="tname" title="${esc(e.feature)}">${esc(e.feature)}</a>
-    <div class="tsub"><span class="nowrap">№${e.iter}${e.seg ? ' · ' + esc(e.seg) : ''}</span> · <span>${esc(e.seg ? e.key : e.branch)}</span></div>`;
+    <div class="tsub"><span class="nowrap">№${e.iter}${e.seg ? ' · ' + esc(e.seg) : ''}</span>${e.seg ? '' : ` · <span>${esc(e.branch)}</span>`}</div>`;
 }
 
 function finClass(e) {
@@ -3192,7 +3192,7 @@ function renderAB(S) {
 
   let table = '';
   if (A.view === 'active') {
-    const groups = [['ready', 'Готовы к анализу'], ['collecting', 'Сбор данных'], ['enabling', 'Включаются']]
+    const groups = [['ready', 'Готовы к анализу'], ['collecting', 'В расчёте'], ['enabling', 'В процессе тиража']]
       .map(([k, n]) => ({ k, n, items: active.filter((e) => e.stage === k && qOk(e)).sort((a, b) => (a.lookAt || TODAY) - (b.lookAt || TODAY)) }))
       .filter((g) => g.items.length);
     const row = (e) => {
@@ -3200,17 +3200,13 @@ function renderAB(S) {
       return `<tr class="clickable" data-open="${e.id}">
         <td class="ic">${sev ? `<span data-tip="${esc(sev.title)}">${sevIcon(sev.sev)}</span>` : ''}</td>
         <td class="tcol">${testCell(e)}</td>
-        <td class="nowrap" data-label="Сплит">${e.type === 'holdout' ? '<span class="chip xs">холдаут</span>' : `<span>${esc(splitText(e))}</span>`}<div class="tsub">${e.variants.length} ${plural(e.variants.length, 'вариант', 'варианта', 'вариантов')}</div></td>
         <td class="nowrap wide" data-label="Блоки">${miniBlocks(e)}<div class="tsub">${e.coverage} из ${ALL_BLOCKS.length}${e.nextPlan ? ` · дальше ${fmt(e.nextPlan.d)}` : e.coverage < ALL_BLOCKS.length ? ' · <span class="c-warn">стоит</span>' : ''}</div></td>
         <td class="nowrap" data-label="Срок">${e.d.fullAt ? `день ${e.dayN} из ${e.planDays}` : '—'}<div class="tsub">${e.d.fullAt ? `с ${fmt(e.d.fullAt)}` : e.d.enableStart ? `включается с ${fmt(e.d.enableStart)}` : ''}</div></td>
-        <td class="nowrap num" data-label="Выборка">${e.d.fullAt ? e.sample + '%' : '—'}</td>
         <td class="rcol wide" data-label="Итоги">${e.d.fullAt ? readinessBar(e, true) : '<span class="small muted">после 100 % блоков</span>'}</td>
-        <td class="nowrap num" data-label="Пересечения">${e.cross.mixed ? `<span class="${e.cross.mixed >= 90 ? 'sev-label warn' : ''}" data-tip="${e.cross.mixed}% выборки попадает в другие тесты">${e.cross.mixed}%</span>` : '—'}</td>
-        <td class="av">${avatar(e.owner)}</td>
       </tr>`;
     };
-    table = groups.length ? `<table class="t abt stacked has-ic"><thead><tr><th class="ic"></th><th>Тест и фича</th><th>Сплит</th><th>Блоки</th><th>Срок</th><th class="num">Выборка</th><th>Итоги</th><th class="num">Пересечения</th><th class="av"></th></tr></thead><tbody>
-      ${groups.map((g) => `<tr class="grp"><td colspan="9">${stageDot(g.k)}${g.n}<span class="muted">${g.items.length}</span></td></tr>${g.items.map(row).join('')}`).join('')}
+    table = groups.length ? `<table class="t abt stacked has-ic"><thead><tr><th class="ic"></th><th>Тест и фича</th><th>Блоки</th><th>Срок</th><th>Итоги</th></tr></thead><tbody>
+      ${groups.map((g) => `<tr class="grp"><td colspan="5">${stageDot(g.k)}${g.n}<span class="muted">${g.items.length}</span></td></tr>${g.items.map(row).join('')}`).join('')}
     </tbody></table>` : '<div class="empty pad">Активных тестов нет</div>';
   } else if (A.view === 'finished') {
     const filters = [['all', 'Все'], ['nodec', 'Без решения'], ['win', 'Победы'], ['none', 'Без эффекта'], ['stop', 'Остановлены']];
@@ -3225,13 +3221,12 @@ function renderAB(S) {
         <td class="nowrap" data-label="Период">${fmt(e.d.fullAt || e.d.enableStart, true)} – ${fmt(end, true)}<div class="tsub">${e.d.fullAt && end ? dn(days(e.d.fullAt, end)) : ''}</div></td>
         <td data-label="Итог">${e.decision ? `<span class="chip">${esc(outcome(e))}</span>` : '<span class="sev-label serious">Нет решения</span>'}<div class="tsub">${best && e.results.status !== 'invalid' ? `${sgn(best.delta)} п.п. · ${best.verdict || (best.sig ? 'значимо' : 'незначимо')}` : e.results?.status === 'invalid' ? 'данные невалидны' : ''}</div></td>
         <td class="small ink2 metric wide" data-label="Целевая метрика">${esc(e.metric || '—')}</td>
-        <td class="nowrap" data-label="Решение">${e.decision ? `<span class="row tight">${avatar(e.decision.who)}<span class="small">${e.decision.d.slice(0, 5)}${D(e.decision.d).getFullYear() !== TODAY.getFullYear() ? '.' + D(e.decision.d).getFullYear() : ''}</span></span>` : '<span class="muted">—</span>'}</td>
         <td class="nowrap small" data-label="Сейчас">${stageNow(e)}</td>
       </tr>`;
     };
     table = `<div class="card-tools">
         <div class="seg">${filters.map(([k, n]) => `<button class="${A.fin === k ? 'on' : ''}" data-fin="${k}">${n}<span class="cnt">${finished.filter((e) => k === 'all' || finClass(e) === k).length}</span></button>`).join('')}</div></div>
-      ${list.length ? `<table class="t abt stacked"><thead><tr><th>Тест и фича</th><th>Период</th><th>Итог</th><th>Целевая метрика</th><th>Решение</th><th>Сейчас</th></tr></thead><tbody>
+      ${list.length ? `<table class="t abt stacked"><thead><tr><th>Тест и фича</th><th>Период</th><th>Итог</th><th>Целевая метрика</th><th>Сейчас</th></tr></thead><tbody>
       ${list.map(row).join('')}</tbody></table>` : '<div class="empty pad">Нет тестов</div>'}`;
   } else {
     const row = (e) => `<tr class="clickable" data-open="${e.id}">
@@ -3239,10 +3234,9 @@ function renderAB(S) {
       <td class="nowrap" data-label="Стадия"><span class="row tight">${stageDot(e.stage)}${STAGE[e.stage].name}</span></td>
       <td class="nowrap" data-label="Старт">${e.d.plannedStart ? `старт ${fmt(e.d.plannedStart, true)}` : '<span class="muted">дата не назначена</span>'}<div class="tsub">релиз ${e.release}</div></td>
       <td class="wide" data-label="Блокер">${e.blockers ? `<span class="sev-label warn">${esc(e.blockers)}</span>` : '<span class="muted">—</span>'}</td>
-      <td class="av">${avatar(e.owner)}</td>
     </tr>`;
     const items = prep.filter(qOk);
-    table = items.length ? `<table class="t abt stacked"><thead><tr><th>Тест и фича</th><th>Стадия</th><th>Старт</th><th>Блокер</th><th class="av"></th></tr></thead><tbody>${items.map(row).join('')}</tbody></table>` : '<div class="empty pad">Нет тестов</div>';
+    table = items.length ? `<table class="t abt stacked"><thead><tr><th>Тест и фича</th><th>Стадия</th><th>Старт</th><th>Блокер</th></tr></thead><tbody>${items.map(row).join('')}</tbody></table>` : '<div class="empty pad">Нет тестов</div>';
   }
 
   return `
@@ -3356,8 +3350,7 @@ function renderPult(root) {
   root.innerHTML = `${appHead()}
   <div class="page">
     <div class="page-head">
-      <div><h1>Пульт</h1><div class="sub">${WD[TODAY.getDay()][0].toUpperCase() + WD[TODAY.getDay()].slice(1)}, ${TODAY.getDate()} ${MON_G[TODAY.getMonth()]} · дежурство по включению: ${dutyNow() === ME ? 'вы' : dutyNow()}, дальше ${DUTY[1].who}</div></div>
-      ${S.tab === 'ab' ? `<div class="seg" aria-label="Чьи тесты"><button class="${S.scope === 'team' ? 'on' : ''}" data-scope="team">Вся команда</button><button class="${S.scope === 'mine' ? 'on' : ''}" data-scope="mine">Мои</button></div>` : ''}
+      <div><h1>Статус по А/Б-тестам</h1><div class="sub">${WD[TODAY.getDay()][0].toUpperCase() + WD[TODAY.getDay()].slice(1)}, ${TODAY.getDate()} ${MON_G[TODAY.getMonth()]}</div></div>
     </div>
     <div class="utabs page-tabs">
       <button class="${S.tab === 'ab' ? 'on' : ''}" data-pt="ab">А/Б-тесты <span class="cnt">${EXPERIMENTS.filter(isActive).length}</span></button>
@@ -3370,7 +3363,6 @@ function renderPult(root) {
   const rr = () => renderPult(root);
   const keepFocus = (id) => { const n = $('#' + id); if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); } };
   $$('[data-pt]', root).forEach((b) => b.onclick = () => { S.tab = b.dataset.pt; rr(); });
-  $$('[data-scope]', root).forEach((b) => b.onclick = () => { S.scope = b.dataset.scope; rr(); });
   $$('[data-stage]', root).forEach((b) => b.onclick = () => { const v = b.dataset.stage; S.stage = !v || (S.stage && S.stage.join() === v) ? null : v.split(','); rr(); });
   const lt = $('[data-later]', root); if (lt) lt.onclick = () => { S.showLater = !S.showLater; rr(); };
   const rb = $('[data-remind]', root); if (rb) rb.onclick = () => { abState.showRemind = !abState.showRemind; rr(); };
@@ -3578,7 +3570,7 @@ function statusCard(e) {
 function initChat() {
   const s14 = EX.style14; const pay = EX['pay-spasibo']; const rp = EX['rp-99'];
   chatState.msgs = [
-    { from: 'bot', time: '10:00', html: digestHTML(), btns: [{ l: 'Открыть Пульт', a: 'goto:pult' }, { l: 'Только мои', a: 'mine' }] },
+    { from: 'bot', time: '10:00', html: digestHTML(), btns: [{ l: 'Открыть статус по А/Б-тестам', a: 'goto:pult' }, { l: 'Только мои', a: 'mine' }] },
     { from: 'bot', time: '10:00', html: `<div class="cm-ev">${sevIcon('crit')}<b>Решение не записано уже 7 дней</b></div>Тест <a href="#" data-open="style14">${esc(s14.short)} №14</a> завершился на АБ-платформе 04.11. Результаты посчитаны: у трёх вариантов значимое снижение конверсии в «Стандарт», как и предполагала гипотеза.<div class="muted small mt-8">Владелец: ${s14.owner}. Если решения не будет до 13.11, напишу руководителю.</div>`, btns: [{ l: 'Записать решение', a: 'decide', primary: true }, { l: 'Показать результаты', a: 'open:style14' }, { l: 'Напомнить через 2 дня', a: 'snooze2' }] },
     { from: 'bot', time: '10:01', html: `<div class="cm-ev">${sevIcon('warn')}<b>Завтра включение без SD-заявки</b></div><a href="#" data-open="pay-spasibo">${esc(pay.short)}</a>: 12.11 по плану блоки 12, 9, 8, 7. Вы дежурная по включению на этой неделе. Значение в бете совпадает с веткой _beta, можно заводить.`, btns: [{ l: 'Создать SD', a: 'sd', primary: true }, { l: 'Перенести на день', a: 'move' }] },
     { from: 'bot', time: '10:01', html: `<div class="cm-ev">${sevIcon('warn')}<b>Пилот идёт 13 дней, решения о раскатке нет</b></div><a href="#" data-open="dep-switch">${esc(EX['dep-switch'].feature)}</a>. АБ по этой фиче не планируется: технический переезд. На пилотной группе 2 замечания, оба исправлены.`, btns: [{ l: 'Раскатать на всех по плану', a: 'pilotgo', primary: true }, { l: 'Продлить пилот на неделю', a: 'pilotext' }] },
